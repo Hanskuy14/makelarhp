@@ -15,6 +15,11 @@
     "Layar Retak":            1_500_000,
   };
 
+  /* ---------- IMEI tembak service constants (Part 6) ---------- */
+  const IMEI_TEMBAK_COST = 2_000_000;
+  const IMEI_TEMBAK_DAYS = 2;
+  const IMEI_BLOCK_CHANCE = 0.15;
+
   /* ---------- Upgrade catalog ---------- */
   const UPGRADES = [
     {
@@ -41,8 +46,14 @@
   function platformFeeRate() {
     return S().upgrades && S().upgrades.fbPaidAds ? 0.02 : 0.05;
   }
+  function isImeiUnlocking(item) {
+    return !!(item && item.imeiUnlock && item.imeiUnlock.status === "in-progress");
+  }
   function isLocked(item) {
-    return !!(item && item.repair && item.repair.status === "in-progress");
+    return !!(item && (
+      (item.repair && item.repair.status === "in-progress") ||
+      isImeiUnlocking(item)
+    ));
   }
 
 
@@ -69,6 +80,46 @@
     item.defect = mulus;
     item.hiddenDefect = null;
     window.FlippingTycoon.saveGame();
+  }
+
+  /* =========================================================
+   * Part 6 — IMEI block risk + Tembak IMEI day tick
+   * ========================================================= */
+  function applyDayTickToImeiUnlocks() {
+    const s = S();
+    (s.inventory || []).forEach((item) => {
+      const u = item.imeiUnlock;
+      if (u && u.status === "in-progress" && u.completesOnDay <= s.currentDay) {
+        finishImeiUnlock(item);
+      }
+    });
+  }
+
+  function finishImeiUnlock(item) {
+    if (item.imeiUnlock) item.imeiUnlock.status = "completed";
+    item.imeiStatus = "unlocked"; // permanent: immune to future blocks, value restored
+    showToast(`✅ IMEI ${item.name} berhasil ditembak! Sekarang aman dari blokir.`);
+    window.FlippingTycoon.saveGame();
+  }
+
+  /** 15% chance per day each Ex-Inter inventory unit gets its IMEI blocked. */
+  function processImeiBlockRisk() {
+    const s = S();
+    let blockedCount = 0;
+    (s.inventory || []).forEach((item) => {
+      if (!item.isExInter) return;
+      if (item.imeiStatus !== "ok") return;   // skip blocked / unlocked / unlocking
+      if (isLocked(item)) return;             // protected while in service
+      if (Math.random() < IMEI_BLOCK_CHANCE) {
+        item.imeiStatus = "blocked";
+        item.imeiBlockedOnDay = s.currentDay;
+        blockedCount++;
+      }
+    });
+    if (blockedCount > 0) {
+      showToast(`⚠️ ${blockedCount} unit Ex-Inter kena IMEI block hari ini! Cek Repair Center.`);
+    }
+    if (blockedCount > 0) window.FlippingTycoon.saveGame();
   }
 
 
@@ -99,11 +150,13 @@
 
     const tabs = document.createElement("div");
     tabs.className = "subtabs";
+    const blockedCount = (s.inventory || []).filter((it) => it.imeiStatus === "blocked").length;
     [{ id: "repairs", label: "Active Repairs", icon: "wrench" },
+     { id: "imei", label: "IMEI Service", icon: "skull-crossbones", badge: blockedCount },
      { id: "upgrades", label: "Upgrades & Perks", icon: "star" }].forEach((t) => {
       const btn = document.createElement("button");
       btn.className = `subtab ${s.repairView.activeTab === t.id ? "active" : ""}`;
-      btn.innerHTML = `<i class="fa-solid fa-${t.icon}"></i> ${t.label}`;
+      btn.innerHTML = `<i class="fa-solid fa-${t.icon}"></i> ${t.label}${t.badge ? ` <span class="subtab-badge">${t.badge}</span>` : ""}`;
       btn.addEventListener("click", () => {
         s.repairView.activeTab = t.id;
         window.FlippingTycoon.saveGame();
@@ -114,6 +167,7 @@
     wrap.appendChild(tabs);
 
     if (s.repairView.activeTab === "upgrades") wrap.appendChild(renderUpgradesTab());
+    else if (s.repairView.activeTab === "imei") wrap.appendChild(renderImeiTab());
     else wrap.appendChild(renderRepairsTab());
     return wrap;
   }
@@ -295,6 +349,221 @@
 
 
 
+  /* =========================================================
+   * IMEI Service tab (Part 6)
+   * ========================================================= */
+  function renderImeiTab() {
+    const wrap = document.createElement("div");
+    const items = S().inventory || [];
+
+    const inProgress = items.filter(isImeiUnlocking);
+    const blocked = items.filter((it) => it.imeiStatus === "blocked" && !isLocked(it));
+    const safeOk = items.filter((it) => it.isExInter && it.imeiStatus === "ok" && !isLocked(it));
+    const safeUnlocked = items.filter((it) => it.imeiStatus === "unlocked");
+
+    // Top info card explaining the service.
+    const info = document.createElement("div");
+    info.className = "fb-card imei-info";
+    info.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="upgrade-icon" style="background:#f3e8ff;color:#7e22ce">
+          <i class="fa-solid fa-skull-crossbones"></i>
+        </div>
+        <div>
+          <h3>Jasa Tembak IMEI (Underground)</h3>
+          <p class="text-sm text-gray-600 mt-1">
+            Khusus unit Ex-Inter yang IMEI-nya kena blokir Bea Cukai. Biaya
+            <b>${fmt(IMEI_TEMBAK_COST)}</b> per unit, proses
+            <b>${IMEI_TEMBAK_DAYS} hari</b>. Setelah selesai, IMEI ditembak ke
+            database resmi: <span class="text-emerald-700 font-semibold">imun dari blokir</span>
+            dan nilai pulih 100%.
+          </p>
+          <p class="text-xs text-amber-700 mt-2"><i class="fa-solid fa-triangle-exclamation"></i>
+            Setiap Next Day, ${Math.round(IMEI_BLOCK_CHANCE * 100)}% unit Ex-Inter di Inventory bisa kena blokir IMEI.
+          </p>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(info);
+
+    if (inProgress.length === 0 && blocked.length === 0 && safeOk.length === 0 && safeUnlocked.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "fb-card text-center py-12";
+      empty.innerHTML = `
+        <div class="w-16 h-16 mx-auto rounded-full bg-purple-50 flex items-center justify-center text-purple-500 text-2xl mb-3">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h3>Belum punya unit Ex-Inter</h3>
+        <p class="text-sm text-gray-500">Cari listing dengan tag "No Pajak" di Marketplace untuk margin gede (resiko IMEI block).</p>
+      `;
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    if (inProgress.length > 0) {
+      const sec = document.createElement("div");
+      sec.className = "fb-card";
+      sec.innerHTML = `<h3 class="mb-2"><i class="fa-solid fa-rotate text-purple-500"></i> Sedang Ditembak</h3>`;
+      inProgress.forEach((it) => sec.appendChild(renderImeiRow(it, "in-progress")));
+      wrap.appendChild(sec);
+    }
+    if (blocked.length > 0) {
+      const sec = document.createElement("div");
+      sec.className = "fb-card";
+      sec.innerHTML = `<h3 class="mb-2"><i class="fa-solid fa-signal-slash text-red-500"></i> IMEI Terblokir</h3>`;
+      blocked.forEach((it) => sec.appendChild(renderImeiRow(it, "blocked")));
+      wrap.appendChild(sec);
+    }
+    if (safeOk.length + safeUnlocked.length > 0) {
+      const sec = document.createElement("div");
+      sec.className = "fb-card";
+      sec.innerHTML = `<h3 class="mb-2"><i class="fa-solid fa-shield-halved text-emerald-500"></i> Status Ex-Inter</h3>`;
+      safeUnlocked.forEach((it) => sec.appendChild(renderImeiRow(it, "unlocked")));
+      safeOk.forEach((it) => sec.appendChild(renderImeiRow(it, "ok")));
+      wrap.appendChild(sec);
+    }
+    return wrap;
+  }
+
+  function renderImeiRow(item, status) {
+    const accent = item.accent || "#1c1c1e";
+    const iconName = item.icon === "tablet" ? "tablet-screen-button" : "mobile-screen-button";
+    const row = document.createElement("div");
+    row.className = "repair-row";
+
+    if (status === "in-progress") {
+      const u = item.imeiUnlock;
+      const remaining = Math.max(0, u.completesOnDay - S().currentDay);
+      row.innerHTML = `
+        <div class="repair-icon"><i class="fa-solid fa-${iconName} text-3xl" style="color:${accent}"></i></div>
+        <div class="repair-body">
+          <p class="repair-title">${item.name}</p>
+          <p class="repair-meta">${item.specs.ram}/${item.specs.rom} &middot; <b>Tembak IMEI in progress</b></p>
+          <p class="text-xs text-gray-500 mt-1">Mulai Day ${u.startDay} &middot; Selesai Day ${u.completesOnDay}</p>
+        </div>
+        <div class="repair-action">
+          <span class="imei-progress-badge"><i class="fa-solid fa-rotate fa-spin"></i> ${remaining === 0 ? "Selesai besok" : "Sisa " + remaining + " hari"}</span>
+          <p class="text-xs text-gray-500 mt-1">Bayar: ${fmt(u.paidFee)} via ${u.sourceBank}</p>
+        </div>
+      `;
+      return row;
+    }
+
+    if (status === "blocked") {
+      row.innerHTML = `
+        <div class="repair-icon"><i class="fa-solid fa-${iconName} text-3xl" style="color:${accent}"></i></div>
+        <div class="repair-body">
+          <p class="repair-title">${item.name}</p>
+          <p class="repair-meta">${item.specs.ram}/${item.specs.rom} &middot; ${item.specs.color}</p>
+          <div class="repair-defects">
+            <span class="market-badge bg-red-200 text-red-800"><i class="fa-solid fa-signal-slash"></i> IMEI Terblokir</span>
+            <span class="market-badge bg-rose-100 text-rose-700">Nilai -60%</span>
+          </div>
+        </div>
+        <div class="repair-action">
+          <p class="repair-cost">${fmt(IMEI_TEMBAK_COST)}</p>
+          <button class="repair-fix-btn imei-btn" data-id="${item.id}"><i class="fa-solid fa-bullseye"></i> Tembak IMEI</button>
+        </div>
+      `;
+      row.querySelector(".repair-fix-btn").addEventListener("click", () => openImeiModal(item));
+      return row;
+    }
+
+    // ok or unlocked
+    const isUnlocked = status === "unlocked";
+    const badgeClass = isUnlocked ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-800";
+    const badgeIcon = isUnlocked ? "shield-halved" : "circle-question";
+    const badgeText = isUnlocked ? "IMEI Aman (Tembakan)" : "Belum Diblokir";
+    row.innerHTML = `
+      <div class="repair-icon"><i class="fa-solid fa-${iconName} text-3xl" style="color:${accent}"></i></div>
+      <div class="repair-body">
+        <p class="repair-title">${item.name}</p>
+        <p class="repair-meta">${item.specs.ram}/${item.specs.rom} &middot; ${item.specs.color}</p>
+        <div class="repair-defects">
+          <span class="market-badge ${badgeClass}"><i class="fa-solid fa-${badgeIcon}"></i> ${badgeText}</span>
+        </div>
+      </div>
+      <div class="repair-action">
+        ${isUnlocked
+          ? `<span class="text-xs text-emerald-700 font-semibold"><i class="fa-solid fa-lock"></i> Imun blokir</span>`
+          : `<span class="text-xs text-amber-700 font-semibold"><i class="fa-solid fa-dice"></i> Resiko ${Math.round(IMEI_BLOCK_CHANCE*100)}%/hari</span>`}
+      </div>
+    `;
+    return row;
+  }
+
+  function openImeiModal(item) {
+    const modal = document.querySelector("#repair-modal");
+    const body = modal.querySelector("#repair-body");
+    const closeBtn = modal.querySelector("#repair-cancel");
+
+    const banks = ["Mandiri", "BCA", "BNI"];
+    const cost = IMEI_TEMBAK_COST;
+    const rows = banks.map((b) => {
+      const balance = S().bankBalances[b] || 0;
+      const enough = balance >= cost;
+      return `
+        <button class="relist-bank-row" data-bank="${b}" ${enough ? "" : "disabled"}>
+          <div class="rb-left"><span class="rb-bank">${b}</span><span class="rb-tier">Saldo: ${fmt(balance)}</span></div>
+          <div class="rb-right"><span class="rb-fee">${enough ? "Cukup" : "Saldo kurang"}</span><span class="rb-net" style="color:#b91c1c"><b>-${fmt(cost)}</b></span></div>
+        </button>`;
+    }).join("");
+
+    body.innerHTML = `
+      <div class="relist-summary" style="border-left: 4px solid #a855f7">
+        <p class="text-xs text-gray-500">Item</p>
+        <p class="font-semibold">${item.name} &middot; ${item.specs.ram}/${item.specs.rom}</p>
+        <p class="text-xs text-gray-500 mt-2">Status</p>
+        <p class="font-semibold text-rose-700"><i class="fa-solid fa-signal-slash"></i> IMEI Terblokir (No Signal)</p>
+        <p class="text-xs text-gray-500 mt-2">Jasa Tembak IMEI (Underground)</p>
+        <p class="text-xl font-bold">${fmt(cost)}</p>
+        <p class="text-xs text-purple-700 mt-1">
+          <i class="fa-solid fa-clock"></i> Proses ${IMEI_TEMBAK_DAYS} hari kerja. Setelah selesai, unit IMUN dari blokir & nilai pulih 100%.
+        </p>
+      </div>
+      <p class="text-sm font-semibold mb-2">Bayar dari rekening mana?</p>
+      <div class="relist-banks">${rows}</div>
+    `;
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    const close = () => { modal.classList.add("hidden"); modal.classList.remove("flex"); };
+    closeBtn.onclick = close;
+
+    body.querySelectorAll(".relist-bank-row").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        startImeiUnlock(item, btn.dataset.bank);
+        close();
+        window.FlippingTycoon.renderActivePage();
+      });
+    });
+  }
+
+  function startImeiUnlock(item, sourceBank) {
+    const s = S();
+    if ((s.bankBalances[sourceBank] || 0) < IMEI_TEMBAK_COST) return;
+    s.bankBalances[sourceBank] -= IMEI_TEMBAK_COST;
+    s.bankHistories[sourceBank].push({
+      type: "DEBIT",
+      amount: IMEI_TEMBAK_COST,
+      balanceAfter: s.bankBalances[sourceBank],
+      description: `Tembak IMEI (Underground): ${item.name}`,
+      category: "imei-unlock",
+      day: s.currentDay,
+      ts: Date.now(),
+    });
+    item.imeiUnlock = {
+      startDay: s.currentDay,
+      completesOnDay: s.currentDay + IMEI_TEMBAK_DAYS,
+      paidFee: IMEI_TEMBAK_COST,
+      sourceBank,
+      status: "in-progress",
+    };
+    window.FlippingTycoon.saveGame();
+    showToast(`Tembak IMEI dimulai. ${item.name} selesai Day ${item.imeiUnlock.completesOnDay}.`);
+  }
+
+
   /* ---------- Upgrades tab ---------- */
   function renderUpgradesTab() {
     const wrap = document.createElement("div");
@@ -413,9 +682,15 @@
   window.Repair = {
     renderRepairCenterPage,
     applyDayTickToRepairs,
+    applyDayTickToImeiUnlocks,
+    processImeiBlockRisk,
     platformFeeRate,
     isLocked,
+    isImeiUnlocking,
     REPAIR_COSTS,
     UPGRADES,
+    IMEI_TEMBAK_COST,
+    IMEI_TEMBAK_DAYS,
+    IMEI_BLOCK_CHANCE,
   };
 })();

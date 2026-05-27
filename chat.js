@@ -40,6 +40,9 @@
     if (!Array.isArray(listing.chatLog) || listing.chatLog.length === 0) {
       const opener = openerMessage(listing);
       pushMessage(listing, "seller", opener);
+      if (listing.isExInter) {
+        pushMessage(listing, "system", `⚠️ Listing ini Ex-Inter / No Pajak. Murah, tapi IMEI bisa kena blokir signal.`);
+      }
     } else {
       listing.chatLog.forEach((m) => renderBubble(m));
     }
@@ -130,11 +133,15 @@
 
   /* ---------- AI dialogue ---------- */
   function openerMessage(listing) {
-    return [
+    const lines = [
       `Halo bro/sis! 👋 Saya jual ${listing.name} ${listing.specs.ram}/${listing.specs.rom} warna ${listing.specs.color}.`,
       `Kelengkapan ${listing.completeness.type}, kondisi ${listing.defect.type}.`,
-      `Harga net ${fmt(listing.finalPrice)} ya. Serius minat? 🙏`,
-    ].join("\n");
+    ];
+    if (listing.isExInter) {
+      lines.push(`Ini barang Ex-Inter ya bro, no pajak — makanya harga miring banget. Tau resikonya kan? 😏`);
+    }
+    lines.push(`Harga net ${fmt(listing.finalPrice)} ya. Serius minat? 🙏`);
+    return lines.join("\n");
   }
 
   function haggleSuccessLine(listing, newPrice) {
@@ -440,6 +447,9 @@
         buyDay: s.currentDay,
         paymentMethod: listing.paymentMethod || "Transfer",
         sourceBank,
+        // Part 6: black-market provenance & IMEI status tracking.
+        isExInter: !!listing.isExInter,
+        imeiStatus: listing.isExInter ? "ok" : null,
       });
 
       window.Market.removeListing(listing.listingId);

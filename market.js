@@ -32,14 +32,16 @@
    * finalPrice = basePrice * completeness.multiplier
    *                       * defect.multiplier
    *                       * marketVariance(±5%)
+   *                       * exInterMultiplier (0.7 if Ex-Inter, else 1.0)
    * Rounded to nearest Rp 50.000 to feel realistic.
    */
-  function computeFinalPrice(basePrice, completeness, defect, brand) {
+  function computeFinalPrice(basePrice, completeness, defect, brand, isExInter) {
     const variance = 0.95 + Math.random() * 0.10; // 0.95 .. 1.05
     const newsMul = window.FlippingTycoon
       ? window.FlippingTycoon.getNewsMultiplierForBrand(brand)
       : 1.0;
-    const raw = basePrice * completeness.multiplier * defect.multiplier * variance * newsMul;
+    const exInterMul = isExInter ? 0.70 : 1.0; // Part 6: 30% off basePrice for "No Pajak" units
+    const raw = basePrice * completeness.multiplier * defect.multiplier * variance * newsMul * exInterMul;
     return Math.round(raw / 50_000) * 50_000;
   }
 
@@ -53,7 +55,11 @@
       ? window.FlippingTycoon.getNewsMultiplierForBrand(gadget.brand)
       : 1.0;
     // Stable resale estimate (no random variance for selling, but apply news + slight scout-buyer bonus)
-    const raw = gadget.basePrice * completeness.multiplier * defect.multiplier * newsMul * 1.02;
+    let raw = gadget.basePrice * completeness.multiplier * defect.multiplier * newsMul * 1.02;
+    // Part 6: Blocked IMEI (Ex-Inter) tanks resale value by 60%.
+    if (inventoryItem.imeiStatus === "blocked") {
+      raw *= 0.40;
+    }
     return Math.round(raw / 50_000) * 50_000;
   }
 
@@ -62,7 +68,9 @@
     const completeness = pick(COMPLETENESS_OPTIONS);
     const defect = pick(DEFECT_OPTIONS);
     const sellerName = pick(SELLER_NAMES);
-    const finalPrice = computeFinalPrice(gadget.basePrice, completeness, defect, gadget.brand);
+    // Part 6: 20% chance the seller is moving Ex-Inter (No Pajak) units.
+    const isExInter = Math.random() < 0.20;
+    const finalPrice = computeFinalPrice(gadget.basePrice, completeness, defect, gadget.brand, isExInter);
     const avatarColor = AVATAR_COLORS[randInt(0, AVATAR_COLORS.length - 1)];
 
     return {
@@ -77,6 +85,7 @@
       accent: gadget.accent,
       completeness,           // { type, short, multiplier, haggleBonus, desc }
       defect,                 // { type, short, multiplier, severity, haggleAcceptRate, desc }
+      isExInter,              // Part 6: black-market unit, IMEI block risk after purchase
       finalPrice,
       seller: {
         name: sellerName,
@@ -84,20 +93,23 @@
         color: avatarColor,
         location: pick(["Jakarta", "Bandung", "Surabaya", "Bekasi", "Tangerang", "Depok", "Yogyakarta"]),
       },
-      description: makeDescription(gadget, completeness, defect),
+      description: makeDescription(gadget, completeness, defect, isExInter),
       haggleState: null,      // null | "accepted" | "rejected"
       currentPrice: finalPrice, // may drop after a successful haggle
     };
   }
 
-  function makeDescription(gadget, completeness, defect) {
+  function makeDescription(gadget, completeness, defect, isExInter) {
     const lines = [
       `Dijual ${gadget.brand} ${gadget.model} ${gadget.specs.ram}/${gadget.specs.rom} warna ${gadget.specs.color}.`,
       `Kelengkapan: ${completeness.type} - ${completeness.desc}`,
       `Kondisi: ${defect.type} - ${defect.desc}`,
       `Tahun rilis ${gadget.year}. Bisa COD area kota, atau kirim pakai ekspedisi (ongkir DTG).`,
-      `Serius minat boleh PM langsung, no afgan no php ya bro/sis 🙏`,
     ];
+    if (isExInter) {
+      lines.push(`⚠️ Status: EX-INTER (No Pajak) — masuk dari jalur tidak resmi. Harga miring tapi RESIKO IMEI bisa kena blokir signal sewaktu-waktu. No retur, no garansi.`);
+    }
+    lines.push(`Serius minat boleh PM langsung, no afgan no php ya bro/sis 🙏`);
     return lines.join("\n");
   }
 
@@ -168,11 +180,12 @@
 
     s.dailyListings.forEach((listing) => {
       const card = document.createElement("div");
-      card.className = "marketplace-card";
+      card.className = "marketplace-card" + (listing.isExInter ? " ex-inter" : "");
       card.innerHTML = `
         <div class="marketplace-thumb">
           ${gadgetIconHtml(listing, "text-6xl")}
           <span class="marketplace-thumb-tag">${listing.brand}</span>
+          ${listing.isExInter ? `<span class="ex-inter-tag"><i class="fa-solid fa-skull-crossbones"></i> No Pajak</span>` : ""}
         </div>
         <div class="marketplace-card-body">
           <p class="marketplace-price">${formatRupiah(listing.finalPrice)}</p>
@@ -181,6 +194,7 @@
           <div class="marketplace-badges">
             <span class="market-badge bg-blue-100 text-blue-700">${listing.completeness.short}</span>
             <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${listing.defect.short}</span>
+            ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700">Ex-Inter</span>` : ""}
           </div>
           <p class="marketplace-seller">
             <i class="fa-solid fa-location-dot"></i> ${listing.seller.location}
@@ -211,9 +225,10 @@
 
       <div class="product-detail-grid">
         <!-- Hero -->
-        <div class="product-hero">
+        <div class="product-hero${listing.isExInter ? " ex-inter" : ""}">
           ${gadgetIconHtml(listing, "text-9xl")}
           <span class="product-hero-tag">${listing.brand} &middot; ${listing.year}</span>
+          ${listing.isExInter ? `<span class="ex-inter-tag big"><i class="fa-solid fa-skull-crossbones"></i> Ex-Inter / No Pajak</span>` : ""}
         </div>
 
         <!-- Right column -->
@@ -225,7 +240,18 @@
           <div class="product-badges">
             <span class="market-badge bg-blue-100 text-blue-700">${listing.completeness.type}</span>
             <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${listing.defect.type}</span>
+            ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700"><i class="fa-solid fa-triangle-exclamation"></i> Ex-Inter</span>` : ""}
           </div>
+
+          ${listing.isExInter ? `
+            <div class="ex-inter-warning">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <div>
+                <p class="font-bold">Black Market Unit</p>
+                <p>Harga miring (-30%) tapi unit ini masuk dari jalur ilegal. Setiap hari ada risiko 15% IMEI diblokir & sinyal mati. Bisa "ditembak" di Repair Center kalau kena.</p>
+              </div>
+            </div>
+          ` : ""}
 
           <button id="pd-message" class="message-seller-btn">
             <i class="fa-brands fa-facebook-messenger"></i> Message Seller

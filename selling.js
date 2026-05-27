@@ -112,6 +112,11 @@
         icon: inventoryItem.icon,
         buyPrice: inventoryItem.buyPrice,
         buyDay: inventoryItem.buyDay,
+        // Part 6: provenance & IMEI status follow the item across listing/cancel cycles.
+        isExInter: !!inventoryItem.isExInter,
+        imeiStatus: inventoryItem.imeiStatus || null,
+        imeiUnlock: inventoryItem.imeiUnlock || null,
+        imeiBlockedOnDay: inventoryItem.imeiBlockedOnDay || null,
       },
       originalItemId: inventoryItem.id,
       askingPrice,
@@ -148,6 +153,11 @@
       icon: listing.itemSnapshot.icon,
       buyPrice: listing.itemSnapshot.buyPrice,
       buyDay: listing.itemSnapshot.buyDay,
+      // Part 6: restore Ex-Inter / IMEI fields so block risk applies again.
+      isExInter: !!listing.itemSnapshot.isExInter,
+      imeiStatus: listing.itemSnapshot.imeiStatus || null,
+      imeiUnlock: listing.itemSnapshot.imeiUnlock || null,
+      imeiBlockedOnDay: listing.itemSnapshot.imeiBlockedOnDay || null,
     });
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     window.FlippingTycoon.saveGame();
@@ -230,11 +240,16 @@
     const accent = it.accent || "#1c1c1e";
     const iconName = it.icon === "tablet" ? "tablet-screen-button" : "mobile-screen-button";
     const card = document.createElement("div");
-    card.className = "active-listing-card";
+    card.className = "active-listing-card" + (it.isExInter ? " ex-inter" : "");
 
     const ratio = listing.askingPrice / listing.suggestedPrice;
     const priceClass = ratio <= 1.0 ? "fair" : ratio <= 1.2 ? "stretch" : "greedy";
     const priceLabel = ratio <= 1.0 ? "Fair price" : ratio <= 1.2 ? "Stretch" : "Greedy";
+
+    // Walk-in eligibility hint when a storefront is rented (Part 6).
+    const re = S().realEstate;
+    const storeRented = !!(re && re.rented);
+    const walkInEligible = storeRented && ratio <= 1.10;
 
     let statusBlock = "";
     if (listing.negotiationState === "offer-pending" && listing.currentOffer) {
@@ -265,19 +280,46 @@
       `;
     }
 
+    // Walk-in banner: tells the player this listing will be auto-bought next day.
+    let walkInBanner = "";
+    if (walkInEligible && listing.negotiationState !== "offer-pending") {
+      walkInBanner = `
+        <div class="al-walkin-banner">
+          <i class="fa-solid fa-shop"></i>
+          <span>Walk-in eligible: bakal disambar pelanggan toko di Next Day (asking ≤ 110% suggested).</span>
+        </div>
+      `;
+    } else if (storeRented && ratio > 1.10 && listing.negotiationState !== "offer-pending") {
+      walkInBanner = `
+        <div class="al-walkin-banner not-eligible">
+          <i class="fa-solid fa-shop-slash"></i>
+          <span>Tidak walk-in eligible (asking ${Math.round((ratio - 1) * 100)}% di atas suggested).</span>
+        </div>
+      `;
+    }
+
+    // Snapshot-side IMEI/Ex-Inter badges
+    const extraBadges = [];
+    if (it.isExInter) extraBadges.push(`<span class="market-badge bg-rose-100 text-rose-700"><i class="fa-solid fa-skull-crossbones"></i> Ex-Inter</span>`);
+    if (it.imeiStatus === "blocked") extraBadges.push(`<span class="market-badge bg-red-200 text-red-800"><i class="fa-solid fa-signal-slash"></i> IMEI Terblokir</span>`);
+    else if (it.imeiStatus === "unlocked") extraBadges.push(`<span class="market-badge bg-emerald-100 text-emerald-700"><i class="fa-solid fa-shield-halved"></i> IMEI Aman</span>`);
+
     card.innerHTML = `
       <div class="al-thumb">
         <i class="fa-solid fa-${iconName} text-5xl" style="color:${accent}"></i>
         <span class="al-thumb-tag">${it.brand || "—"}</span>
         <span class="al-price-tag al-price-${priceClass}">${priceLabel}</span>
+        ${it.isExInter ? `<span class="ex-inter-tag small"><i class="fa-solid fa-skull-crossbones"></i> No Pajak</span>` : ""}
       </div>
       <div class="al-body">
         <p class="al-title">${it.name}</p>
         <p class="al-meta">${it.specs.ram}/${it.specs.rom} &middot; ${it.specs.color} &middot; ${it.defect.short}</p>
+        ${extraBadges.length ? `<div class="inv-badges" style="margin-top:4px">${extraBadges.join("")}</div>` : ""}
         <div class="al-prices">
           <div><span>Asking</span><b>${fmt(listing.askingPrice)}</b></div>
           <div><span>Suggested</span><span>${fmt(listing.suggestedPrice)}</span></div>
         </div>
+        ${walkInBanner}
         ${statusBlock}
         <div class="al-actions">
           <button class="al-cancel-btn" data-id="${listing.listingId}">

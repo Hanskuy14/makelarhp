@@ -105,7 +105,7 @@
   /* ---------- Owned-item card ---------- */
   function renderInventoryCard(item) {
     const card = document.createElement("div");
-    card.className = "inventory-card" + (isLocked(item) ? " locked" : "");
+    card.className = "inventory-card" + (isLocked(item) ? " locked" : "") + (item.isExInter ? " ex-inter" : "");
 
     const marketPrice = window.Market.computeCurrentMarketPrice(item);
     const buyPrice = item.buyPrice || 0;
@@ -113,30 +113,72 @@
     const profitClass = grossProfit > 0 ? "text-emerald-600" : grossProfit < 0 ? "text-rose-600" : "text-gray-500";
     const locked = isLocked(item);
     const justRepaired = item.previousDefect && item.defect.severity === 0 && !locked;
+    const imeiUnlocking = !!(item.imeiUnlock && item.imeiUnlock.status === "in-progress");
+    const imeiBlocked = item.imeiStatus === "blocked";
+    const imeiUnlocked = item.imeiStatus === "unlocked";
+
+    // Build the badge cluster shown above the price grid.
+    const condBadges = [
+      `<span class="market-badge bg-blue-100 text-blue-700">${item.completeness.short}</span>`,
+      `<span class="market-badge ${item.defect.severity === 0 ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-800"}">${item.defect.short}</span>`,
+    ];
+    if (item.isExInter) {
+      condBadges.push(`<span class="market-badge bg-rose-100 text-rose-700"><i class="fa-solid fa-skull-crossbones"></i> Ex-Inter</span>`);
+    }
+    if (imeiBlocked) {
+      condBadges.push(`<span class="market-badge bg-red-200 text-red-800"><i class="fa-solid fa-signal"></i> IMEI Terblokir</span>`);
+    } else if (imeiUnlocked) {
+      condBadges.push(`<span class="market-badge bg-emerald-100 text-emerald-700"><i class="fa-solid fa-shield-halved"></i> IMEI Aman (Tembakan)</span>`);
+    } else if (imeiUnlocking) {
+      condBadges.push(`<span class="market-badge bg-purple-100 text-purple-700"><i class="fa-solid fa-rotate fa-spin"></i> Tembak IMEI...</span>`);
+    } else if (item.isExInter) {
+      condBadges.push(`<span class="market-badge bg-yellow-100 text-yellow-800"><i class="fa-solid fa-signal"></i> IMEI Belum Diblokir</span>`);
+    }
+
+    // Thumb-corner overlay tags.
+    const thumbOverlays = [];
+    if (item.isExInter) {
+      thumbOverlays.push(`<span class="ex-inter-tag"><i class="fa-solid fa-skull-crossbones"></i> No Pajak</span>`);
+    }
+    if (imeiBlocked) {
+      thumbOverlays.push(`<span class="imei-block-tag"><i class="fa-solid fa-signal-slash"></i> IMEI Terblokir</span>`);
+    }
+
+    // Listing button label & state.
+    let buttonHtml;
+    if (locked) {
+      const reason = imeiUnlocking
+        ? `Tembak IMEI (selesai Day ${item.imeiUnlock.completesOnDay})`
+        : `In Repair until Day ${item.repair.completesOnDay}`;
+      buttonHtml = `<button class="relist-btn" disabled><i class="fa-solid fa-lock"></i> Locked: ${reason}</button>`;
+    } else if (imeiBlocked) {
+      buttonHtml = `<button class="relist-btn warn" data-id="${item.id}"><i class="fa-solid fa-tag"></i> List Anyway (-60% nilai)</button>`;
+    } else {
+      buttonHtml = `<button class="relist-btn" data-id="${item.id}"><i class="fa-solid fa-tag"></i> List on Marketplace</button>`;
+    }
 
     card.innerHTML = `
       <div class="inv-thumb">
         ${gadgetIconHtml(item, "text-6xl")}
         <span class="inv-thumb-tag">${item.brand || "—"}</span>
         ${item.hiddenDefect ? `<span class="inv-hidden-defect" title="${item.hiddenDefect}"><i class="fa-solid fa-triangle-exclamation"></i></span>` : ""}
-        ${locked ? `<span class="inv-repair-badge"><i class="fa-solid fa-screwdriver-wrench"></i> In Repair</span>` : ""}
+        ${locked && !imeiUnlocking ? `<span class="inv-repair-badge"><i class="fa-solid fa-screwdriver-wrench"></i> In Repair</span>` : ""}
+        ${imeiUnlocking ? `<span class="inv-imei-unlocking-badge"><i class="fa-solid fa-rotate fa-spin"></i> Tembak IMEI</span>` : ""}
         ${justRepaired ? `<span class="inv-repaired-badge"><i class="fa-solid fa-sparkles"></i> Repaired</span>` : ""}
+        ${thumbOverlays.join("")}
       </div>
       <div class="inv-body">
         <p class="inv-title">${item.name}</p>
         <p class="inv-meta">${item.specs.ram} / ${item.specs.rom} &middot; ${item.specs.color}</p>
         <div class="inv-badges">
-          <span class="market-badge bg-blue-100 text-blue-700">${item.completeness.short}</span>
-          <span class="market-badge ${item.defect.severity === 0 ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-800"}">${item.defect.short}</span>
+          ${condBadges.join("")}
         </div>
         <div class="inv-prices">
           <div><span class="inv-prices-label">Beli (D${item.buyDay})</span><span>${fmt(buyPrice)}</span></div>
           <div><span class="inv-prices-label">Suggested Price</span><span class="font-bold">${fmt(marketPrice)}</span></div>
           <div><span class="inv-prices-label">Margin Kotor</span><span class="${profitClass} font-semibold">${grossProfit >= 0 ? "+" : ""}${fmt(grossProfit)}</span></div>
         </div>
-        ${locked
-          ? `<button class="relist-btn" disabled><i class="fa-solid fa-lock"></i> Locked: In Repair until Day ${item.repair.completesOnDay}</button>`
-          : `<button class="relist-btn" data-id="${item.id}"><i class="fa-solid fa-tag"></i> List on Marketplace</button>`}
+        ${buttonHtml}
       </div>
     `;
     if (!locked) {
