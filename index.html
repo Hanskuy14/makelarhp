@@ -189,6 +189,16 @@
             <i class="sidebar-icon fa-solid fa-shop text-fuchsia-500"></i>
             <span>Real Estate</span>
           </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="batam">
+            <i class="sidebar-icon fa-solid fa-ship text-cyan-600"></i>
+            <span>Batam Supplier</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="accessories">
+            <i class="sidebar-icon fa-solid fa-box-open text-orange-500"></i>
+            <span>Toko Aksesoris</span>
+          </button>
         </div>
 
         <hr class="my-3 border-gray-300" />
@@ -429,6 +439,48 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       BATAM SUPPLIER MODAL (Order Cargo / Pay Customs Fine)
+  ============================================================= -->
+  <div id="batam-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-ship"></i>
+        </div>
+        <div>
+          <h3 id="batam-title" class="text-lg font-bold">Batam Syndicate</h3>
+          <p id="batam-subtitle" class="text-xs text-gray-500">Pesan kargo dari Batam, harga miring.</p>
+        </div>
+      </div>
+      <div id="batam-body"></div>
+      <div class="modal-actions">
+        <button id="batam-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ACCESSORIES SHOP MODAL (Buy OEM Box & Charger Kit)
+  ============================================================= -->
+  <div id="accessories-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-box-open"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">OEM Box &amp; Charger Kit</h3>
+          <p class="text-xs text-gray-500">Repack jadi Fullset &middot; nilai naik instan.</p>
+        </div>
+      </div>
+      <div id="accessories-body"></div>
+      <div class="modal-actions">
+        <button id="accessories-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="gadgets.js"></script>
   <script src="market.js"></script>
   <script src="banking.js"></script>
@@ -436,6 +488,8 @@
   <script src="selling.js"></script>
   <script src="inventory.js"></script>
   <script src="realestate.js"></script>
+  <script src="batam.js"></script>
+  <script src="accessories.js"></script>
   <script src="chat.js"></script>
   <script src="script.js"></script>
 </body>

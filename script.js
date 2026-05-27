@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 6,
+      version: 7,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -45,6 +45,8 @@ function createDefaultState() {
       evictedOnDay: null,
       walkInsHistory: [],
     },
+    batamCargo: [],                     // Part 7: Batam Supplier shipments
+    batamHistory: [],                   // Part 7: confiscation / delivered log
   };
 }
 
@@ -135,6 +137,11 @@ const State = {
         }
       });
       this.data.meta.version = 6;
+    }
+    if (version < 7) {
+      if (!Array.isArray(this.data.batamCargo)) this.data.batamCargo = [];
+      if (!Array.isArray(this.data.batamHistory)) this.data.batamHistory = [];
+      this.data.meta.version = 7;
     }
   },
 };
@@ -272,6 +279,22 @@ function renderSidebar() {
       badge.remove();
     }
   }
+  // Customs alert badge on Batam Supplier link
+  const batamBtn = document.querySelector('.sidebar-nav[data-page="batam"]');
+  if (batamBtn) {
+    let badge = batamBtn.querySelector(".sidebar-badge");
+    const customs = window.Batam ? window.Batam.customsAlertCount() : 0;
+    if (customs > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "sidebar-badge";
+        batamBtn.appendChild(badge);
+      }
+      badge.textContent = customs;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
 }
 
 function setActivePage(page) {
@@ -304,6 +327,12 @@ function renderActivePage() {
       break;
     case "real-estate":
       container.appendChild(window.RealEstate ? window.RealEstate.renderRealEstatePage() : renderPlaceholder("Real Estate", "shop", "Loading..."));
+      break;
+    case "batam":
+      container.appendChild(window.Batam ? window.Batam.renderBatamPage() : renderPlaceholder("Batam Supplier", "ship", "Loading..."));
+      break;
+    case "accessories":
+      container.appendChild(window.Accessories ? window.Accessories.renderAccessoriesPage() : renderPlaceholder("Toko Aksesoris", "box-open", "Loading..."));
       break;
     default: container.appendChild(renderNewsFeedPage());
   }
@@ -413,6 +442,7 @@ async function advanceToNextDay() {
   if (window.Repair) window.Repair.applyDayTickToRepairs(); // finish in-progress repairs
   if (window.Repair) window.Repair.applyDayTickToImeiUnlocks(); // finish IMEI tembak unlocks
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
+  if (window.Batam) window.Batam.applyDayTickToCargo();         // Part 7: arrivals + customs deadlines
   if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
   if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
   if (window.Selling) window.Selling.processNextDayOffers(); // roll inbound buyer offers
