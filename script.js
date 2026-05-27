@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 5,
+      version: 6,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -36,6 +36,15 @@ function createDefaultState() {
     repairView: { activeTab: "repairs" },
     activeListings: [],                 // Part 5: items the player put up for sale
     inventoryView: { activeTab: "owned" },
+    realEstate: {                       // Part 6: storefront rental
+      rented: false,
+      store: null,
+      rentSince: null,
+      daysRented: 0,
+      totalPaid: 0,
+      evictedOnDay: null,
+      walkInsHistory: [],
+    },
   };
 }
 
@@ -98,6 +107,34 @@ const State = {
       if (!Array.isArray(this.data.activeListings)) this.data.activeListings = [];
       if (!this.data.inventoryView) this.data.inventoryView = { activeTab: "owned" };
       this.data.meta.version = 5;
+    }
+    if (version < 6) {
+      if (!this.data.realEstate) {
+        this.data.realEstate = {
+          rented: false,
+          store: null,
+          rentSince: null,
+          daysRented: 0,
+          totalPaid: 0,
+          evictedOnDay: null,
+          walkInsHistory: [],
+        };
+      }
+      // Backfill IMEI fields for legacy inventory items.
+      (this.data.inventory || []).forEach((it) => {
+        if (typeof it.isExInter === "undefined") it.isExInter = false;
+        if (typeof it.imeiStatus === "undefined") it.imeiStatus = it.isExInter ? "ok" : null;
+      });
+      // Backfill snapshots in active listings.
+      (this.data.activeListings || []).forEach((l) => {
+        if (l.itemSnapshot) {
+          if (typeof l.itemSnapshot.isExInter === "undefined") l.itemSnapshot.isExInter = false;
+          if (typeof l.itemSnapshot.imeiStatus === "undefined") {
+            l.itemSnapshot.imeiStatus = l.itemSnapshot.isExInter ? "ok" : null;
+          }
+        }
+      });
+      this.data.meta.version = 6;
     }
   },
 };
@@ -265,6 +302,9 @@ function renderActivePage() {
     case "repair":
       container.appendChild(window.Repair ? window.Repair.renderRepairCenterPage() : renderPlaceholder("Repair Center", "screwdriver-wrench", "Loading..."));
       break;
+    case "real-estate":
+      container.appendChild(window.RealEstate ? window.RealEstate.renderRealEstatePage() : renderPlaceholder("Real Estate", "shop", "Loading..."));
+      break;
     default: container.appendChild(renderNewsFeedPage());
   }
 }
@@ -371,6 +411,10 @@ async function advanceToNextDay() {
   State.data.currentDay = nextDay;
   generateDailyNews();                 // new news first so listings can apply its multiplier
   if (window.Repair) window.Repair.applyDayTickToRepairs(); // finish in-progress repairs
+  if (window.Repair) window.Repair.applyDayTickToImeiUnlocks(); // finish IMEI tembak unlocks
+  if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
+  if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
+  if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
   if (window.Selling) window.Selling.processNextDayOffers(); // roll inbound buyer offers
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
