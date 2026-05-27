@@ -79,6 +79,16 @@
     item.previousDefect = item.defect;
     item.defect = mulus;
     item.hiddenDefect = null;
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "success",
+        title: "Repair Complete!",
+        message: `Repair of ${item.name} finished — sekarang Mulus.`,
+        actionPage: "inventory",
+        actor: "Repair Center",
+        icon: "screwdriver-wrench",
+      });
+    }
     window.FlippingTycoon.saveGame();
   }
 
@@ -99,6 +109,16 @@
     if (item.imeiUnlock) item.imeiUnlock.status = "completed";
     item.imeiStatus = "unlocked"; // permanent: immune to future blocks, value restored
     showToast(`✅ IMEI ${item.name} berhasil ditembak! Sekarang aman dari blokir.`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "success",
+        title: "IMEI Unlock Complete",
+        message: `Tembak IMEI ${item.name} sukses. Unit aman dari blokir & nilai pulih 100%.`,
+        actionPage: "repair",
+        actor: "IMEI Service",
+        icon: "shield-halved",
+      });
+    }
     window.FlippingTycoon.saveGame();
   }
 
@@ -114,6 +134,16 @@
         item.imeiStatus = "blocked";
         item.imeiBlockedOnDay = s.currentDay;
         blockedCount++;
+        if (window.Notifications) {
+          window.Notifications.add({
+            type: "alert",
+            title: "ALERT: IMEI Blocked",
+            message: `${item.name} kena blokir IMEI! Nilai pasar -60%. Tembak di Repair Center sebelum nilai turun lebih jauh.`,
+            actionPage: "repair",
+            actor: "Bea Cukai",
+            icon: "signal-slash",
+          });
+        }
       }
     });
     if (blockedCount > 0) {

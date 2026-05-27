@@ -135,10 +135,11 @@
         <button class="fb-icon-btn" title="Messenger">
           <i class="fa-brands fa-facebook-messenger"></i>
         </button>
-        <button class="fb-icon-btn relative" title="Notifications">
+        <button class="fb-icon-btn relative" title="Notifications" id="notif-bell-btn">
           <i class="fa-solid fa-bell"></i>
-          <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">3</span>
+          <span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
         </button>
+        <div id="notif-dropdown" class="hidden notif-dropdown" role="dialog" aria-label="Notifications"></div>
         <button class="fb-icon-btn" title="Profile">
           <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
             P
@@ -198,6 +199,11 @@
           <button class="sidebar-link sidebar-nav" data-page="accessories">
             <i class="sidebar-icon fa-solid fa-box-open text-orange-500"></i>
             <span>Toko Aksesoris</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="friends">
+            <i class="sidebar-icon fa-solid fa-user-group text-indigo-500"></i>
+            <span>Friends</span>
           </button>
         </div>
 
@@ -490,6 +496,8 @@
   <script src="realestate.js"></script>
   <script src="batam.js"></script>
   <script src="accessories.js"></script>
+  <script src="notifications.js"></script>
+  <script src="friends.js"></script>
   <script src="chat.js"></script>
   <script src="script.js"></script>
 </body>

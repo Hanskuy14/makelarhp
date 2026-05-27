@@ -241,6 +241,16 @@
       paidBank: null,
     };
     showToast(`🚨 Kargo ${cargo.id.slice(-4)} kena Red Line Bea Cukai!`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "warning",
+        title: "Red Line Bea Cukai!",
+        message: `Kargo ${cargo.id.slice(-4)} (${cargo.size} unit) kena Red Line. Bayar denda ${fmt(cargo.customs.fineAmount)} sebelum Day ${cargo.customs.deadlineDay} atau seluruh kargo disita.`,
+        actionPage: "batam",
+        actor: "Bea Cukai",
+        icon: "circle-exclamation",
+      });
+    }
   }
 
   function deliverCargo(cargo, viaCustomsPaid) {
@@ -282,6 +292,16 @@
     });
     if (s.batamHistory.length > 20) s.batamHistory.pop();
     showToast(`✅ Kargo tiba: ${cargo.size} unit masuk ke Inventory.`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "success",
+        title: viaCustomsPaid ? "Kargo Tiba (Setelah Bayar Customs)" : "Kargo Tiba",
+        message: `${cargo.size} unit dari Batam sudah masuk Inventory${viaCustomsPaid ? " setelah customs dibayar" : ""}. Cek statusnya — semua tagged Ex-Inter.`,
+        actionPage: "inventory",
+        actor: "Batam Syndicate",
+        icon: "ship",
+      });
+    }
   }
 
   function confiscateCargo(cargo) {
@@ -299,6 +319,16 @@
     });
     if (s.batamHistory.length > 20) s.batamHistory.pop();
     showToast(`💀 Kargo ${cargo.id.slice(-4)} disita Bea Cukai!`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "alert",
+        title: "Kargo Disita!",
+        message: `Kargo ${cargo.id.slice(-4)} (${cargo.size} unit, modal ${fmt(cargo.totalCost)}) DISITA Bea Cukai. Modal hangus permanen.`,
+        actionPage: "batam",
+        actor: "Bea Cukai",
+        icon: "skull",
+      });
+    }
   }
 
   function archiveOldCargos() {

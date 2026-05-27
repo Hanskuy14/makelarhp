@@ -457,6 +457,16 @@
 
       pushMessage(listing, "system",
         `✅ Transaksi sukses. ${fmt(price)} ditarik dari ${sourceBank} via ${listing.paymentMethod || "Transfer"}. Item masuk ke Inventory.`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "success",
+          title: "Purchase Complete",
+          message: `${listing.name} masuk Inventory${listing.isExInter ? " (Ex-Inter — awas IMEI block!)" : ""}. ${fmt(price)} ditarik dari ${sourceBank}.`,
+          actionPage: "inventory",
+          actor: listing.seller.name,
+          icon: listing.isExInter ? "skull-crossbones" : "bag-shopping",
+        });
+      }
       actionsEl.innerHTML = `
         <button id="chat-done" class="chat-action accept w-full">
           <i class="fa-solid fa-check-double"></i> Close & Back to Marketplace
