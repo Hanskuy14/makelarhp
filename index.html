@@ -259,8 +259,105 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       INSPECTION OVERLAY (COD)
+  ============================================================= -->
+  <div id="inspect-overlay" class="hidden fixed inset-0 z-[125] bg-black/85 backdrop-blur-sm items-center justify-center text-white">
+    <div class="text-center">
+      <div class="inspect-loop mx-auto mb-6"></div>
+      <p class="text-xl font-bold tracking-wide">Inspecting the item...</p>
+      <p class="text-sm opacity-80 mt-1">Mengecek kondisi barang COD...</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HIDDEN DEFECT MODAL
+  ============================================================= -->
+  <div id="defect-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">Hidden Defect Found!</h3>
+          <p class="text-xs text-gray-500">Inspeksi COD menemukan minus tersembunyi.</p>
+        </div>
+      </div>
+      <div class="modal-callout">
+        <p id="defect-text" class="text-sm font-medium"></p>
+      </div>
+      <p class="text-sm text-gray-600 mt-3">Mau dibatalkan, atau paksa nego diskon -15%?</p>
+      <div class="modal-actions">
+        <button id="defect-cancel" class="modal-btn modal-btn-ghost">
+          <i class="fa-solid fa-xmark"></i> Cancel Deal
+        </button>
+        <button id="defect-negotiate" class="modal-btn modal-btn-primary">
+          <i class="fa-solid fa-hand-holding-dollar"></i> Force Negotiate (-15%)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       INTERBANK TRANSFER MODAL
+  ============================================================= -->
+  <div id="transfer-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-arrow-right-arrow-left"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">Interbank Transfer</h3>
+          <p class="text-xs text-gray-500">Mandiri / BCA / BNI &middot; admin fee Rp 2.500</p>
+        </div>
+      </div>
+      <div class="modal-form">
+        <label class="modal-label">From
+          <select id="transfer-from" class="modal-input"></select>
+        </label>
+        <label class="modal-label">To
+          <select id="transfer-to" class="modal-input"></select>
+        </label>
+        <label class="modal-label">Amount (IDR)
+          <input id="transfer-amount" type="number" min="0" placeholder="0" class="modal-input" />
+        </label>
+        <p id="transfer-fee" class="text-xs text-gray-500"></p>
+        <p id="transfer-error" class="text-xs text-rose-600 font-semibold"></p>
+      </div>
+      <div class="modal-actions">
+        <button id="transfer-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        <button id="transfer-submit" class="modal-btn modal-btn-primary"><i class="fa-solid fa-paper-plane"></i> Transfer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       RELIST MODAL (Inventory → Marketplace)
+  ============================================================= -->
+  <div id="relist-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-tag"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">Relist on Marketplace</h3>
+          <p class="text-xs text-gray-500">Pilih rekening untuk menerima hasil penjualan.</p>
+        </div>
+      </div>
+      <div id="relist-body"></div>
+      <div class="modal-actions">
+        <button id="relist-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="gadgets.js"></script>
   <script src="market.js"></script>
+  <script src="banking.js"></script>
+  <script src="inventory.js"></script>
   <script src="chat.js"></script>
   <script src="script.js"></script>
 </body>
