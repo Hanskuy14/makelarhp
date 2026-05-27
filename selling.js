@@ -179,6 +179,7 @@
 
       const buyer = makeBuyer();
       const offered = generateBuyerOffer(listing.askingPrice, listing.suggestedPrice);
+      const suspicious = (offered / listing.suggestedPrice) < 0.55;
       listing.currentOffer = {
         buyer,
         offeredPrice: offered,
@@ -186,12 +187,34 @@
         roundsAccepted: 0,
         staleDays: 0,
         opened: false,
+        suspicious,
       };
       // Clear chat log for this fresh negotiation.
       listing.chatLog = [];
       const opener = `Halo gan, masih ada? Lepas Rp ${offered.toLocaleString("id-ID")} ya? 🙏`;
       listing.chatLog.push({ from: "buyer", text: opener, color: buyer.color, avatar: buyer.avatar });
       listing.negotiationState = "offer-pending";
+      if (window.Notifications) {
+        if (suspicious) {
+          window.Notifications.add({
+            type: "scam",
+            title: "Warning: Suspicious Buyer Detected!",
+            message: `${buyer.name} nawar ${listing.itemSnapshot.name} cuma ${fmt(offered)} (lowball brutal). Hati-hati PHP / scam offer.`,
+            actionPage: "inventory",
+            actor: buyer.name,
+            icon: "user-secret",
+          });
+        } else {
+          window.Notifications.add({
+            type: "info",
+            title: "New Offer Received",
+            message: `${buyer.name} dari ${buyer.location} menawar ${listing.itemSnapshot.name} di ${fmt(offered)}.`,
+            actionPage: "inventory",
+            actor: buyer.name,
+            icon: "comments-dollar",
+          });
+        }
+      }
     });
     window.FlippingTycoon.saveGame();
   }
@@ -612,6 +635,16 @@
     window.FlippingTycoon.saveGame();
 
     pushMessage(listing, "system", `✅ Terjual ke ${buyerName}! +${fmt(net)} masuk ke ${receivingBank}.`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "success",
+        title: "Sold!",
+        message: `${itemName} terjual ke ${buyerName} di ${fmt(price)}. +${fmt(net)} masuk ${receivingBank}.`,
+        actionPage: "banking",
+        actor: "Marketplace",
+        icon: "sack-dollar",
+      });
+    }
     const actionsEl = document.querySelector("#chat-actions");
     actionsEl.innerHTML = `
       <button id="buyer-done" class="chat-action accept w-full">

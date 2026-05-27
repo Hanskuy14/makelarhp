@@ -52,6 +52,16 @@
       item.repackedOnDay = s.currentDay;
       window.FlippingTycoon.saveGame();
       showToast(`📦 Repacked ${item.name} jadi Fullset!`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "success",
+          title: "Repacked Fullset",
+          message: `${item.name} sekarang Fullset — nilai pasar naik instan, siap re-list di harga lebih tinggi.`,
+          actionPage: "inventory",
+          actor: "Toko Aksesoris",
+          icon: "box-open",
+        });
+      }
       return true;
     }
     if (scope === "listing") {
@@ -73,6 +83,16 @@
       });
       window.FlippingTycoon.saveGame();
       showToast(`📦 Repacked listing ${listing.itemSnapshot.name}! Suggested price naik.`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "success",
+          title: "Listing Repacked",
+          message: `${listing.itemSnapshot.name} (listed) sekarang Fullset. Suggested price naik tanpa nunggu Next Day.`,
+          actionPage: "inventory",
+          actor: "Toko Aksesoris",
+          icon: "box-open",
+        });
+      }
       return true;
     }
     return false;

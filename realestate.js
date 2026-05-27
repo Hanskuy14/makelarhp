@@ -125,6 +125,16 @@
       s.realEstate.evictedOnDay = s.currentDay;
       // Keep store info for history but disable perk.
       showToast(`❌ Diusir dari ${store.name}! Saldo Mandiri kurang untuk sewa.`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "alert",
+          title: "Diusir dari Toko!",
+          message: `Saldo Mandiri tidak cukup buat sewa harian ${store.name} (${fmt(cost)}). Walk-in Customers nonaktif sampai sewa lagi.`,
+          actionPage: "real-estate",
+          actor: "Pemilik Toko",
+          icon: "gavel",
+        });
+      }
       window.FlippingTycoon.saveGame();
       return;
     }
@@ -223,6 +233,16 @@
 
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     showToast(`🛍️ Walk-in: ${itemName} terjual ${fmt(net)}`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "success",
+        title: "Walk-in Sale!",
+        message: `${itemName} terjual ke pelanggan toko: +${fmt(net)} masuk Mandiri.`,
+        actionPage: "banking",
+        actor: "Toko Fisik",
+        icon: "shop",
+      });
+    }
   }
 
   /* =========================================================

@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 7,
+      version: 8,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -47,6 +47,11 @@ function createDefaultState() {
     },
     batamCargo: [],                     // Part 7: Batam Supplier shipments
     batamHistory: [],                   // Part 7: confiscation / delivered log
+    notifications: [],                  // Part 8: Notification Center entries
+    notificationContext: null,          // Part 8: transient context from clicked notification
+    friends: [],                        // Part 8: followed broker IDs
+    friendsActivity: [],                // Part 8: activity feed posts (capped 30)
+    friendsView: { tab: "suggestions" },// Part 8: friends page tab state
   };
 }
 
@@ -142,6 +147,13 @@ const State = {
       if (!Array.isArray(this.data.batamCargo)) this.data.batamCargo = [];
       if (!Array.isArray(this.data.batamHistory)) this.data.batamHistory = [];
       this.data.meta.version = 7;
+    }
+    if (version < 8) {
+      if (!Array.isArray(this.data.notifications))   this.data.notifications = [];
+      if (!Array.isArray(this.data.friends))         this.data.friends = [];
+      if (!Array.isArray(this.data.friendsActivity)) this.data.friendsActivity = [];
+      if (!this.data.friendsView)                    this.data.friendsView = { tab: "suggestions" };
+      this.data.meta.version = 8;
     }
   },
 };
@@ -256,6 +268,7 @@ function renderAll() {
 
 function renderTopbar() {
   $("#topbar-day").textContent = State.data.currentDay;
+  if (window.Notifications) window.Notifications.refreshBadge();
 }
 
 function renderSidebar() {
@@ -333,6 +346,9 @@ function renderActivePage() {
       break;
     case "accessories":
       container.appendChild(window.Accessories ? window.Accessories.renderAccessoriesPage() : renderPlaceholder("Toko Aksesoris", "box-open", "Loading..."));
+      break;
+    case "friends":
+      container.appendChild(window.Friends ? window.Friends.renderFriendsPage() : renderPlaceholder("Friends", "user-group", "Loading..."));
       break;
     default: container.appendChild(renderNewsFeedPage());
   }
@@ -446,6 +462,7 @@ async function advanceToNextDay() {
   if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
   if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
   if (window.Selling) window.Selling.processNextDayOffers(); // roll inbound buyer offers
+  if (window.Friends) window.Friends.processDailyActivity();    // Part 8: followed brokers post activity
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
   saveGame();
@@ -475,6 +492,7 @@ function wireUpEvents() {
 
 document.addEventListener("DOMContentLoaded", () => {
   wireUpEvents();
+  if (window.Notifications) window.Notifications.attachBellHandler();
   runSplash();
 });
 

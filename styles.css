@@ -2240,3 +2240,327 @@ body {
   .batam-manifest-row .bm-spec,
   .batam-manifest-row .bm-cond { display: none; }
 }
+
+
+
+/* =========================================================
+   PART 8 — Notification Center + Friends/Follow
+========================================================= */
+
+/* ---------- Bell badge ---------- */
+#notif-badge {
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--fb-blue);
+}
+#notif-badge.hidden { display: none !important; }
+.notif-badge-pop {
+  animation: notifBadgePop 0.32s ease-out;
+}
+@keyframes notifBadgePop {
+  0%   { transform: scale(0.6); }
+  60%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Dropdown overlay ---------- */
+.notif-dropdown {
+  position: fixed;
+  top: 56px;
+  right: 12px;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 95;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.notif-dropdown.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.notif-dropdown.hidden { display: none; }
+
+.notif-dd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.notif-dd-title {
+  font-weight: 800;
+  font-size: 17px;
+}
+.notif-dd-sub {
+  font-size: 12px;
+  color: var(--fb-text-muted);
+}
+.notif-dd-tools {
+  display: flex;
+  gap: 4px;
+}
+.notif-tool {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--fb-text-muted);
+  font-size: 13px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.notif-tool:hover {
+  background: var(--fb-hover);
+  color: var(--fb-text);
+}
+
+.notif-dd-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0 8px;
+}
+.notif-dd-list::-webkit-scrollbar { width: 6px; }
+.notif-dd-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+.notif-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--fb-text-muted);
+}
+.notif-empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 9999px;
+  background: var(--fb-hover);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #9ca3af;
+}
+
+/* ---------- Notification item ---------- */
+.notif-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.notif-item:hover { background: var(--fb-hover); }
+.notif-item.unread { background: rgba(24,119,242,0.06); }
+.notif-item.unread:hover { background: rgba(24,119,242,0.10); }
+
+.notif-item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.notif-item-body { min-width: 0; }
+.notif-item-title {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+.notif-item-msg {
+  font-size: 13px;
+  color: var(--fb-text);
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+.notif-item-meta {
+  font-size: 11px;
+  color: var(--fb-text-muted);
+  margin-top: 4px;
+}
+.notif-item-actor {
+  font-weight: 600;
+  color: var(--fb-blue);
+}
+.notif-item-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--fb-blue);
+  margin-top: 14px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 540px) {
+  .notif-dropdown {
+    top: 60px;
+    right: 6px;
+    left: 6px;
+    width: auto;
+    max-height: 75vh;
+  }
+}
+
+
+/* =========================================================
+   FRIENDS PAGE
+========================================================= */
+
+.broker-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .broker-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.broker-card {
+  position: relative;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  overflow: hidden;
+  border: 1px solid #f3f4f6;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  padding-bottom: 14px;
+}
+.broker-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.10);
+}
+.broker-card.followed {
+  border-color: #c7d2fe;
+  background: linear-gradient(180deg, #eef2ff 0%, #fff 30%);
+}
+
+.broker-banner {
+  height: 64px;
+  background: linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%);
+}
+
+.broker-avatar {
+  position: absolute;
+  top: 36px;
+  left: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 22px;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.broker-body {
+  padding: 18px 16px 4px 84px;
+  min-height: 80px;
+}
+.broker-name { font-weight: 800; font-size: 16px; line-height: 1.1; }
+.broker-handle { font-size: 12px; color: var(--fb-text-muted); margin-top: 2px; }
+.broker-bio {
+  font-size: 13px;
+  color: #374151;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+.broker-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--fb-text-muted);
+}
+.broker-stats > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.broker-specialty {
+  background: #ede9fe;
+  color: #6d28d9 !important;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.broker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  margin: 10px 16px 0;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+.broker-btn.follow {
+  background: var(--fb-blue);
+  color: #fff;
+}
+.broker-btn.follow:hover { background: var(--fb-blue-dark); }
+.broker-btn.unfollow {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+.broker-btn.unfollow:hover { background: #e5e7eb; }
+.broker-btn:active { transform: scale(0.98); }
+
+/* Activity feed posts */
+.broker-post .fb-post-actions button.broker-jump-btn {
+  color: var(--fb-blue);
+  font-weight: 700;
+}
+.broker-rare-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: 6px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(239,68,68,0.3);
+}
+
+@media (max-width: 540px) {
+  .broker-card { padding-bottom: 12px; }
+  .broker-body { padding-left: 84px; }
+}
