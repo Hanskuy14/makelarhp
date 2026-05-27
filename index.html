@@ -222,6 +222,16 @@
             <i class="sidebar-icon fa-solid fa-user-tie text-blue-500"></i>
             <span>Staff Room</span>
           </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="warehouse">
+            <i class="sidebar-icon fa-solid fa-warehouse text-amber-600"></i>
+            <span>Warehouse</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="wholesale">
+            <i class="sidebar-icon fa-solid fa-truck-fast text-blue-600"></i>
+            <span>Wholesale (B2B)</span>
+          </button>
         </div>
 
         <hr class="my-3 border-gray-300" />
@@ -569,6 +579,27 @@
   </div>
 
   <!-- ============================================================
+       WHOLESALE ACCEPT MODAL (Part 11) — pick logistics partner & bank
+  ============================================================= -->
+  <div id="wholesale-accept-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-lg w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <div>
+          <h3 id="wholesale-accept-title" class="text-lg font-bold">Accept Bulk Order</h3>
+          <p class="text-xs text-gray-500">Pilih ekspedisi (Speed vs Loss/Damage Risk) &amp; rekening tujuan.</p>
+        </div>
+      </div>
+      <div id="wholesale-accept-body"></div>
+      <div class="modal-actions">
+        <button id="wholesale-accept-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        ONBOARDING MODAL (Part 10) — runs on Start Game
   ============================================================= -->
   <div id="onboarding-modal" class="hidden fixed inset-0 z-[150] bg-gradient-to-br from-[#0a3d82] via-[#0d5fc7]/95 to-[#1877F2]/90 backdrop-blur-sm items-center justify-center p-4">
@@ -638,6 +669,8 @@
   <script src="notifications.js"></script>
   <script src="friends.js"></script>
   <script src="analytics.js"></script>
+  <script src="warehouse.js"></script>
+  <script src="wholesale.js"></script>
   <script src="staff.js"></script>
   <script src="profile.js"></script>
   <script src="messenger.js"></script>

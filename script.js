@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 10,
+      version: 11,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -76,6 +76,12 @@ function createDefaultState() {
     profilePosts: [],                   // Part 10: auto-posts from listings (capped 50)
     chatArchive: [],                    // Part 10: closed conversations for Messenger archive (capped 60)
     onboardingComplete: false,          // Part 10: gates the setup modal on first launch
+    warehouse: [],                      // Part 11: secured stock (capacity 500)
+    warehouseView: { activeTab: "stock" }, // Part 11
+    wholesaleOrders: [],                // Part 11: open + in-transit B2B orders
+    wholesaleHistory: [],               // Part 11: completed/cancelled orders log (capped 60)
+    wholesaleView: { tab: "open" },     // Part 11
+    lastWholesaleGenDay: 0,             // Part 11: last day bulk orders auto-generated
   };
 }
 
@@ -225,6 +231,25 @@ const State = {
       if (!Array.isArray(this.data.chatArchive))  this.data.chatArchive  = [];
       if (typeof this.data.onboardingComplete !== "boolean") this.data.onboardingComplete = true; // legacy saves skip onboarding
       this.data.meta.version = 10;
+    }
+    if (version < 11) {
+      if (!Array.isArray(this.data.warehouse))        this.data.warehouse        = [];
+      if (!Array.isArray(this.data.wholesaleOrders))  this.data.wholesaleOrders  = [];
+      if (!Array.isArray(this.data.wholesaleHistory)) this.data.wholesaleHistory = [];
+      if (!this.data.warehouseView) this.data.warehouseView = { activeTab: "stock" };
+      if (!this.data.wholesaleView) this.data.wholesaleView = { tab: "open" };
+      if (typeof this.data.lastWholesaleGenDay !== "number") this.data.lastWholesaleGenDay = 0;
+      // Backfill new logistics staff slot.
+      if (this.data.staff && !this.data.staff.logistics) {
+        this.data.staff.logistics = {
+          hired: false,
+          hiredOnDay: null,
+          totalPaid: 0,
+          totalCommission: 0,
+          defaultPartner: "JNE",
+        };
+      }
+      this.data.meta.version = 11;
     }
   },
 };
@@ -475,6 +500,22 @@ function renderSidebar() {
       badge.remove();
     }
   }
+  // Part 11: fulfillable bulk orders badge on Wholesale link
+  const wsBtn = document.querySelector('.sidebar-nav[data-page="wholesale"]');
+  if (wsBtn) {
+    let badge = wsBtn.querySelector(".sidebar-badge");
+    const ready = window.Wholesale ? window.Wholesale.fulfillableOpenCount() : 0;
+    if (ready > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "sidebar-badge";
+        wsBtn.appendChild(badge);
+      }
+      badge.textContent = ready;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
 }
 
 function setActivePage(page) {
@@ -522,6 +563,12 @@ function renderActivePage() {
       break;
     case "staff":
       container.appendChild(window.Staff ? window.Staff.renderStaffRoomPage() : renderPlaceholder("Staff Room", "user-tie", "Loading..."));
+      break;
+    case "warehouse":
+      container.appendChild(window.Warehouse ? window.Warehouse.renderWarehousePage() : renderPlaceholder("Warehouse", "warehouse", "Loading..."));
+      break;
+    case "wholesale":
+      container.appendChild(window.Wholesale ? window.Wholesale.renderWholesalePage() : renderPlaceholder("Wholesale", "truck-fast", "Loading..."));
       break;
     case "profile":
       container.appendChild(window.Profile ? window.Profile.renderProfilePage() : renderPlaceholder("Profile", "user", "Loading..."));
@@ -724,6 +771,10 @@ async function advanceToNextDay() {
   if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
   if (window.Selling) window.Selling.processNextDayOffers(); // roll inbound buyer offers
   if (window.Staff) window.Staff.processAutoAcceptOffers();     // Part 9: CS auto-accept fair offers
+  if (window.Wholesale) window.Wholesale.processDailyShipments();      // Part 11: deliver in-transit B2B orders
+  if (window.Wholesale) window.Wholesale.expireOpenOrders();            // Part 11: drop expired open orders
+  if (window.Staff && window.Staff.processAutoAcceptWholesale) window.Staff.processAutoAcceptWholesale(); // Part 11: HoL auto-accept fulfillable orders
+  if (window.Wholesale) window.Wholesale.generateDailyOrders();         // Part 11: spawn fresh bulk orders for the new day
   if (window.Friends) window.Friends.processDailyActivity();    // Part 8: followed brokers post activity
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
