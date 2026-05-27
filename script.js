@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 1,
+      version: 2,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -34,8 +34,11 @@ function createDefaultState() {
       BCA: [],
       BNI: [],
     },
-    inventory: [],   // [{ id, name, model, condition, buyPrice, day, qty }]
-    marketPrices: {}, // { itemId: { buy: number, sell: number, trend: "up"|"down"|"flat" } }
+    inventory: [],     // [{ id, gadgetId, name, brand, specs, completeness, defect, buyPrice, buyDay, sourceBank }]
+    marketPrices: {},  // reserved for future market trend tracking
+    dailyListings: [], // current day's marketplace listings (5-8)
+    lastListingDay: 0, // day on which dailyListings were generated
+    marketView: { mode: "grid", selectedListingId: null }, // "grid" | "detail"
     activePage: "news-feed",
   };
 }
@@ -133,6 +136,8 @@ function continueGame() {
 function enterApp() {
   $("#home-screen").classList.add("hidden");
   $("#app").classList.remove("hidden");
+  // Make sure marketplace listings exist for the current day.
+  if (window.Market) window.Market.ensureDailyListings();
   renderAll();
 }
 
@@ -171,7 +176,10 @@ function renderActivePage() {
 
   switch (State.data.activePage) {
     case "news-feed":   container.appendChild(renderNewsFeedPage()); break;
-    case "marketplace": container.appendChild(renderPlaceholderPage("Marketplace", "store", "Browse listings, haggle with sellers, and snipe deals.")); break;
+    case "marketplace":
+      if (window.Market) container.appendChild(window.Market.renderMarketplacePage());
+      else container.appendChild(renderPlaceholderPage("Marketplace", "store", "Loading market..."));
+      break;
     case "inventory":   container.appendChild(renderPlaceholderPage("Inventory", "boxes-stacked", "Track every gadget you own, condition, and cost basis.")); break;
     case "banking":     container.appendChild(renderPlaceholderPage("Banking", "building-columns", "Manage Mandiri, BCA, and BNI accounts. Transfers come next.")); break;
     default:            container.appendChild(renderNewsFeedPage());
@@ -284,6 +292,10 @@ async function advanceToNextDay() {
   await delay(1500);
 
   State.data.currentDay = nextDay;
+  // Regenerate today's marketplace listings.
+  if (window.Market) window.Market.ensureDailyListings();
+  // Reset detail view so the user lands on the fresh grid.
+  State.data.marketView = { mode: "grid", selectedListingId: null };
   saveGame();
   renderAll();
 
@@ -315,5 +327,13 @@ document.addEventListener("DOMContentLoaded", () => {
   runSplash();
 });
 
-/* Expose for debugging in the browser console */
-window.FlippingTycoon = { State, saveGame, loadGame };
+/* Expose for other modules and debugging */
+window.FlippingTycoon = {
+  State,
+  saveGame,
+  loadGame,
+  renderActivePage,
+  renderAll,
+  setActivePage,
+  formatRupiah,
+};

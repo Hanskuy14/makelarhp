@@ -271,3 +271,453 @@ body {
 #loading-overlay:not(.hidden) {
   display: flex;
 }
+
+
+
+/* =========================================================
+   PART 2 — Marketplace, Product Detail, Messenger Chat
+========================================================= */
+
+/* ---------- Marketplace grid ---------- */
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 768px) {
+  .marketplace-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1280px) {
+  .marketplace-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.marketplace-card {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  display: flex;
+  flex-direction: column;
+}
+.marketplace-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+
+.marketplace-thumb {
+  position: relative;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.marketplace-thumb-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.marketplace-card-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.marketplace-price {
+  font-weight: 800;
+  font-size: 16px;
+  color: #050505;
+}
+.marketplace-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #050505;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.marketplace-meta {
+  font-size: 12px;
+  color: var(--fb-text-muted);
+}
+.marketplace-seller {
+  font-size: 11px;
+  color: var(--fb-text-muted);
+  margin-top: 2px;
+}
+.marketplace-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.market-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+
+
+/* ---------- Product detail ---------- */
+.product-detail .back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--fb-blue);
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.product-detail .back-btn:hover { background: var(--fb-hover); }
+
+.product-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (min-width: 768px) {
+  .product-detail-grid { grid-template-columns: 1.1fr 1fr; }
+}
+
+.product-hero {
+  position: relative;
+  background: linear-gradient(135deg, #f3f4f6, #d1d5db);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.product-hero-tag {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.product-info {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+.product-price {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+.product-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.product-listed {
+  font-size: 13px;
+  color: var(--fb-text-muted);
+  margin-top: 4px;
+}
+.product-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.message-seller-btn {
+  margin-top: 18px;
+  background: var(--fb-blue);
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.message-seller-btn:hover { background: var(--fb-blue-dark); }
+.message-seller-btn:active { transform: scale(0.98); }
+
+
+
+.seller-card {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--fb-hover);
+  border-radius: 10px;
+}
+.seller-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin-top: 8px;
+}
+.spec-grid > div {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed #e5e7eb;
+  padding: 6px 0;
+}
+.spec-label {
+  color: var(--fb-text-muted);
+  font-size: 13px;
+}
+.spec-value {
+  font-weight: 600;
+  font-size: 13px;
+  text-align: right;
+}
+
+.condition-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.condition-row:last-child { border-bottom: none; }
+.condition-row > i {
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+
+
+/* =========================================================
+   FB MESSENGER CHAT
+========================================================= */
+#chat-overlay.flex {
+  display: flex;
+}
+
+.chat-window {
+  width: 100%;
+  max-width: 480px;
+  height: min(720px, 92vh);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: chatPop 0.18s ease-out;
+}
+@keyframes chatPop {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #ececec;
+  background: #fff;
+}
+.chat-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fb-blue);
+  font-size: 16px;
+}
+.chat-icon-btn:hover { background: var(--fb-hover); }
+
+.chat-header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat-messages::-webkit-scrollbar { width: 6px; }
+.chat-messages::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+
+
+.chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.chat-row.from-player { justify-content: flex-end; }
+.chat-row.from-seller { justify-content: flex-start; }
+.chat-row.from-system { justify-content: center; margin: 8px 0; }
+
+.chat-bubble-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.chat-bubble {
+  max-width: 75%;
+  padding: 9px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.35;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+.from-seller .chat-bubble {
+  background: #e4e6eb;
+  color: #050505;
+  border-bottom-left-radius: 4px;
+}
+.from-player .chat-bubble {
+  background: var(--fb-blue);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-system {
+  background: #fef3c7;
+  color: #78350f;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  text-align: center;
+  max-width: 90%;
+}
+
+/* Typing indicator */
+.chat-bubble.typing {
+  padding: 12px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e4e6eb;
+}
+.chat-bubble.typing span {
+  width: 6px;
+  height: 6px;
+  background: #6b7280;
+  border-radius: 9999px;
+  animation: typingDot 1s infinite ease-in-out;
+}
+.chat-bubble.typing span:nth-child(2) { animation-delay: 0.15s; }
+.chat-bubble.typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+
+
+/* Action buttons row at bottom */
+.chat-actions {
+  border-top: 1px solid #ececec;
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  background: #fafafa;
+}
+.chat-action {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+  flex-direction: column;
+  line-height: 1.1;
+  min-height: 56px;
+}
+.chat-action:active:not([disabled]) { transform: scale(0.97); }
+.chat-action[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+.chat-action.accept {
+  background: #1877f2;
+  color: #fff;
+}
+.chat-action.accept:hover:not([disabled]) { background: #155fc4; }
+
+.chat-action.haggle {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.chat-action.haggle:hover:not([disabled]) { background: #fde68a; }
+
+.chat-action.leave {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.chat-action.leave:hover { background: #fecaca; }
