@@ -134,6 +134,9 @@
     s.inventory = s.inventory.filter((it) => it.id !== inventoryItem.id);
     s.activeListings.push(listing);
     window.FlippingTycoon.saveGame();
+
+    // Part 10: auto-publish a post on the player's profile feed.
+    if (window.Profile) window.Profile.recordListingPost(listing);
     return listing;
   }
 
@@ -165,6 +168,27 @@
     });
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     window.FlippingTycoon.saveGame();
+
+    // Part 10: mark profile post as cancelled & archive chat (if any messages).
+    if (window.Profile) {
+      window.Profile.markPostCancelled(listing.listingId);
+      if (listing.currentOffer && listing.chatLog && listing.chatLog.length > 0) {
+        const snap = listing.itemSnapshot || {};
+        window.Profile.archiveChat({
+          role: "seller",
+          counterparty: {
+            name:   listing.currentOffer.buyer.name,
+            avatar: listing.currentOffer.buyer.avatar,
+            color:  listing.currentOffer.buyer.color,
+            location: listing.currentOffer.buyer.location || null,
+          },
+          gadget: { name: snap.name, icon: snap.icon, accent: snap.accent, brand: snap.brand, isExInter: !!snap.isExInter },
+          chatLog: listing.chatLog,
+          outcome: "cancelled",
+          itemKey: "active-" + listing.listingId,
+        });
+      }
+    }
   }
 
   /* ---------- Next Day: roll for offers ---------- */
@@ -657,6 +681,29 @@
       });
     }
 
+    // Part 10: profile + messenger sync — mark post sold, bump stats, archive chat.
+    if (window.Profile) {
+      const snap = listing.itemSnapshot || {};
+      window.Profile.markPostSold(listing.listingId, { finalPrice: price, buyer: buyerName, saleType: "offer" });
+      window.Profile.recordSale({ gadget: { isExInter: !!snap.isExInter } });
+      window.Profile.archiveChat({
+        role: "seller",
+        counterparty: {
+          name:   listing.currentOffer.buyer.name,
+          avatar: listing.currentOffer.buyer.avatar,
+          color:  listing.currentOffer.buyer.color,
+          location: listing.currentOffer.buyer.location || null,
+        },
+        gadget: {
+          name: snap.name, icon: snap.icon, accent: snap.accent, brand: snap.brand, isExInter: !!snap.isExInter,
+        },
+        chatLog: listing.chatLog || [],
+        outcome: "sold",
+        finalPrice: price,
+        itemKey: "active-" + listing.listingId,
+      });
+    }
+
     pushMessage(listing, "system", `✅ Terjual ke ${buyerName}! +${fmt(net)} masuk ke ${receivingBank}.`);
     if (window.Notifications) {
       window.Notifications.add({
@@ -738,10 +785,25 @@
       } else {
         // leave
         pushMessage(listing, "buyer", `Aduh ketinggian banget. Saya cabut dulu deh, kalau berubah pikiran chat aja 👋`);
+        // Part 10: snapshot chat into archive before clearing the offer.
+        if (window.Profile && listing.chatLog && listing.chatLog.length > 0) {
+          const snap = listing.itemSnapshot || {};
+          const buyer = listing.currentOffer.buyer;
+          window.Profile.archiveChat({
+            role: "seller",
+            counterparty: { name: buyer.name, avatar: buyer.avatar, color: buyer.color, location: buyer.location || null },
+            gadget: { name: snap.name, icon: snap.icon, accent: snap.accent, brand: snap.brand, isExInter: !!snap.isExInter },
+            chatLog: listing.chatLog.slice(),
+            outcome: "walked-out",
+            itemKey: "active-" + listing.listingId + "-" + (buyer.id || buyer.name),
+          });
+        }
         listing.currentOffer = null;
         listing.negotiationState = "waiting";
         listing.chatLog.push({ from: "system", text: "Pembeli pergi. Listing kembali menunggu pembeli baru." });
-        renderBubble(listing.chatLog[listing.chatLog.length - 1]);
+        // Reset live chatLog so the next buyer starts fresh; the archive has the old log.
+        listing.chatLog = [];
+        renderBubble({ from: "system", text: "Pembeli pergi. Listing kembali menunggu pembeli baru." });
         window.FlippingTycoon.saveGame();
         const actionsEl = document.querySelector("#chat-actions");
         actionsEl.innerHTML = `
@@ -763,9 +825,24 @@
     setTimeout(() => {
       hideTyping();
       pushMessage(listing, "buyer", `Yah sayang ya. Oke deh, saya cari yang lain. 👋`);
+      // Part 10: snapshot chat into archive before clearing the offer.
+      if (window.Profile && listing.chatLog && listing.chatLog.length > 0 && listing.currentOffer) {
+        const snap = listing.itemSnapshot || {};
+        const buyer = listing.currentOffer.buyer;
+        window.Profile.archiveChat({
+          role: "seller",
+          counterparty: { name: buyer.name, avatar: buyer.avatar, color: buyer.color, location: buyer.location || null },
+          gadget: { name: snap.name, icon: snap.icon, accent: snap.accent, brand: snap.brand, isExInter: !!snap.isExInter },
+          chatLog: listing.chatLog.slice(),
+          outcome: "left",
+          itemKey: "active-" + listing.listingId + "-" + (buyer.id || buyer.name),
+        });
+      }
       listing.currentOffer = null;
       listing.negotiationState = "waiting";
-      pushMessage(listing, "system", `Listing tetap aktif, menunggu pembeli baru.`);
+      // Fresh start for the next buyer.
+      listing.chatLog = [{ from: "system", text: "Listing tetap aktif, menunggu pembeli baru." }];
+      renderBubble(listing.chatLog[0]);
       window.FlippingTycoon.saveGame();
       const actionsEl = document.querySelector("#chat-actions");
       actionsEl.innerHTML = `

@@ -470,6 +470,27 @@
         });
       }
 
+      // Part 10: profile sync — mark post sold, archive chat, bump stats.
+      if (window.Profile) {
+        const snap = listing.itemSnapshot || {};
+        window.Profile.markPostSold(listing.listingId, { finalPrice: offered, buyer: buyerName, saleType: "auto-accept" });
+        window.Profile.recordSale({ gadget: { isExInter: !!snap.isExInter } });
+        window.Profile.archiveChat({
+          role: "seller",
+          counterparty: {
+            name:   listing.currentOffer.buyer.name,
+            avatar: listing.currentOffer.buyer.avatar,
+            color:  listing.currentOffer.buyer.color,
+            location: listing.currentOffer.buyer.location || null,
+          },
+          gadget: { name: snap.name, icon: snap.icon, accent: snap.accent, brand: snap.brand, isExInter: !!snap.isExInter },
+          chatLog: (listing.chatLog || []).concat([{ from: "system", text: `🤖 Auto-accepted by Customer Service. Net ${fmt(net)} ke ${receivingBank}.` }]),
+          outcome: "sold",
+          finalPrice: offered,
+          itemKey: "active-" + listing.listingId,
+        });
+      }
+
       listing.negotiationState = "sold";
       accepted.push({ listingId: listing.listingId, itemName, net, buyerName });
     });

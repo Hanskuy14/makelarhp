@@ -132,16 +132,18 @@
         <button class="fb-icon-btn" title="Menu">
           <i class="fa-solid fa-grip"></i>
         </button>
-        <button class="fb-icon-btn" title="Messenger">
+        <button class="fb-icon-btn relative" title="Messenger" id="messenger-btn">
           <i class="fa-brands fa-facebook-messenger"></i>
+          <span id="messenger-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
         </button>
         <button class="fb-icon-btn relative" title="Notifications" id="notif-bell-btn">
           <i class="fa-solid fa-bell"></i>
           <span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
         </button>
         <div id="notif-dropdown" class="hidden notif-dropdown" role="dialog" aria-label="Notifications"></div>
-        <button class="fb-icon-btn" title="Profile">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+        <div id="messenger-dropdown" class="hidden messenger-dropdown" role="dialog" aria-label="Messenger"></div>
+        <button class="fb-icon-btn" title="Profile" id="topbar-profile-btn">
+          <div id="topbar-avatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background:#1877f2">
             P
           </div>
         </button>
@@ -154,16 +156,21 @@
       <!-- Left Sidebar -->
       <aside class="fb-sidebar hidden md:block w-72 shrink-0 fixed top-14 bottom-0 left-0 overflow-y-auto p-3">
         <div class="space-y-1">
-          <div class="sidebar-link">
-            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
+          <button id="sidebar-profile-row" class="sidebar-link" type="button">
+            <div id="sidebar-profile-avatar" class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background:#1877f2">
               P
             </div>
-            <span class="font-semibold">Player Broker</span>
-          </div>
+            <span id="sidebar-profile-name" class="font-semibold">Player Broker</span>
+          </button>
 
           <button class="sidebar-link sidebar-nav active" data-page="news-feed">
             <i class="sidebar-icon fa-solid fa-newspaper text-[#1877F2]"></i>
             <span>News Feed</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="profile">
+            <i class="sidebar-icon fa-solid fa-id-badge text-pink-500"></i>
+            <span>Profile</span>
           </button>
 
           <button class="sidebar-link sidebar-nav" data-page="marketplace">
@@ -561,6 +568,64 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       ONBOARDING MODAL (Part 10) — runs on Start Game
+  ============================================================= -->
+  <div id="onboarding-modal" class="hidden fixed inset-0 z-[150] bg-gradient-to-br from-[#0a3d82] via-[#0d5fc7]/95 to-[#1877F2]/90 backdrop-blur-sm items-center justify-center p-4">
+    <div class="modal-box onboarding-card max-w-lg w-full">
+      <div class="onboarding-header">
+        <div class="onboarding-icon"><i class="fa-solid fa-rocket"></i></div>
+        <h2>Welcome to Gadgetbook Marketplace!</h2>
+        <p class="onboarding-sub">Setup tokomu sebelum mulai flipping. Ini cuma sekali, janji 🤝</p>
+      </div>
+      <div class="onboarding-form">
+        <label class="modal-label">Nama Player
+          <input id="ob-name" type="text" maxlength="32" placeholder="Misal: Hans Broker" class="modal-input" autocomplete="off" />
+        </label>
+        <label class="modal-label">Nama Toko
+          <input id="ob-store" type="text" maxlength="40" placeholder="Misal: Hans Counter" class="modal-input" autocomplete="off" />
+        </label>
+        <p class="modal-label" style="margin-bottom:0">Starting Capital</p>
+        <div class="onboarding-capital-grid">
+          <button class="ob-capital-option" type="button" data-capital="10000000">
+            <div class="ob-capital-tier">EASY</div>
+            <div class="ob-capital-amount">Rp 10 Juta</div>
+            <div class="ob-capital-blurb">Mode lebih menantang. Modal cekak, tiap rupiah penting.</div>
+          </button>
+          <button class="ob-capital-option" type="button" data-capital="25000000">
+            <div class="ob-capital-tier">NORMAL</div>
+            <div class="ob-capital-amount">Rp 25 Juta</div>
+            <div class="ob-capital-blurb">Standar. Bisa beli HP mid-range &amp; Ex-Inter sekaligus.</div>
+          </button>
+          <button class="ob-capital-option" type="button" data-capital="50000000">
+            <div class="ob-capital-tier">WHALE</div>
+            <div class="ob-capital-amount">Rp 50 Juta</div>
+            <div class="ob-capital-blurb">Modal gede. Bisa langsung order kargo Batam dari hari pertama.</div>
+          </button>
+        </div>
+        <p id="ob-error" class="text-xs text-rose-300 font-semibold"></p>
+      </div>
+      <div class="modal-actions">
+        <button id="ob-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <button id="ob-submit" class="modal-btn modal-btn-primary"><i class="fa-solid fa-play"></i> Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ARCHIVED CHAT OVERLAY (Part 10) — read-only viewer
+  ============================================================= -->
+  <div id="archive-chat-overlay" class="hidden fixed inset-0 z-[140] bg-black/40 items-center justify-center p-2 md:p-6">
+    <div class="chat-window">
+      <header id="archive-chat-header" class="chat-header"></header>
+      <div id="archive-chat-meta"></div>
+      <div id="archive-chat-messages" class="chat-messages"></div>
+      <div class="chat-actions">
+        <p class="archive-readonly-note"><i class="fa-solid fa-box-archive"></i> Chat ini sudah ter-arsip — read-only.</p>
+      </div>
+    </div>
+  </div>
+
   <script src="gadgets.js"></script>
   <script src="market.js"></script>
   <script src="banking.js"></script>
@@ -574,6 +639,8 @@
   <script src="friends.js"></script>
   <script src="analytics.js"></script>
   <script src="staff.js"></script>
+  <script src="profile.js"></script>
+  <script src="messenger.js"></script>
   <script src="chat.js"></script>
   <script src="script.js"></script>
 </body>

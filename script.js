@@ -15,12 +15,24 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 9,
+      version: 10,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
     currentDay: 1,
-    player: { name: "Player Broker", cash: 0 },
+    player: {
+      name: "Player Broker",
+      storeName: "Player Counter",
+      cash: 0,
+      followers: 0,
+      reputation: 5.0,
+      totalGadgetsSold: 0,
+      startingCapital: 15_000_000,
+      joinedDay: 1,
+      bio: "Buy low, sell high. Toko broker gadget profesional di Gadgetbook Marketplace.",
+      avatar: "P",
+      avatarColor: "#1877f2",
+    },
     bankBalances: { ...STARTING_BALANCES },
     bankHistories: { Mandiri: [], BCA: [], BNI: [] },
     inventory: [],
@@ -61,6 +73,9 @@ function createDefaultState() {
     staffView:     { tab: "roster" },   // Part 9: staff page tab state
     analyticsView: {},                  // Part 9: analytics page state (reserved)
     lastSolvencyWarnDay: 0,             // Part 9: anti-spam guard for solvency alerts
+    profilePosts: [],                   // Part 10: auto-posts from listings (capped 50)
+    chatArchive: [],                    // Part 10: closed conversations for Messenger archive (capped 60)
+    onboardingComplete: false,          // Part 10: gates the setup modal on first launch
   };
 }
 
@@ -192,6 +207,25 @@ const State = {
       });
       this.data.meta.version = 9;
     }
+    if (version < 10) {
+      // Backfill profile fields onto existing player.
+      if (!this.data.player) this.data.player = { name: "Player Broker", cash: 0 };
+      const p = this.data.player;
+      if (!p.storeName)                       p.storeName        = (p.name || "Player").split(/\s+/)[0] + " Counter";
+      if (typeof p.followers          !== "number") p.followers          = 0;
+      if (typeof p.reputation         !== "number") p.reputation         = 5.0;
+      if (typeof p.totalGadgetsSold   !== "number") p.totalGadgetsSold   = (this.data.salesHistory || []).length;
+      if (typeof p.startingCapital    !== "number") p.startingCapital    = 15_000_000;
+      if (typeof p.joinedDay          !== "number") p.joinedDay          = 1;
+      if (typeof p.bio                !== "string") p.bio                = "Buy low, sell high. Toko broker gadget profesional di Gadgetbook Marketplace.";
+      if (!p.avatar)                  p.avatar                          = (p.name || "P").charAt(0).toUpperCase();
+      if (!p.avatarColor)              p.avatarColor                    = "#1877f2";
+
+      if (!Array.isArray(this.data.profilePosts)) this.data.profilePosts = [];
+      if (!Array.isArray(this.data.chatArchive))  this.data.chatArchive  = [];
+      if (typeof this.data.onboardingComplete !== "boolean") this.data.onboardingComplete = true; // legacy saves skip onboarding
+      this.data.meta.version = 10;
+    }
   },
 };
 
@@ -274,15 +308,96 @@ function showHomeScreen() {
 }
 
 function startNewGame() {
-  State.reset();
-  if (!State.data.todayNews) generateDailyNews();
-  enterApp();
+  // Don't wipe the existing save until the player actually submits the onboarding
+  // form. If they click "Back", we want to return them to the home screen with their
+  // previous save intact.
+  showOnboardingModal();
 }
 
 function continueGame() {
   if (!loadGame()) State.reset();
   if (!State.data.todayNews) generateDailyNews();
+  // Legacy saves are auto-marked onboardingComplete during migration.
+  if (!State.data.onboardingComplete) {
+    showOnboardingModal();
+    return;
+  }
   enterApp();
+}
+
+/* ---------- Onboarding modal (Part 10) ---------- */
+function showOnboardingModal() {
+  const modal = $("#onboarding-modal");
+  if (!modal) {
+    // Fallback: skip onboarding if the modal is missing (shouldn't happen).
+    State.reset();
+    if (!State.data.todayNews) generateDailyNews();
+    enterApp();
+    return;
+  }
+  $("#home-screen").classList.add("hidden");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+
+  // Reset values
+  const nameInput  = modal.querySelector("#ob-name");
+  const storeInput = modal.querySelector("#ob-store");
+  const errEl      = modal.querySelector("#ob-error");
+  const submitBtn  = modal.querySelector("#ob-submit");
+  const cancelBtn  = modal.querySelector("#ob-cancel");
+  const capButtons = modal.querySelectorAll(".ob-capital-option");
+
+  nameInput.value  = "";
+  storeInput.value = "";
+  errEl.textContent = "";
+
+  // Default capital selection: 10M
+  let chosenCapital = 10_000_000;
+  capButtons.forEach((btn) => {
+    btn.classList.toggle("selected", Number(btn.dataset.capital) === chosenCapital);
+    btn.onclick = () => {
+      chosenCapital = Number(btn.dataset.capital);
+      capButtons.forEach((b) => b.classList.toggle("selected", b === btn));
+    };
+  });
+
+  // Auto-suggest store name as the user types player name.
+  let storeManuallyEdited = false;
+  storeInput.addEventListener("input", () => { storeManuallyEdited = !!storeInput.value.trim(); }, { once: false });
+  nameInput.addEventListener("input", () => {
+    if (!storeManuallyEdited) {
+      const first = (nameInput.value.trim().split(/\s+/)[0] || "").trim();
+      storeInput.value = first ? first + " Counter" : "";
+    }
+  });
+
+  cancelBtn.onclick = () => {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    // Existing save (if any) is still intact since we deferred reset to submit.
+    showHomeScreen();
+  };
+
+  submitBtn.onclick = () => {
+    errEl.textContent = "";
+    const playerName  = nameInput.value.trim();
+    const storeName   = storeInput.value.trim() || (playerName.split(/\s+/)[0] + " Counter");
+    if (!playerName) { errEl.textContent = "Nama Player wajib diisi."; return; }
+    if (playerName.length < 2) { errEl.textContent = "Nama Player minimal 2 karakter."; return; }
+    if (storeName.length < 2)  { errEl.textContent = "Nama Toko minimal 2 karakter.";  return; }
+    if (!window.Profile) { errEl.textContent = "Profile module belum siap, coba lagi."; return; }
+
+    // Commit: now wipe any prior save & start fresh.
+    State.reset();
+    if (!State.data.todayNews) generateDailyNews();
+    window.Profile.applyOnboarding({ playerName, storeName, startingCapital: chosenCapital });
+    State.data.onboardingComplete = true;
+    saveGame();
+
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    enterApp();
+  };
 }
 
 function enterApp() {
@@ -306,6 +421,21 @@ function renderAll() {
 function renderTopbar() {
   $("#topbar-day").textContent = State.data.currentDay;
   if (window.Notifications) window.Notifications.refreshBadge();
+  if (window.Messenger) window.Messenger.refreshUnreadBadge();
+  // Dynamic avatar in topbar profile button + sidebar profile row.
+  const p = State.data.player || {};
+  const tbAv = document.querySelector("#topbar-avatar");
+  if (tbAv) {
+    tbAv.textContent = p.avatar || (p.name ? p.name.charAt(0).toUpperCase() : "P");
+    tbAv.style.background = p.avatarColor || "linear-gradient(135deg,#fb923c,#ec4899)";
+  }
+  const sbAv = document.querySelector("#sidebar-profile-avatar");
+  if (sbAv) {
+    sbAv.textContent = p.avatar || (p.name ? p.name.charAt(0).toUpperCase() : "P");
+    sbAv.style.background = p.avatarColor || "linear-gradient(135deg,#fb923c,#ec4899)";
+  }
+  const sbName = document.querySelector("#sidebar-profile-name");
+  if (sbName) sbName.textContent = p.name || "Player Broker";
 }
 
 function renderSidebar() {
@@ -393,6 +523,9 @@ function renderActivePage() {
     case "staff":
       container.appendChild(window.Staff ? window.Staff.renderStaffRoomPage() : renderPlaceholder("Staff Room", "user-tie", "Loading..."));
       break;
+    case "profile":
+      container.appendChild(window.Profile ? window.Profile.renderProfilePage() : renderPlaceholder("Profile", "user", "Loading..."));
+      break;
     default: container.appendChild(renderNewsFeedPage());
   }
 }
@@ -405,9 +538,14 @@ function renderNewsFeedPage() {
   // Composer
   const composer = document.createElement("div");
   composer.className = "composer";
+  const composerAvatarColor = (s.player && s.player.avatarColor) || "#1877f2";
+  const composerAvatar = (s.player && s.player.avatar) || (s.player && s.player.name ? s.player.name.charAt(0).toUpperCase() : "P");
+  const safeName = String(s.player && s.player.name ? s.player.name : "Player Broker")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const safeAvatar = String(composerAvatar).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   composer.innerHTML = `
-    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-bold">P</div>
-    <input type="text" placeholder="What gadget are you flipping today, Player Broker?" />
+    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background:${composerAvatarColor}">${safeAvatar}</div>
+    <input type="text" placeholder="What gadget are you flipping today, ${safeName}?" />
     <button class="text-[#1877F2] text-xl"><i class="fa-regular fa-image"></i></button>
   `;
   wrap.appendChild(composer);
@@ -617,6 +755,15 @@ function wireUpEvents() {
 document.addEventListener("DOMContentLoaded", () => {
   wireUpEvents();
   if (window.Notifications) window.Notifications.attachBellHandler();
+  if (window.Messenger) window.Messenger.attachButtonHandler();
+  // Topbar profile button → jump to Profile page.
+  const topbarProfileBtn = document.querySelector("#topbar-profile-btn");
+  if (topbarProfileBtn) {
+    topbarProfileBtn.addEventListener("click", () => setActivePage("profile"));
+  }
+  // Sidebar profile row → jump to Profile page (in addition to dedicated nav button).
+  const sbRow = document.querySelector("#sidebar-profile-row");
+  if (sbRow) sbRow.addEventListener("click", () => setActivePage("profile"));
   runSplash();
 });
 

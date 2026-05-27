@@ -455,6 +455,20 @@
       window.Market.removeListing(listing.listingId);
       window.FlippingTycoon.saveGame();
 
+      // Part 10: archive the seller chat & bump player profile stats.
+      if (window.Profile) {
+        window.Profile.recordPurchase({ gadget: { name: listing.name, isExInter: !!listing.isExInter } });
+        window.Profile.archiveChat({
+          role: "buyer",
+          counterparty: { name: listing.seller.name, avatar: listing.seller.avatar, color: listing.seller.color, location: listing.seller.location || null },
+          gadget: { name: listing.name, icon: listing.icon, accent: listing.accent, brand: listing.brand, isExInter: !!listing.isExInter },
+          chatLog: (listing.chatLog || []).slice(),
+          outcome: "purchased",
+          finalPrice: price,
+          itemKey: "daily-" + listing.listingId,
+        });
+      }
+
       pushMessage(listing, "system",
         `✅ Transaksi sukses. ${fmt(price)} ditarik dari ${sourceBank} via ${listing.paymentMethod || "Transfer"}. Item masuk ke Inventory.`);
       if (window.Notifications) {
