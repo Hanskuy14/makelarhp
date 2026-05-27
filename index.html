@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flipping Tycoon: Gadget Broker</title>
+
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome for FB-like icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
+
+  <!-- Google Font: Segoe UI fallback for FB look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-[#f0f2f5] text-[#050505]">
+
+  <!-- ============================================================
+       SPLASH SCREEN
+  ============================================================= -->
+  <div id="splash-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-700">
+    <p class="text-white text-xl md:text-2xl tracking-wide font-light splash-text">
+      Studio <span class="font-semibold">@farhandwisusilo</span> presents
+    </p>
+  </div>
+
+  <!-- ============================================================
+       HOME SCREEN
+  ============================================================= -->
+  <div id="home-screen" class="hidden fixed inset-0 z-[90] flex-col items-center justify-center bg-gradient-to-br from-[#1877F2] via-[#0d5fc7] to-[#0a3d82] text-white">
+    <div class="text-center px-6">
+      <div class="mb-6 inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white/10 backdrop-blur-sm shadow-2xl">
+        <i class="fa-solid fa-mobile-screen-button text-5xl text-white"></i>
+      </div>
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight">
+        Flipping Tycoon
+      </h1>
+      <h2 class="mt-2 text-xl md:text-2xl font-medium opacity-90">
+        Gadget Broker
+      </h2>
+      <p class="mt-4 max-w-md mx-auto text-sm md:text-base opacity-80">
+        Buy low, sell high. Manage your inventory, juggle three bank accounts,
+        and become the king of the gadget marketplace.
+      </p>
+
+      <div class="mt-10 flex flex-col items-center gap-3">
+        <button
+          id="start-game-btn"
+          class="px-10 py-3 rounded-full bg-white text-[#1877F2] font-bold text-lg shadow-xl hover:scale-105 hover:shadow-2xl transition-all"
+        >
+          Start Game
+        </button>
+        <button
+          id="continue-game-btn"
+          class="hidden px-6 py-2 rounded-full bg-white/10 text-white font-medium border border-white/30 hover:bg-white/20 transition-all"
+        >
+          Continue Saved Game
+        </button>
+        <button
+          id="reset-game-btn"
+          class="hidden text-xs underline opacity-70 hover:opacity-100"
+        >
+          Reset save
+        </button>
+      </div>
+    </div>
+
+    <p class="absolute bottom-4 text-xs opacity-60">
+      v0.1 &middot; Studio @farhandwisusilo
+    </p>
+  </div>
+
+  <!-- ============================================================
+       MAIN APP (FACEBOOK CLONE)
+  ============================================================= -->
+  <div id="app" class="hidden">
+
+    <!-- Top Navigation -->
+    <header class="fb-topbar fixed top-0 left-0 right-0 h-14 bg-[#1877F2] text-white flex items-center px-4 z-50 shadow">
+      <!-- Left: logo + search -->
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1877F2] font-extrabold text-2xl shrink-0">
+          f
+        </div>
+        <div class="hidden md:flex items-center bg-white/20 hover:bg-white/30 rounded-full px-3 py-2 max-w-xs w-full">
+          <i class="fa-solid fa-magnifying-glass text-white/90 text-sm mr-2"></i>
+          <input
+            type="text"
+            placeholder="Search Gadgetbook"
+            class="bg-transparent placeholder-white/80 text-white text-sm focus:outline-none w-full"
+          />
+        </div>
+      </div>
+
+      <!-- Center: tab icons -->
+      <nav class="hidden md:flex items-center justify-center flex-1 gap-2">
+        <button class="fb-tab fb-tab-active" title="Home">
+          <i class="fa-solid fa-house"></i>
+        </button>
+        <button class="fb-tab" title="Friends">
+          <i class="fa-solid fa-user-group"></i>
+        </button>
+        <button class="fb-tab" title="Watch">
+          <i class="fa-solid fa-clapperboard"></i>
+        </button>
+        <button class="fb-tab" title="Marketplace">
+          <i class="fa-solid fa-store"></i>
+        </button>
+        <button class="fb-tab" title="Groups">
+          <i class="fa-solid fa-users-rectangle"></i>
+        </button>
+      </nav>
+
+      <!-- Right: day pill + icons -->
+      <div class="flex items-center gap-2 flex-1 justify-end">
+        <div class="hidden sm:flex items-center bg-white/15 rounded-full px-3 py-1.5 text-sm font-semibold">
+          <i class="fa-regular fa-calendar mr-2"></i>
+          <span>Day </span>
+          <span id="topbar-day" class="ml-1">1</span>
+        </div>
+        <button class="fb-icon-btn" title="Menu">
+          <i class="fa-solid fa-grip"></i>
+        </button>
+        <button class="fb-icon-btn" title="Messenger">
+          <i class="fa-brands fa-facebook-messenger"></i>
+        </button>
+        <button class="fb-icon-btn relative" title="Notifications">
+          <i class="fa-solid fa-bell"></i>
+          <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">3</span>
+        </button>
+        <button class="fb-icon-btn" title="Profile">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+            P
+          </div>
+        </button>
+      </div>
+    </header>
+
+    <!-- Layout: sidebar + content -->
+    <div class="pt-14 flex min-h-screen">
+
+      <!-- Left Sidebar -->
+      <aside class="fb-sidebar hidden md:block w-72 shrink-0 fixed top-14 bottom-0 left-0 overflow-y-auto p-3">
+        <div class="space-y-1">
+          <div class="sidebar-link">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
+              P
+            </div>
+            <span class="font-semibold">Player Broker</span>
+          </div>
+
+          <button class="sidebar-link sidebar-nav active" data-page="news-feed">
+            <i class="sidebar-icon fa-solid fa-newspaper text-[#1877F2]"></i>
+            <span>News Feed</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="marketplace">
+            <i class="sidebar-icon fa-solid fa-store text-emerald-500"></i>
+            <span>Marketplace</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="inventory">
+            <i class="sidebar-icon fa-solid fa-boxes-stacked text-amber-500"></i>
+            <span>Inventory</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="banking">
+            <i class="sidebar-icon fa-solid fa-building-columns text-indigo-500"></i>
+            <span>Banking</span>
+          </button>
+        </div>
+
+        <hr class="my-3 border-gray-300" />
+
+        <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          Your Shortcuts
+        </p>
+        <div class="space-y-1">
+          <div class="sidebar-link opacity-80">
+            <i class="sidebar-icon fa-solid fa-mobile-screen text-blue-500"></i>
+            <span class="text-sm">Phone Resellers ID</span>
+          </div>
+          <div class="sidebar-link opacity-80">
+            <i class="sidebar-icon fa-solid fa-tag text-rose-500"></i>
+            <span class="text-sm">Diskon Hari Ini</span>
+          </div>
+        </div>
+
+        <p class="mt-6 px-2 text-[11px] text-gray-400">
+          Privacy &middot; Terms &middot; Advertising &middot; Cookies <br />
+          Gadgetbook &copy; 2026
+        </p>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="flex-1 md:ml-72 lg:mr-80 px-3 md:px-6 py-5">
+        <div id="page-container" class="max-w-2xl mx-auto"></div>
+      </main>
+
+      <!-- Right Sidebar (contacts mock) -->
+      <aside class="fb-sidebar hidden lg:block w-80 shrink-0 fixed top-14 bottom-0 right-0 overflow-y-auto p-3">
+        <p class="px-2 text-sm font-semibold text-gray-500 mb-2 flex items-center justify-between">
+          <span>Contacts</span>
+          <span class="space-x-2">
+            <i class="fa-solid fa-video-slash"></i>
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <i class="fa-solid fa-ellipsis"></i>
+          </span>
+        </p>
+        <div class="space-y-1">
+          <div class="contact-row"><div class="contact-avatar bg-cyan-400">A</div><span>Andre Reseller</span></div>
+          <div class="contact-row"><div class="contact-avatar bg-fuchsia-400">B</div><span>Budi Counter HP</span></div>
+          <div class="contact-row"><div class="contact-avatar bg-lime-500">C</div><span>Citra Gadget</span></div>
+          <div class="contact-row"><div class="contact-avatar bg-orange-400">D</div><span>Dimas Second</span></div>
+          <div class="contact-row"><div class="contact-avatar bg-purple-400">E</div><span>Eka Importir</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Floating Next Day button -->
+    <button
+      id="next-day-btn"
+      class="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-[#1877F2] text-white font-bold shadow-2xl hover:bg-[#155fc4] active:scale-95 transition-all"
+      title="Advance to the next day"
+    >
+      <i class="fa-solid fa-forward"></i>
+      <span>Next Day</span>
+    </button>
+  </div>
+
+  <!-- ============================================================
+       LOADING OVERLAY (Next Day transition)
+  ============================================================= -->
+  <div id="loading-overlay" class="hidden fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+    <div class="spinner mb-6"></div>
+    <p class="text-lg font-semibold tracking-wide">Advancing to the next day...</p>
+    <p id="loading-day-text" class="text-sm opacity-80 mt-1">Day 2</p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
