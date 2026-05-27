@@ -179,6 +179,11 @@
             <i class="sidebar-icon fa-solid fa-building-columns text-indigo-500"></i>
             <span>Banking</span>
           </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="repair">
+            <i class="sidebar-icon fa-solid fa-screwdriver-wrench text-rose-500"></i>
+            <span>Repair Center</span>
+          </button>
         </div>
 
         <hr class="my-3 border-gray-300" />
@@ -354,9 +359,31 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       REPAIR / UPGRADE MODAL (shared)
+  ============================================================= -->
+  <div id="repair-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">Repair Center</h3>
+          <p class="text-xs text-gray-500">Service barang minus &middot; ubah jadi Mulus 100%.</p>
+        </div>
+      </div>
+      <div id="repair-body"></div>
+      <div class="modal-actions">
+        <button id="repair-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="gadgets.js"></script>
   <script src="market.js"></script>
   <script src="banking.js"></script>
+  <script src="repair.js"></script>
   <script src="inventory.js"></script>
   <script src="chat.js"></script>
   <script src="script.js"></script>
