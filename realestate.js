@@ -252,6 +252,17 @@
         receivingBank,
       });
     }
+
+    // Part 10: profile sync — mark post as sold (walk-in flavor) and bump stats.
+    if (window.Profile) {
+      const snap = listing.itemSnapshot || {};
+      window.Profile.markPostSold(listing.listingId, {
+        finalPrice: price,
+        buyer: "Walk-in Customer @ " + ((s.realEstate.store && s.realEstate.store.name) || "Toko"),
+        saleType: "walk-in",
+      });
+      window.Profile.recordSale({ gadget: { isExInter: !!snap.isExInter } });
+    }
     if (window.Notifications) {
       window.Notifications.add({
         type: "success",
