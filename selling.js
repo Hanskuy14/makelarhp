@@ -117,6 +117,8 @@
         imeiStatus: inventoryItem.imeiStatus || null,
         imeiUnlock: inventoryItem.imeiUnlock || null,
         imeiBlockedOnDay: inventoryItem.imeiBlockedOnDay || null,
+        // Part 9: cumulative repair / repack spend follows the item.
+        totalRepairCost: inventoryItem.totalRepairCost || 0,
       },
       originalItemId: inventoryItem.id,
       askingPrice,
@@ -158,6 +160,8 @@
       imeiStatus: listing.itemSnapshot.imeiStatus || null,
       imeiUnlock: listing.itemSnapshot.imeiUnlock || null,
       imeiBlockedOnDay: listing.itemSnapshot.imeiBlockedOnDay || null,
+      // Part 9: restore accumulated repair / repack spend.
+      totalRepairCost: listing.itemSnapshot.totalRepairCost || 0,
     });
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     window.FlippingTycoon.saveGame();
@@ -633,6 +637,25 @@
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     listing.negotiationState = "sold";
     window.FlippingTycoon.saveGame();
+
+    // Part 9: record sale to Analytics.
+    if (window.Analytics) {
+      const snap = listing.itemSnapshot || {};
+      window.Analytics.recordSale({
+        saleType: "offer",
+        gadget: {
+          gadgetId: snap.gadgetId, name: snap.name, brand: snap.brand,
+          specs: snap.specs, completeness: snap.completeness, defect: snap.defect,
+          isExInter: !!snap.isExInter, accent: snap.accent, icon: snap.icon,
+        },
+        purchaseCost: snap.buyPrice || 0,
+        repairCost:   snap.totalRepairCost || 0,
+        salePrice:    price,
+        feePaid:      fee,
+        buyer:        buyerName,
+        receivingBank,
+      });
+    }
 
     pushMessage(listing, "system", `✅ Terjual ke ${buyerName}! +${fmt(net)} masuk ke ${receivingBank}.`);
     if (window.Notifications) {

@@ -233,6 +233,25 @@
 
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     showToast(`🛍️ Walk-in: ${itemName} terjual ${fmt(net)}`);
+
+    // Part 9: record walk-in sale to Analytics.
+    if (window.Analytics) {
+      const snap = listing.itemSnapshot || {};
+      window.Analytics.recordSale({
+        saleType: "walk-in",
+        gadget: {
+          gadgetId: snap.gadgetId, name: snap.name, brand: snap.brand,
+          specs: snap.specs, completeness: snap.completeness, defect: snap.defect,
+          isExInter: !!snap.isExInter, accent: snap.accent, icon: snap.icon,
+        },
+        purchaseCost: snap.buyPrice || 0,
+        repairCost:   snap.totalRepairCost || 0,
+        salePrice:    price,
+        feePaid:      fee,
+        buyer:        (s.realEstate.store && s.realEstate.store.name) || "Walk-in Customer",
+        receivingBank,
+      });
+    }
     if (window.Notifications) {
       window.Notifications.add({
         type: "success",

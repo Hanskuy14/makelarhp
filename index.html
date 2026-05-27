@@ -205,6 +205,16 @@
             <i class="sidebar-icon fa-solid fa-user-group text-indigo-500"></i>
             <span>Friends</span>
           </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="analytics">
+            <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i>
+            <span>Performance Analytics</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="staff">
+            <i class="sidebar-icon fa-solid fa-user-tie text-blue-500"></i>
+            <span>Staff Room</span>
+          </button>
         </div>
 
         <hr class="my-3 border-gray-300" />
@@ -487,6 +497,70 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       BULK MARKUP MODAL (CS bulk-list with markup % input)
+  ============================================================= -->
+  <div id="bulk-markup-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-tags"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">Bulk List with Markup</h3>
+          <p class="text-xs text-gray-500">Customer Service akan list semua unit Mulus sekaligus.</p>
+        </div>
+      </div>
+      <div id="bulk-markup-body"></div>
+      <div class="modal-actions">
+        <button id="bulk-markup-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        <button id="bulk-markup-submit" class="modal-btn modal-btn-primary"><i class="fa-solid fa-bullhorn"></i> Run Bulk List</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STAFF HIRE MODAL (bank picker for hiring fee)
+  ============================================================= -->
+  <div id="staff-hire-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+          <h3 id="staff-hire-title" class="text-lg font-bold">Hire Employee</h3>
+          <p class="text-xs text-gray-500">Bayar hiring fee untuk on-board.</p>
+        </div>
+      </div>
+      <div id="staff-hire-body"></div>
+      <div class="modal-actions">
+        <button id="staff-hire-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STAFF BANK PICKER MODAL (for Auto-Repair / Auto-Buy bulk ops)
+  ============================================================= -->
+  <div id="staff-bank-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div>
+          <h3 id="staff-bank-title" class="text-lg font-bold">Bulk Operation</h3>
+          <p class="text-xs text-gray-500">Pilih rekening untuk membayar bulk operation.</p>
+        </div>
+      </div>
+      <div id="staff-bank-body"></div>
+      <div class="modal-actions">
+        <button id="staff-bank-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="gadgets.js"></script>
   <script src="market.js"></script>
   <script src="banking.js"></script>
@@ -498,6 +572,8 @@
   <script src="accessories.js"></script>
   <script src="notifications.js"></script>
   <script src="friends.js"></script>
+  <script src="analytics.js"></script>
+  <script src="staff.js"></script>
   <script src="chat.js"></script>
   <script src="script.js"></script>
 </body>

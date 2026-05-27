@@ -142,7 +142,12 @@
     hist.innerHTML = `
       <div class="flex items-center justify-between mb-2">
         <h3>Mutasi Rekening</h3>
-        <span class="text-xs text-gray-500">${history.length} transaksi</span>
+        <div class="flex items-center gap-2">
+          <button id="export-monthly-profit" class="export-btn" title="Export Monthly Gross Profit Report">
+            <i class="fa-solid fa-file-arrow-down"></i> Export
+          </button>
+          <span class="text-xs text-gray-500">${history.length} transaksi</span>
+        </div>
       </div>
       <div class="history-list">
         ${history.length === 0
@@ -151,6 +156,16 @@
       </div>
     `;
     wrap.appendChild(hist);
+
+    // Wire export button
+    setTimeout(() => {
+      const exportBtn = document.querySelector("#export-monthly-profit");
+      if (exportBtn) exportBtn.addEventListener("click", () => {
+        if (window.Analytics && window.Analytics.exportMonthlyReport) {
+          window.Analytics.exportMonthlyReport();
+        }
+      });
+    }, 0);
 
     return wrap;
   }

@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 8,
+      version: 9,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -52,6 +52,15 @@ function createDefaultState() {
     friends: [],                        // Part 8: followed broker IDs
     friendsActivity: [],                // Part 8: activity feed posts (capped 30)
     friendsView: { tab: "suggestions" },// Part 8: friends page tab state
+    salesHistory: [],                   // Part 9: finalized sale records (capped 200)
+    staff: {                            // Part 9: hired employees & bulk operation log
+      cs:   { hired: false, hiredOnDay: null, totalPaid: 0, autoAcceptThreshold: 95 },
+      tech: { hired: false, hiredOnDay: null, totalPaid: 0 },
+      bulkLog: [],
+    },
+    staffView:     { tab: "roster" },   // Part 9: staff page tab state
+    analyticsView: {},                  // Part 9: analytics page state (reserved)
+    lastSolvencyWarnDay: 0,             // Part 9: anti-spam guard for solvency alerts
   };
 }
 
@@ -154,6 +163,34 @@ const State = {
       if (!Array.isArray(this.data.friendsActivity)) this.data.friendsActivity = [];
       if (!this.data.friendsView)                    this.data.friendsView = { tab: "suggestions" };
       this.data.meta.version = 8;
+    }
+    if (version < 9) {
+      if (!Array.isArray(this.data.salesHistory)) this.data.salesHistory = [];
+      if (!this.data.staff) {
+        this.data.staff = {
+          cs:   { hired: false, hiredOnDay: null, totalPaid: 0, autoAcceptThreshold: 95 },
+          tech: { hired: false, hiredOnDay: null, totalPaid: 0 },
+          bulkLog: [],
+        };
+      } else {
+        if (!this.data.staff.cs)   this.data.staff.cs   = { hired: false, hiredOnDay: null, totalPaid: 0, autoAcceptThreshold: 95 };
+        if (!this.data.staff.tech) this.data.staff.tech = { hired: false, hiredOnDay: null, totalPaid: 0 };
+        if (!Array.isArray(this.data.staff.bulkLog)) this.data.staff.bulkLog = [];
+        if (typeof this.data.staff.cs.autoAcceptThreshold !== "number") this.data.staff.cs.autoAcceptThreshold = 95;
+      }
+      if (!this.data.staffView)     this.data.staffView     = { tab: "roster" };
+      if (!this.data.analyticsView) this.data.analyticsView = {};
+      if (typeof this.data.lastSolvencyWarnDay !== "number") this.data.lastSolvencyWarnDay = 0;
+      // Backfill totalRepairCost on legacy inventory + listing snapshots.
+      (this.data.inventory || []).forEach((it) => {
+        if (typeof it.totalRepairCost !== "number") it.totalRepairCost = 0;
+      });
+      (this.data.activeListings || []).forEach((l) => {
+        if (l.itemSnapshot && typeof l.itemSnapshot.totalRepairCost !== "number") {
+          l.itemSnapshot.totalRepairCost = 0;
+        }
+      });
+      this.data.meta.version = 9;
     }
   },
 };
@@ -350,6 +387,12 @@ function renderActivePage() {
     case "friends":
       container.appendChild(window.Friends ? window.Friends.renderFriendsPage() : renderPlaceholder("Friends", "user-group", "Loading..."));
       break;
+    case "analytics":
+      container.appendChild(window.Analytics ? window.Analytics.renderAnalyticsPage() : renderPlaceholder("Performance Analytics", "chart-line", "Loading..."));
+      break;
+    case "staff":
+      container.appendChild(window.Staff ? window.Staff.renderStaffRoomPage() : renderPlaceholder("Staff Room", "user-tie", "Loading..."));
+      break;
     default: container.appendChild(renderNewsFeedPage());
   }
 }
@@ -445,7 +488,86 @@ function renderPlaceholder(title, icon, subtitle) {
 /* =========================================================
  * 8. Next Day flow (regenerates listings + news)
  * ========================================================= */
+
+/**
+ * Part 9 — Tax/Admin Alert
+ *
+ * Estimate Mandiri-only debits that the next Next-Day will deduct
+ * (rent + staff salaries). Returns null if no warning needed, otherwise
+ * an object describing the shortfall.
+ */
+function estimateNextDayMandiriDebits() {
+  const s = State.data;
+  let total = 0;
+  const items = [];
+  // Storefront rent
+  if (s.realEstate && s.realEstate.rented && s.realEstate.store) {
+    const r = s.realEstate.store.dailyRent || 0;
+    total += r;
+    items.push({ label: "Sewa toko (" + s.realEstate.store.name + ")", amount: r });
+  }
+  // Staff salaries
+  if (window.Staff && s.staff) {
+    Object.keys(window.Staff.STAFF_META).forEach((role) => {
+      if (s.staff[role] && s.staff[role].hired) {
+        const meta = window.Staff.STAFF_META[role];
+        total += meta.dailySalary;
+        items.push({ label: "Gaji " + meta.title, amount: meta.dailySalary });
+      }
+    });
+  }
+  // Customs fines that hit deadline next day
+  (s.batamCargo || []).forEach((cargo) => {
+    if (cargo.status === "customs-hold" && cargo.customs && !cargo.customs.paid) {
+      const remaining = cargo.customs.deadlineDay - s.currentDay;
+      if (remaining <= 1) {
+        // Note: customs gets confiscated rather than auto-debited, but warn anyway.
+        items.push({ label: "Customs deadline cargo " + cargo.id.slice(-4), amount: cargo.customs.fineAmount, note: "akan disita kalau tidak dibayar" });
+      }
+    }
+  });
+
+  const mandiri = s.bankBalances.Mandiri || 0;
+  const projected = mandiri - total;
+  if (projected < 0 && total > 0) {
+    return { mandiri, total, projected, items };
+  }
+  return null;
+}
+
+function showSolvencyAlert(report) {
+  if (!window.Notifications) return;
+  const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
+  const breakdown = report.items.map((i) => `${i.label}: ${fmt(i.amount)}`).join(" + ");
+  window.Notifications.add({
+    type: "warning",
+    title: "Solvency Warning: Mandiri Bisa Minus!",
+    message: `Estimasi debit Next Day ${fmt(report.total)} (${breakdown}) melebihi saldo Mandiri ${fmt(report.mandiri)}. Risiko: gaji staf walkout, sewa eviction, atau debt collector. Top-up dulu sebelum lanjut.`,
+    actionPage: "banking",
+    actor: "Treasury",
+    icon: "triangle-exclamation",
+  });
+}
+
 async function advanceToNextDay() {
+  // Tax/Admin Alert pre-flight: warn if Mandiri can't cover the day's debits.
+  const report = estimateNextDayMandiriDebits();
+  if (report && State.data.lastSolvencyWarnDay !== State.data.currentDay) {
+    showSolvencyAlert(report);
+    State.data.lastSolvencyWarnDay = State.data.currentDay;
+    saveGame();
+    const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
+    const proceed = confirm(
+      "⚠️ Mandiri akan minus Next Day!\n\n" +
+      "Estimasi debit: " + fmt(report.total) + "\n" +
+      "Saldo Mandiri:  " + fmt(report.mandiri) + "\n" +
+      "Proyeksi:       " + fmt(report.projected) + "\n\n" +
+      "Risiko: staff walkout, eviction toko, debt collector.\n" +
+      "Tetap lanjut Next Day?"
+    );
+    if (!proceed) return;
+  }
+
   const overlay = $("#loading-overlay");
   const nextDay = State.data.currentDay + 1;
   $("#loading-day-text").textContent = `Day ${nextDay}`;
@@ -460,8 +582,10 @@ async function advanceToNextDay() {
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
   if (window.Batam) window.Batam.applyDayTickToCargo();         // Part 7: arrivals + customs deadlines
   if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
+  if (window.Staff) window.Staff.processDailySalaries();        // Part 9: deduct salaries / walkout
   if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
   if (window.Selling) window.Selling.processNextDayOffers(); // roll inbound buyer offers
+  if (window.Staff) window.Staff.processAutoAcceptOffers();     // Part 9: CS auto-accept fair offers
   if (window.Friends) window.Friends.processDailyActivity();    // Part 8: followed brokers post activity
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };

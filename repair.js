@@ -367,6 +367,7 @@
       status: instant ? "completed" : "in-progress",
     };
     item.previousDefect = item.defect;
+    item.totalRepairCost = (item.totalRepairCost || 0) + cost; // Part 9: track for analytics
 
     if (instant) {
       finishRepair(item);
@@ -589,6 +590,7 @@
       sourceBank,
       status: "in-progress",
     };
+    item.totalRepairCost = (item.totalRepairCost || 0) + IMEI_TEMBAK_COST; // Part 9: track for analytics
     window.FlippingTycoon.saveGame();
     showToast(`Tembak IMEI dimulai. ${item.name} selesai Day ${item.imeiUnlock.completesOnDay}.`);
   }
