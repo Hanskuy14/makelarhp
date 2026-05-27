@@ -1124,3 +1124,187 @@ body {
   z-index: 200;
 }
 .ft-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+
+
+
+/* =========================================================
+   PART 4 — REPAIR CENTER + UPGRADES
+========================================================= */
+
+/* ---------- Sub-tabs (used by Repair Center page) ---------- */
+.subtabs {
+  display: flex;
+  gap: 6px;
+  background: #fff;
+  padding: 6px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.subtab {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fb-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.subtab:hover { background: var(--fb-hover); color: var(--fb-text); }
+.subtab.active {
+  background: #eef3fe;
+  color: var(--fb-blue);
+}
+
+/* ---------- Repair rows ---------- */
+.repair-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.repair-row:last-child { border-bottom: none; }
+
+.repair-icon {
+  width: 56px; height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.repair-body { flex: 1; min-width: 0; }
+.repair-title { font-weight: 700; font-size: 15px; }
+.repair-meta { font-size: 12px; color: var(--fb-text-muted); }
+.repair-defects { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+
+.repair-action {
+  text-align: right;
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
+  min-width: 130px;
+}
+.repair-cost { font-weight: 800; font-size: 14px; color: #b91c1c; }
+.repair-fix-btn {
+  background: #1877F2;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.repair-fix-btn:hover { background: #155fc4; }
+.repair-fix-btn:active { transform: scale(0.97); }
+
+.repair-progress-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff7ed; color: #9a3412;
+  font-size: 12px; font-weight: 700;
+  padding: 6px 10px; border-radius: 9999px;
+  border: 1px solid #fed7aa;
+}
+
+/* ---------- Inventory locked / repaired badges ---------- */
+.inventory-card.locked .inv-thumb { opacity: 0.6; }
+.inv-repair-badge {
+  position: absolute; bottom: 8px; left: 8px;
+  background: #fff7ed; color: #9a3412;
+  font-size: 10px; font-weight: 700;
+  padding: 4px 10px; border-radius: 9999px;
+  border: 1px solid #fed7aa;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.inv-repaired-badge {
+  position: absolute; bottom: 8px; left: 8px;
+  background: linear-gradient(90deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  font-size: 10px; font-weight: 800;
+  padding: 4px 10px; border-radius: 9999px;
+  display: inline-flex; align-items: center; gap: 4px;
+  box-shadow: 0 0 0 2px rgba(16,185,129,0.15);
+}
+.relist-btn[disabled] {
+  background: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+.relist-btn[disabled]:hover { background: #e5e7eb; }
+
+/* ---------- Upgrade cards ---------- */
+.upgrade-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #f3f4f6;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.upgrade-card:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.1); }
+.upgrade-card.owned {
+  background: linear-gradient(135deg, #ecfdf5 0%, #fff 60%);
+  border-color: #a7f3d0;
+}
+.upgrade-icon {
+  width: 56px; height: 56px;
+  border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.upgrade-body { min-width: 0; }
+.upgrade-name { font-weight: 800; font-size: 16px; }
+.upgrade-blurb { font-size: 13px; color: var(--fb-text-muted); margin-top: 2px; }
+.upgrade-effect {
+  margin-top: 6px; font-size: 12px; font-weight: 700;
+  color: #065f46;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #d1fae5;
+  padding: 4px 10px; border-radius: 9999px;
+}
+.upgrade-action { text-align: right; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.upgrade-cost { font-weight: 800; font-size: 14px; color: #b91c1c; }
+.upgrade-buy-btn {
+  background: #1877F2;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.upgrade-buy-btn:hover:not([disabled]) { background: #155fc4; }
+.upgrade-buy-btn:active:not([disabled]) { transform: scale(0.97); }
+.upgrade-buy-btn[disabled] {
+  background: #d1fae5; color: #065f46; cursor: default; opacity: 1;
+}
+.upgrade-owned-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.05em;
+  background: #d1fae5; color: #065f46;
+  padding: 3px 8px; border-radius: 9999px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+
+/* Repair-modal flex toggle */
+#repair-modal.flex { display: flex; }
+
+/* Stack on small screens */
+@media (max-width: 540px) {
+  .upgrade-card { grid-template-columns: auto 1fr; }
+  .upgrade-action { grid-column: 1 / -1; align-items: stretch; }
+  .upgrade-action .upgrade-buy-btn { justify-content: center; }
+  .repair-row { flex-wrap: wrap; }
+  .repair-action { width: 100%; align-items: stretch; }
+  .repair-action .repair-fix-btn { justify-content: center; }
+}

@@ -4,10 +4,19 @@
  * ========================================================= */
 
 (function () {
-  const PLATFORM_FEE = 0.05; // 5%
+  const PLATFORM_FEE_BASE = 0.05; // 5% (lowered to 2% with FB Paid Ads upgrade)
 
   function fmt(n) { return window.Market.formatRupiah(n); }
   function S() { return window.FlippingTycoon.State.data; }
+
+  /** Effective marketplace platform fee — respects FB Paid Ads upgrade. */
+  function platformFeeRate() {
+    return window.Repair ? window.Repair.platformFeeRate() : PLATFORM_FEE_BASE;
+  }
+
+  function isLocked(item) {
+    return window.Repair ? window.Repair.isLocked(item) : false;
+  }
 
   function gadgetIconHtml(item, sizeClass = "text-5xl") {
     const accent = (item.accent) || "#1c1c1e";
@@ -22,6 +31,7 @@
 
     const header = document.createElement("div");
     header.className = "fb-card";
+    const feePct = (platformFeeRate() * 100).toFixed(0);
     header.innerHTML = `
       <div class="flex items-center justify-between">
         <div>
@@ -32,7 +42,7 @@
         </div>
         <div class="text-right">
           <p class="text-xs text-gray-400">Platform fee</p>
-          <p class="font-semibold text-sm">5% (0% with Priority)</p>
+          <p class="font-semibold text-sm">${feePct}% (0% with Priority)${S().upgrades && S().upgrades.fbPaidAds ? " &middot; <span class='text-emerald-600'>FB Ads aktif</span>" : ""}</p>
         </div>
       </div>
     `;
@@ -62,37 +72,43 @@
   /* ---------- Single inventory card ---------- */
   function renderInventoryCard(item) {
     const card = document.createElement("div");
-    card.className = "inventory-card";
+    card.className = "inventory-card" + (isLocked(item) ? " locked" : "");
 
     const marketPrice = window.Market.computeCurrentMarketPrice(item);
     const buyPrice = item.buyPrice || 0;
     const grossProfit = marketPrice - buyPrice;
     const profitClass = grossProfit > 0 ? "text-emerald-600" : grossProfit < 0 ? "text-rose-600" : "text-gray-500";
+    const locked = isLocked(item);
+    const justRepaired = item.previousDefect && item.defect.severity === 0 && !locked;
 
     card.innerHTML = `
       <div class="inv-thumb">
         ${gadgetIconHtml(item, "text-6xl")}
         <span class="inv-thumb-tag">${item.brand || "—"}</span>
         ${item.hiddenDefect ? `<span class="inv-hidden-defect" title="${item.hiddenDefect}"><i class="fa-solid fa-triangle-exclamation"></i></span>` : ""}
+        ${locked ? `<span class="inv-repair-badge"><i class="fa-solid fa-screwdriver-wrench"></i> In Repair</span>` : ""}
+        ${justRepaired ? `<span class="inv-repaired-badge"><i class="fa-solid fa-sparkles"></i> Repaired</span>` : ""}
       </div>
       <div class="inv-body">
         <p class="inv-title">${item.name}</p>
         <p class="inv-meta">${item.specs.ram} / ${item.specs.rom} &middot; ${item.specs.color}</p>
         <div class="inv-badges">
           <span class="market-badge bg-blue-100 text-blue-700">${item.completeness.short}</span>
-          <span class="market-badge bg-yellow-100 text-yellow-800">${item.defect.short}</span>
+          <span class="market-badge ${item.defect.severity === 0 ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-800"}">${item.defect.short}</span>
         </div>
         <div class="inv-prices">
           <div><span class="inv-prices-label">Beli (D${item.buyDay})</span><span>${fmt(buyPrice)}</span></div>
           <div><span class="inv-prices-label">Pasar Hari Ini</span><span class="font-bold">${fmt(marketPrice)}</span></div>
           <div><span class="inv-prices-label">Margin Kotor</span><span class="${profitClass} font-semibold">${grossProfit >= 0 ? "+" : ""}${fmt(grossProfit)}</span></div>
         </div>
-        <button class="relist-btn" data-id="${item.id}">
-          <i class="fa-solid fa-tag"></i> Relist on Marketplace
-        </button>
+        ${locked
+          ? `<button class="relist-btn" disabled><i class="fa-solid fa-lock"></i> Locked: In Repair until Day ${item.repair.completesOnDay}</button>`
+          : `<button class="relist-btn" data-id="${item.id}"><i class="fa-solid fa-tag"></i> Relist on Marketplace</button>`}
       </div>
     `;
-    card.querySelector(".relist-btn").addEventListener("click", () => openRelistModal(item));
+    if (!locked) {
+      card.querySelector(".relist-btn").addEventListener("click", () => openRelistModal(item));
+    }
     return card;
   }
 
@@ -108,13 +124,17 @@
 
     // Build per-bank rows showing fee preview based on tier.
     const banks = ["Mandiri", "BCA", "BNI"];
+    const baseFeeRate = platformFeeRate();
     const rows = banks.map((b) => {
       const balance = S().bankBalances[b] || 0;
       const tier = window.Banking.tierOf(balance);
       const isPriority = tier === "priority";
-      const feeRate = isPriority ? 0 : PLATFORM_FEE;
+      const feeRate = isPriority ? 0 : baseFeeRate;
       const fee = Math.round(marketPrice * feeRate);
       const net = marketPrice - fee;
+      const feeLabel = isPriority
+        ? "Fee 0% (Priority)"
+        : `Fee ${(baseFeeRate * 100).toFixed(0)}%${S().upgrades && S().upgrades.fbPaidAds ? " (FB Ads)" : ""} = -${fmt(fee)}`;
       return `
         <button class="relist-bank-row ${tier}" data-bank="${b}">
           <div class="rb-left">
@@ -122,7 +142,7 @@
             <span class="rb-tier">Tier: ${window.Banking.tierLabel(tier)}</span>
           </div>
           <div class="rb-right">
-            <span class="rb-fee">${isPriority ? "Fee 0% (Priority)" : `Fee 5% = -${fmt(fee)}`}</span>
+            <span class="rb-fee">${feeLabel}</span>
             <span class="rb-net"><b>+${fmt(net)}</b></span>
           </div>
         </button>
@@ -138,7 +158,7 @@
       </div>
       <p class="text-sm font-semibold mb-2">Setor hasil ke rekening mana?</p>
       <div class="relist-banks">${rows}</div>
-      <p class="text-xs text-gray-500 mt-2">Tip: simpan saldo ≥ Rp 500.000.000 di salah satu rekening untuk mendapat tier <b>Priority</b> dan bebas fee.</p>
+      <p class="text-xs text-gray-500 mt-2">Tip: simpan saldo &ge; Rp 500.000.000 di salah satu rekening untuk mendapat tier <b>Priority</b> dan bebas fee.${S().upgrades && S().upgrades.fbPaidAds ? "" : " Atau beli upgrade <b>FB Paid Ads</b> di Repair Center untuk fee 2%."}</p>
     `;
 
     modal.classList.remove("hidden");
@@ -167,27 +187,27 @@
     const balance = s.bankBalances[receivingBank] || 0;
     const tier = window.Banking.tierOf(balance);
     const isPriority = tier === "priority";
-    const feeRate = isPriority ? 0 : PLATFORM_FEE;
+    const baseFeeRate = platformFeeRate();
+    const feeRate = isPriority ? 0 : baseFeeRate;
     const fee = Math.round(marketPrice * feeRate);
     const net = marketPrice - fee;
+    const feeLabel = isPriority
+      ? "Priority - 0% fee"
+      : `after ${(baseFeeRate * 100).toFixed(0)}% platform fee${s.upgrades && s.upgrades.fbPaidAds ? " via FB Ads" : ""}`;
 
-    // Credit receiving bank.
     s.bankBalances[receivingBank] += net;
     s.bankHistories[receivingBank].push({
       type: "CREDIT",
       amount: net,
       balanceAfter: s.bankBalances[receivingBank],
-      description: `Sale of ${item.name}${isPriority ? " (Priority - 0% fee)" : ` (after 5% platform fee)`}`,
+      description: `Sale of ${item.name} (${feeLabel})`,
       category: "sale",
       day: s.currentDay,
       ts: Date.now(),
     });
 
-    // Remove item from inventory.
     s.inventory = s.inventory.filter((it) => it.id !== item.id);
     window.FlippingTycoon.saveGame();
-
-    // Tiny toast feedback.
     showToast(`Terjual! +${fmt(net)} masuk ke ${receivingBank}.`);
   }
 
@@ -208,6 +228,6 @@
   /* ---------- Public API ---------- */
   window.Inventory = {
     renderInventoryPage,
-    PLATFORM_FEE,
+    platformFeeRate,
   };
 })();

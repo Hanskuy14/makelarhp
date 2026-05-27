@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 3,
+      version: 4,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -29,9 +29,11 @@ function createDefaultState() {
     lastListingDay: 0,
     marketView: { mode: "grid", selectedListingId: null },
     activePage: "news-feed",
-    todayNews: null,        // { id, headline, brand, multiplier, blurb, day }
-    newsHistory: [],        // most recent N news posts
+    todayNews: null,
+    newsHistory: [],
     bankingView: { activeBank: "Mandiri" },
+    upgrades: { premiumTools: false, fbPaidAds: false },
+    repairView: { activeTab: "repairs" },
   };
 }
 
@@ -77,7 +79,6 @@ const State = {
   _migrate(parsed) {
     const version = (parsed.meta && parsed.meta.version) || 1;
     if (version < 3) {
-      // Bump opening balances to Part 3 defaults if save is older.
       if ((this.data.bankBalances.Mandiri || 0) < STARTING_BALANCES.Mandiri) {
         this.data.bankBalances.Mandiri = STARTING_BALANCES.Mandiri;
       }
@@ -85,6 +86,11 @@ const State = {
         this.data.bankBalances.BNI = STARTING_BALANCES.BNI;
       }
       this.data.meta.version = 3;
+    }
+    if (version < 4) {
+      if (!this.data.upgrades) this.data.upgrades = { premiumTools: false, fbPaidAds: false };
+      if (!this.data.repairView) this.data.repairView = { activeTab: "repairs" };
+      this.data.meta.version = 4;
     }
   },
 };
@@ -233,6 +239,9 @@ function renderActivePage() {
     case "banking":
       container.appendChild(window.Banking ? window.Banking.renderBankingPage() : renderPlaceholder("Banking", "building-columns", "Loading..."));
       break;
+    case "repair":
+      container.appendChild(window.Repair ? window.Repair.renderRepairCenterPage() : renderPlaceholder("Repair Center", "screwdriver-wrench", "Loading..."));
+      break;
     default: container.appendChild(renderNewsFeedPage());
   }
 }
@@ -338,6 +347,7 @@ async function advanceToNextDay() {
 
   State.data.currentDay = nextDay;
   generateDailyNews();                 // new news first so listings can apply its multiplier
+  if (window.Repair) window.Repair.applyDayTickToRepairs(); // finish in-progress repairs
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
   saveGame();
