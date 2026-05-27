@@ -380,10 +380,55 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       LIST ITEM MODAL (Inventory → Active Listings)
+  ============================================================= -->
+  <div id="list-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-tag"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">List on Marketplace</h3>
+          <p class="text-xs text-gray-500">Tentukan asking price &middot; tunggu pembeli datang.</p>
+        </div>
+      </div>
+      <div id="list-body"></div>
+      <div class="modal-actions">
+        <button id="list-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        <button id="list-submit" class="modal-btn modal-btn-primary"><i class="fa-solid fa-bullhorn"></i> List Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       COUNTER OFFER MODAL (Reverse Negotiation)
+  ============================================================= -->
+  <div id="counter-modal" class="hidden fixed inset-0 z-[140] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">Counter Offer</h3>
+          <p class="text-xs text-gray-500">Tawar balik harga yang kamu mau.</p>
+        </div>
+      </div>
+      <div id="counter-body"></div>
+      <div class="modal-actions">
+        <button id="counter-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        <button id="counter-submit" class="modal-btn modal-btn-primary"><i class="fa-solid fa-paper-plane"></i> Send Counter</button>
+      </div>
+    </div>
+  </div>
+
   <script src="gadgets.js"></script>
   <script src="market.js"></script>
   <script src="banking.js"></script>
   <script src="repair.js"></script>
+  <script src="selling.js"></script>
   <script src="inventory.js"></script>
   <script src="chat.js"></script>
   <script src="script.js"></script>
