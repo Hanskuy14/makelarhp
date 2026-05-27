@@ -1932,3 +1932,311 @@ body {
   .store-action .store-rent-btn { justify-content: center; }
   .rs-stats { grid-template-columns: 1fr 1fr; }
 }
+
+
+
+/* =========================================================
+   PART 7 — Batam Supplier + Toko Aksesoris
+========================================================= */
+
+/* Modal display toggles */
+#batam-modal.flex,
+#accessories-modal.flex { display: flex; }
+
+/* ---------- Batam: Order CTA card ---------- */
+.batam-order-card {
+  background: linear-gradient(135deg, #ecfeff 0%, #fff 60%);
+  border: 1px solid #a5f3fc;
+}
+.batam-order-perks {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #4b5563;
+}
+.batam-order-perks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+.batam-order-perks li > i {
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: #0e7490;
+}
+.batam-order-perks li:nth-child(2) > i { color: #b45309; }
+.batam-order-perks li:nth-child(3) > i { color: #b91c1c; }
+
+.batam-order-btn {
+  background: linear-gradient(135deg, #0e7490 0%, #06b6d4 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.batam-order-btn:hover { opacity: 0.92; }
+.batam-order-btn:active { transform: scale(0.97); }
+
+/* ---------- Batam: Manifest preview rows in modal ---------- */
+.batam-manifest-preview {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.batam-manifest-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed #f0f0f0;
+}
+.batam-manifest-row:last-child { border-bottom: none; }
+.batam-manifest-row .bm-name { font-weight: 600; color: var(--fb-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.batam-manifest-row .bm-spec { color: var(--fb-text-muted); }
+.batam-manifest-row .bm-cond {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+.batam-manifest-row .bm-price { font-weight: 800; color: #b45309; }
+.bm-more {
+  font-size: 11px;
+  color: var(--fb-text-muted);
+  text-align: center;
+  padding: 4px 0 0;
+  font-style: italic;
+}
+
+/* ---------- Batam: Cargo row card ---------- */
+.cargo-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.cargo-row:last-child { border-bottom: none; }
+
+.cargo-row.in-transit  { background: linear-gradient(90deg, #ecfeff 0%, transparent 50%); }
+.cargo-row.customs-hold {
+  background: linear-gradient(90deg, #fff1f2 0%, transparent 50%);
+  animation: cargoPulse 2.2s ease-in-out infinite;
+}
+@keyframes cargoPulse {
+  0%, 100% { box-shadow: inset 4px 0 0 0 rgba(239, 68, 68, 0.0); }
+  50%      { box-shadow: inset 4px 0 0 0 rgba(239, 68, 68, 0.7); }
+}
+.cargo-row.delivered   { background: linear-gradient(90deg, #ecfdf5 0%, transparent 50%); }
+.cargo-row.confiscated {
+  background: linear-gradient(90deg, #fef2f2 0%, transparent 50%);
+  opacity: 0.85;
+}
+
+.cargo-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.cargo-body { min-width: 0; }
+.cargo-title { font-weight: 800; font-size: 15px; color: var(--fb-text); }
+.cargo-status-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+.cargo-meta {
+  font-size: 13px;
+  color: var(--fb-text);
+  margin-top: 4px;
+}
+.cargo-detail {
+  margin-top: 4px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cargo-detail.rose    { color: #b91c1c; }
+.cargo-detail.emerald { color: #047857; }
+.cargo-pay-btn {
+  margin-top: 8px;
+  background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+.cargo-pay-btn:hover { opacity: 0.92; }
+.cargo-pay-btn:active { transform: scale(0.97); }
+
+/* ---------- Batam: Shipment log ---------- */
+.batam-history-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.batam-history-list::-webkit-scrollbar { width: 6px; }
+.batam-history-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+.batam-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.batam-history-row:last-child { border-bottom: none; }
+.batam-history-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.batam-history-tag.tag-delivered-clean         { background: #d1fae5; color: #065f46; }
+.batam-history-tag.tag-delivered-after-customs { background: #fef3c7; color: #92400e; }
+.batam-history-tag.tag-confiscated             { background: #fee2e2; color: #7f1d1d; }
+
+
+/* =========================================================
+   TOKO AKSESORIS
+========================================================= */
+
+/* OEM kit price legend on header card */
+.oem-price-legend {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px;
+}
+.oem-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.oem-price-row > i { font-size: 14px; flex-shrink: 0; }
+.oem-price-row > span:nth-child(2) { flex: 1; color: var(--fb-text); font-weight: 600; }
+.oem-price-row .oem-price { color: #b45309; font-weight: 800; }
+
+/* Repack rows */
+.repack-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.repack-row:last-child { border-bottom: none; }
+.repack-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.repack-body { min-width: 0; }
+.repack-title { font-weight: 800; font-size: 15px; }
+.repack-meta { font-size: 12px; color: var(--fb-text-muted); margin-top: 2px; }
+.repack-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.repack-uplift {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.repack-uplift > div { display: flex; justify-content: space-between; }
+.repack-uplift > div span:first-child { color: var(--fb-text-muted); }
+
+.repack-action {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  min-width: 150px;
+}
+.repack-cost {
+  font-weight: 800;
+  font-size: 14px;
+  color: #b45309;
+}
+.repack-btn {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+.repack-btn:hover { opacity: 0.92; }
+.repack-btn:active { transform: scale(0.97); }
+
+/* Stack on small screens */
+@media (max-width: 540px) {
+  .batam-order-card .flex.items-start { flex-wrap: wrap; }
+  .batam-order-btn { width: 100%; justify-content: center; }
+  .repack-row { grid-template-columns: auto 1fr; }
+  .repack-action {
+    grid-column: 1 / -1;
+    align-items: stretch;
+    text-align: left;
+  }
+  .repack-action .repack-btn { justify-content: center; }
+  .cargo-pay-btn { width: 100%; justify-content: center; }
+  .batam-manifest-row { grid-template-columns: 22px 1fr auto; }
+  .batam-manifest-row .bm-spec,
+  .batam-manifest-row .bm-cond { display: none; }
+}
