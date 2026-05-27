@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 4,
+      version: 5,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -34,6 +34,8 @@ function createDefaultState() {
     bankingView: { activeBank: "Mandiri" },
     upgrades: { premiumTools: false, fbPaidAds: false },
     repairView: { activeTab: "repairs" },
+    activeListings: [],                 // Part 5: items the player put up for sale
+    inventoryView: { activeTab: "owned" },
   };
 }
 
@@ -91,6 +93,11 @@ const State = {
       if (!this.data.upgrades) this.data.upgrades = { premiumTools: false, fbPaidAds: false };
       if (!this.data.repairView) this.data.repairView = { activeTab: "repairs" };
       this.data.meta.version = 4;
+    }
+    if (version < 5) {
+      if (!Array.isArray(this.data.activeListings)) this.data.activeListings = [];
+      if (!this.data.inventoryView) this.data.inventoryView = { activeTab: "owned" };
+      this.data.meta.version = 5;
     }
   },
 };
@@ -212,6 +219,22 @@ function renderSidebar() {
     const page = btn.dataset.page;
     btn.classList.toggle("active", page === State.data.activePage);
   });
+  // Inbox notification badge on Inventory link
+  const invBtn = document.querySelector('.sidebar-nav[data-page="inventory"]');
+  if (invBtn) {
+    let badge = invBtn.querySelector(".sidebar-badge");
+    const pending = window.Selling ? window.Selling.pendingOfferCount() : 0;
+    if (pending > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "sidebar-badge";
+        invBtn.appendChild(badge);
+      }
+      badge.textContent = pending;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
 }
 
 function setActivePage(page) {
@@ -348,6 +371,7 @@ async function advanceToNextDay() {
   State.data.currentDay = nextDay;
   generateDailyNews();                 // new news first so listings can apply its multiplier
   if (window.Repair) window.Repair.applyDayTickToRepairs(); // finish in-progress repairs
+  if (window.Selling) window.Selling.processNextDayOffers(); // roll inbound buyer offers
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
   saveGame();

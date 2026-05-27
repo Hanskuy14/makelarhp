@@ -1,6 +1,6 @@
 /* =========================================================
  * Flipping Tycoon: Gadget Broker
- * Part 3 — Inventory: owned items + relist with platform fee
+ * Part 5 — Inventory: Owned tab + Active Listings tab
  * ========================================================= */
 
 (function () {
@@ -9,11 +9,9 @@
   function fmt(n) { return window.Market.formatRupiah(n); }
   function S() { return window.FlippingTycoon.State.data; }
 
-  /** Effective marketplace platform fee — respects FB Paid Ads upgrade. */
   function platformFeeRate() {
     return window.Repair ? window.Repair.platformFeeRate() : PLATFORM_FEE_BASE;
   }
-
   function isLocked(item) {
     return window.Repair ? window.Repair.isLocked(item) : false;
   }
@@ -24,11 +22,17 @@
     return `<i class="fa-solid fa-${iconName} ${sizeClass}" style="color:${accent}"></i>`;
   }
 
-  /* ---------- Page ---------- */
+  /* ---------- Page renderer with sub-tabs ---------- */
   function renderInventoryPage() {
     const wrap = document.createElement("div");
-    const items = S().inventory || [];
+    const s = S();
+    if (!s.inventoryView) s.inventoryView = { activeTab: "owned" };
 
+    const ownedCount = (s.inventory || []).length;
+    const listings = s.activeListings || [];
+    const pendingOffers = listings.filter((l) => l.negotiationState === "offer-pending").length;
+
+    // Header card
     const header = document.createElement("div");
     header.className = "fb-card";
     const feePct = (platformFeeRate() * 100).toFixed(0);
@@ -38,16 +42,48 @@
           <h3 class="flex items-center gap-2">
             <i class="fa-solid fa-boxes-stacked text-amber-500"></i> Inventory
           </h3>
-          <p class="text-sm text-gray-500">${items.length} barang &middot; Klik "Relist" untuk jual ke marketplace.</p>
+          <p class="text-sm text-gray-500">${ownedCount} owned &middot; ${listings.length} active listings ${pendingOffers > 0 ? `&middot; <b class="text-rose-600">${pendingOffers} new offer${pendingOffers > 1 ? "s" : ""}</b>` : ""}</p>
         </div>
         <div class="text-right">
           <p class="text-xs text-gray-400">Platform fee</p>
-          <p class="font-semibold text-sm">${feePct}% (0% with Priority)${S().upgrades && S().upgrades.fbPaidAds ? " &middot; <span class='text-emerald-600'>FB Ads aktif</span>" : ""}</p>
+          <p class="font-semibold text-sm">${feePct}% (0% with Priority)${s.upgrades && s.upgrades.fbPaidAds ? " &middot; <span class='text-emerald-600'>FB Ads aktif</span>" : ""}</p>
         </div>
       </div>
     `;
     wrap.appendChild(header);
 
+    // Sub-tabs
+    const tabs = document.createElement("div");
+    tabs.className = "subtabs";
+    [{ id: "owned", label: `Owned (${ownedCount})`, icon: "warehouse" },
+     { id: "listings", label: `Active Listings (${listings.length})`, icon: "tag", badge: pendingOffers }].forEach((t) => {
+      const btn = document.createElement("button");
+      btn.className = `subtab ${s.inventoryView.activeTab === t.id ? "active" : ""}`;
+      btn.innerHTML = `
+        <i class="fa-solid fa-${t.icon}"></i>
+        ${t.label}
+        ${t.badge ? `<span class="subtab-badge">${t.badge}</span>` : ""}
+      `;
+      btn.addEventListener("click", () => {
+        s.inventoryView.activeTab = t.id;
+        window.FlippingTycoon.saveGame();
+        window.FlippingTycoon.renderActivePage();
+      });
+      tabs.appendChild(btn);
+    });
+    wrap.appendChild(tabs);
+
+    if (s.inventoryView.activeTab === "listings") {
+      wrap.appendChild(window.Selling.renderActiveListingsTab());
+    } else {
+      wrap.appendChild(renderOwnedTab());
+    }
+    return wrap;
+  }
+
+  function renderOwnedTab() {
+    const wrap = document.createElement("div");
+    const items = S().inventory || [];
     if (items.length === 0) {
       const empty = document.createElement("div");
       empty.className = "fb-card text-center py-12";
@@ -59,7 +95,6 @@
       wrap.appendChild(empty);
       return wrap;
     }
-
     const grid = document.createElement("div");
     grid.className = "inventory-grid";
     items.forEach((item) => grid.appendChild(renderInventoryCard(item)));
@@ -67,9 +102,7 @@
     return wrap;
   }
 
-
-
-  /* ---------- Single inventory card ---------- */
+  /* ---------- Owned-item card ---------- */
   function renderInventoryCard(item) {
     const card = document.createElement("div");
     card.className = "inventory-card" + (isLocked(item) ? " locked" : "");
@@ -98,131 +131,18 @@
         </div>
         <div class="inv-prices">
           <div><span class="inv-prices-label">Beli (D${item.buyDay})</span><span>${fmt(buyPrice)}</span></div>
-          <div><span class="inv-prices-label">Pasar Hari Ini</span><span class="font-bold">${fmt(marketPrice)}</span></div>
+          <div><span class="inv-prices-label">Suggested Price</span><span class="font-bold">${fmt(marketPrice)}</span></div>
           <div><span class="inv-prices-label">Margin Kotor</span><span class="${profitClass} font-semibold">${grossProfit >= 0 ? "+" : ""}${fmt(grossProfit)}</span></div>
         </div>
         ${locked
           ? `<button class="relist-btn" disabled><i class="fa-solid fa-lock"></i> Locked: In Repair until Day ${item.repair.completesOnDay}</button>`
-          : `<button class="relist-btn" data-id="${item.id}"><i class="fa-solid fa-tag"></i> Relist on Marketplace</button>`}
+          : `<button class="relist-btn" data-id="${item.id}"><i class="fa-solid fa-tag"></i> List on Marketplace</button>`}
       </div>
     `;
     if (!locked) {
-      card.querySelector(".relist-btn").addEventListener("click", () => openRelistModal(item));
+      card.querySelector(".relist-btn").addEventListener("click", () => window.Selling.openListModal(item));
     }
     return card;
-  }
-
-
-
-  /* ---------- Relist modal: pick receiving bank ---------- */
-  function openRelistModal(item) {
-    const modal = document.querySelector("#relist-modal");
-    const body = modal.querySelector("#relist-body");
-    const closeBtn = modal.querySelector("#relist-cancel");
-
-    const marketPrice = window.Market.computeCurrentMarketPrice(item);
-
-    // Build per-bank rows showing fee preview based on tier.
-    const banks = ["Mandiri", "BCA", "BNI"];
-    const baseFeeRate = platformFeeRate();
-    const rows = banks.map((b) => {
-      const balance = S().bankBalances[b] || 0;
-      const tier = window.Banking.tierOf(balance);
-      const isPriority = tier === "priority";
-      const feeRate = isPriority ? 0 : baseFeeRate;
-      const fee = Math.round(marketPrice * feeRate);
-      const net = marketPrice - fee;
-      const feeLabel = isPriority
-        ? "Fee 0% (Priority)"
-        : `Fee ${(baseFeeRate * 100).toFixed(0)}%${S().upgrades && S().upgrades.fbPaidAds ? " (FB Ads)" : ""} = -${fmt(fee)}`;
-      return `
-        <button class="relist-bank-row ${tier}" data-bank="${b}">
-          <div class="rb-left">
-            <span class="rb-bank">${b}</span>
-            <span class="rb-tier">Tier: ${window.Banking.tierLabel(tier)}</span>
-          </div>
-          <div class="rb-right">
-            <span class="rb-fee">${feeLabel}</span>
-            <span class="rb-net"><b>+${fmt(net)}</b></span>
-          </div>
-        </button>
-      `;
-    }).join("");
-
-    body.innerHTML = `
-      <div class="relist-summary">
-        <p class="text-xs text-gray-500">Item</p>
-        <p class="font-semibold text-base mb-1">${item.name} &middot; ${item.specs.ram}/${item.specs.rom}</p>
-        <p class="text-xs text-gray-500">Estimasi pasar hari ini</p>
-        <p class="text-xl font-bold">${fmt(marketPrice)}</p>
-      </div>
-      <p class="text-sm font-semibold mb-2">Setor hasil ke rekening mana?</p>
-      <div class="relist-banks">${rows}</div>
-      <p class="text-xs text-gray-500 mt-2">Tip: simpan saldo &ge; Rp 500.000.000 di salah satu rekening untuk mendapat tier <b>Priority</b> dan bebas fee.${S().upgrades && S().upgrades.fbPaidAds ? "" : " Atau beli upgrade <b>FB Paid Ads</b> di Repair Center untuk fee 2%."}</p>
-    `;
-
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-
-    const close = () => {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    };
-    closeBtn.onclick = close;
-
-    body.querySelectorAll(".relist-bank-row").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        executeSale(item, btn.dataset.bank, marketPrice);
-        close();
-        window.FlippingTycoon.renderActivePage();
-      });
-    });
-  }
-
-
-
-  /* ---------- Execute the sale ---------- */
-  function executeSale(item, receivingBank, marketPrice) {
-    const s = S();
-    const balance = s.bankBalances[receivingBank] || 0;
-    const tier = window.Banking.tierOf(balance);
-    const isPriority = tier === "priority";
-    const baseFeeRate = platformFeeRate();
-    const feeRate = isPriority ? 0 : baseFeeRate;
-    const fee = Math.round(marketPrice * feeRate);
-    const net = marketPrice - fee;
-    const feeLabel = isPriority
-      ? "Priority - 0% fee"
-      : `after ${(baseFeeRate * 100).toFixed(0)}% platform fee${s.upgrades && s.upgrades.fbPaidAds ? " via FB Ads" : ""}`;
-
-    s.bankBalances[receivingBank] += net;
-    s.bankHistories[receivingBank].push({
-      type: "CREDIT",
-      amount: net,
-      balanceAfter: s.bankBalances[receivingBank],
-      description: `Sale of ${item.name} (${feeLabel})`,
-      category: "sale",
-      day: s.currentDay,
-      ts: Date.now(),
-    });
-
-    s.inventory = s.inventory.filter((it) => it.id !== item.id);
-    window.FlippingTycoon.saveGame();
-    showToast(`Terjual! +${fmt(net)} masuk ke ${receivingBank}.`);
-  }
-
-  /* ---------- Toast helper ---------- */
-  function showToast(msg) {
-    let toast = document.querySelector("#ft-toast");
-    if (!toast) {
-      toast = document.createElement("div");
-      toast.id = "ft-toast";
-      toast.className = "ft-toast";
-      document.body.appendChild(toast);
-    }
-    toast.textContent = msg;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 2400);
   }
 
   /* ---------- Public API ---------- */
