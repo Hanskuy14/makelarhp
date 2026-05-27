@@ -31,6 +31,10 @@
     actionsEl.innerHTML = "";
     overlayEl.classList.remove("hidden");
     overlayEl.classList.add("flex");
+    // Reset any incomplete purchase flow when re-opening.
+    if (listing.purchaseFlow && listing.purchaseFlow !== "completed") {
+      listing.purchaseFlow = "idle";
+    }
 
     // Replay or initialize conversation.
     if (!Array.isArray(listing.chatLog) || listing.chatLog.length === 0) {
@@ -240,35 +244,189 @@
   }
 
 
-  /* ---------- Accept = purchase ---------- */
+  /* ---------- Accept = choose payment method ---------- */
   function onAccept(listing) {
+    if (listing.purchaseFlow && listing.purchaseFlow !== "idle") return;
+    listing.purchaseFlow = "method";
+    pushMessage(listing, "player", `Oke, saya minat ambil bro. Pakai metode apa enaknya?`);
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      pushMessage(listing, "seller", `Bisa Bank Transfer atau COD ketemuan langsung. Pilih mana?`);
+      renderPaymentMethodActions(listing);
+    }, 600);
+  }
+
+  function renderPaymentMethodActions(listing) {
+    actionsEl.innerHTML = `
+      <button id="method-transfer" class="chat-action accept">
+        <i class="fa-solid fa-building-columns"></i>
+        Bank Transfer
+        <span class="text-xs opacity-80">Cepat & langsung</span>
+      </button>
+      <button id="method-cod" class="chat-action haggle">
+        <i class="fa-solid fa-handshake"></i>
+        COD (Meetup)
+        <span class="text-xs opacity-80">Bisa cek barang dulu</span>
+      </button>
+      <button id="method-cancel" class="chat-action leave">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>
+    `;
+    actionsEl.querySelector("#method-transfer").addEventListener("click", () => onPickTransfer(listing));
+    actionsEl.querySelector("#method-cod").addEventListener("click", () => onPickCOD(listing));
+    actionsEl.querySelector("#method-cancel").addEventListener("click", () => {
+      listing.purchaseFlow = "idle";
+      renderActions(listing);
+    });
+  }
+
+  /* ---------- Path A: Bank Transfer ---------- */
+  function onPickTransfer(listing) {
+    listing.purchaseFlow = "pick-bank";
+    listing.paymentMethod = "Transfer";
+    pushMessage(listing, "player", `Saya transfer aja ya, biar cepat 💸`);
+    showBankPickerActions(listing);
+  }
+
+  /* ---------- Path B: COD with inspection ---------- */
+  function onPickCOD(listing) {
+    listing.purchaseFlow = "inspecting";
+    listing.paymentMethod = "COD";
+    pushMessage(listing, "player", `COD aja deh, mau cek dulu kondisinya 🔍`);
+    runInspection(listing);
+  }
+
+  function runInspection(listing) {
+    const overlay = document.querySelector("#inspect-overlay");
+    overlay.classList.remove("hidden");
+    overlay.classList.add("flex");
+
+    setTimeout(() => {
+      const HIDDEN_DEFECT_RATE = 0.25;
+      const hasHidden = Math.random() < HIDDEN_DEFECT_RATE;
+      overlay.classList.add("hidden");
+      overlay.classList.remove("flex");
+
+      if (hasHidden) {
+        showHiddenDefect(listing);
+      } else {
+        pushMessage(listing, "system", `🔍 Hasil inspeksi: Barang sesuai deskripsi.`);
+        pushMessage(listing, "seller", `Tuh kan, bersih semua. Bayar pakai bank apa?`);
+        showBankPickerActions(listing);
+      }
+    }, 2000);
+  }
+
+  /* ---------- Hidden Defect popup ---------- */
+  const HIDDEN_DEFECTS = [
+    "Found a hidden scratch on the back glass.",
+    "True Tone is off / sensor warna error.",
+    "Speaker bawah pecah saat volume tinggi.",
+    "Konektor charging goyang, perlu service.",
+    "Battery cycle ternyata lewat 800 (sangat tinggi).",
+    "Ada bekas servis di mainboard.",
+    "Kamera ultrawide ngeblur, sensor bermasalah.",
+  ];
+
+  function showHiddenDefect(listing) {
+    const found = HIDDEN_DEFECTS[Math.floor(Math.random() * HIDDEN_DEFECTS.length)];
+    listing.hiddenDefect = found;
+    pushMessage(listing, "system", `⚠️ Hidden defect ditemukan: ${found}`);
+
+    const modal = document.querySelector("#defect-modal");
+    modal.querySelector("#defect-text").textContent = found;
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    const cancelBtn = modal.querySelector("#defect-cancel");
+    const negotiateBtn = modal.querySelector("#defect-negotiate");
+
+    const closeModal = () => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    };
+
+    cancelBtn.onclick = () => {
+      closeModal();
+      pushMessage(listing, "player", `Wah ada minus tersembunyi: ${found}. Sorry bro, batal aja.`);
+      pushMessage(listing, "seller", `Ya udah deh. Mungkin lain kali 🙏`);
+      listing.purchaseFlow = "idle";
+      renderActions(listing);
+    };
+
+    negotiateBtn.onclick = () => {
+      closeModal();
+      const basePrice = listing.haggleState === "accepted" ? listing.currentPrice : listing.finalPrice;
+      const newPrice = Math.round((basePrice * 0.85) / 50_000) * 50_000;
+      listing.currentPrice = newPrice;
+      listing.haggleState = "accepted"; // lock the new price
+      pushMessage(listing, "player", `Saya tawar -15% karena minus tersembunyi ya bro.`);
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        pushMessage(listing, "seller", `Hmm... oke deh, fair. Saya kasih ${fmt(newPrice)} aja. Bayar pakai bank apa?`);
+        showBankPickerActions(listing);
+      }, 700);
+    };
+  }
+
+
+  /* ---------- Bank picker (used by both Transfer and COD paths) ---------- */
+  function showBankPickerActions(listing) {
     const price = listing.haggleState === "accepted" ? listing.currentPrice : listing.finalPrice;
-    const sourceBank = pickPayingBank(price);
-    if (!sourceBank) {
-      pushMessage(listing, "system",
-        `Saldo tidak cukup di semua rekening untuk membeli ${listing.name} (${fmt(price)}). Top up dulu via menu Banking.`);
+    const s = window.FlippingTycoon.State.data;
+    const banks = ["Mandiri", "BCA", "BNI"];
+    const buttons = banks.map((b) => {
+      const enough = (s.bankBalances[b] || 0) >= price;
+      return `
+        <button class="chat-action bank-pick bank-pick-${b.toLowerCase()}" data-bank="${b}" ${enough ? "" : "disabled"}>
+          <i class="fa-solid fa-building-columns"></i>
+          ${b}
+          <span class="text-xs opacity-80">${fmt(s.bankBalances[b] || 0)}${enough ? "" : " (kurang)"}</span>
+        </button>`;
+    }).join("");
+    actionsEl.innerHTML = buttons + `
+      <button id="bank-cancel" class="chat-action leave">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>`;
+    actionsEl.querySelectorAll(".bank-pick").forEach((btn) => {
+      btn.addEventListener("click", () => completePurchase(listing, btn.dataset.bank));
+    });
+    actionsEl.querySelector("#bank-cancel").addEventListener("click", () => {
+      listing.purchaseFlow = "idle";
+      renderActions(listing);
+    });
+  }
+
+  function completePurchase(listing, sourceBank) {
+    const price = listing.haggleState === "accepted" ? listing.currentPrice : listing.finalPrice;
+    const s = window.FlippingTycoon.State.data;
+    if ((s.bankBalances[sourceBank] || 0) < price) {
+      pushMessage(listing, "system", `Saldo ${sourceBank} tidak cukup.`);
       return;
     }
 
-    // Player confirmation message
-    pushMessage(listing, "player", `Oke deal bro, transfer dari ${sourceBank} sekarang ya 💸`);
+    pushMessage(listing, "player", `Sip, transfer dari ${sourceBank} ya bro. ${fmt(price)} 💸`);
     showTyping();
 
     setTimeout(() => {
       hideTyping();
       pushMessage(listing, "seller", dealLine(listing));
 
-      // Mutate state: deduct, add inventory item, log bank history.
-      const s = window.FlippingTycoon.State.data;
+      // Deduct from chosen bank.
       s.bankBalances[sourceBank] -= price;
       s.bankHistories[sourceBank].push({
         type: "DEBIT",
         amount: price,
         balanceAfter: s.bankBalances[sourceBank],
-        description: `Beli ${listing.name} dari ${listing.seller.name}`,
+        description: `Payment to ${listing.seller.name} via ${listing.paymentMethod || "Transfer"}`,
+        category: "purchase",
         day: s.currentDay,
         ts: Date.now(),
       });
+
+      // Add to inventory (preserving any hidden defect found at COD).
       s.inventory.push({
         id: listing.listingId,
         gadgetId: listing.gadgetId,
@@ -277,17 +435,18 @@
         specs: listing.specs,
         completeness: listing.completeness,
         defect: listing.defect,
+        hiddenDefect: listing.hiddenDefect || null,
         buyPrice: price,
         buyDay: s.currentDay,
+        paymentMethod: listing.paymentMethod || "Transfer",
         sourceBank,
       });
 
       window.Market.removeListing(listing.listingId);
       window.FlippingTycoon.saveGame();
 
-      // Show a closing system message + auto-close after a beat.
       pushMessage(listing, "system",
-        `✅ Transaksi sukses. ${fmt(price)} ditarik dari ${sourceBank}. Item masuk ke Inventory.`);
+        `✅ Transaksi sukses. ${fmt(price)} ditarik dari ${sourceBank} via ${listing.paymentMethod || "Transfer"}. Item masuk ke Inventory.`);
       actionsEl.innerHTML = `
         <button id="chat-done" class="chat-action accept w-full">
           <i class="fa-solid fa-check-double"></i> Close & Back to Marketplace
@@ -299,8 +458,7 @@
     }, 700);
   }
 
-
-  /* ---------- Bank selection (prefer Mandiri) ---------- */
+  /* ---------- Bank selection (legacy auto-pick fallback) ---------- */
   function pickPayingBank(price) {
     const s = window.FlippingTycoon.State.data;
     const order = ["Mandiri", "BCA", "BNI"];

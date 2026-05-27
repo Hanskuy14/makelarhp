@@ -34,9 +34,26 @@
    *                       * marketVariance(±5%)
    * Rounded to nearest Rp 50.000 to feel realistic.
    */
-  function computeFinalPrice(basePrice, completeness, defect) {
+  function computeFinalPrice(basePrice, completeness, defect, brand) {
     const variance = 0.95 + Math.random() * 0.10; // 0.95 .. 1.05
-    const raw = basePrice * completeness.multiplier * defect.multiplier * variance;
+    const newsMul = window.FlippingTycoon
+      ? window.FlippingTycoon.getNewsMultiplierForBrand(brand)
+      : 1.0;
+    const raw = basePrice * completeness.multiplier * defect.multiplier * variance * newsMul;
+    return Math.round(raw / 50_000) * 50_000;
+  }
+
+  /** Public: estimate today's resale market price for an inventory item. */
+  function computeCurrentMarketPrice(inventoryItem) {
+    const gadget = GADGET_DATABASE.find((g) => g.id === inventoryItem.gadgetId);
+    if (!gadget) return inventoryItem.buyPrice || 0;
+    const completeness = inventoryItem.completeness || COMPLETENESS_OPTIONS[0];
+    const defect = inventoryItem.defect || DEFECT_OPTIONS[0];
+    const newsMul = window.FlippingTycoon
+      ? window.FlippingTycoon.getNewsMultiplierForBrand(gadget.brand)
+      : 1.0;
+    // Stable resale estimate (no random variance for selling, but apply news + slight scout-buyer bonus)
+    const raw = gadget.basePrice * completeness.multiplier * defect.multiplier * newsMul * 1.02;
     return Math.round(raw / 50_000) * 50_000;
   }
 
@@ -45,7 +62,7 @@
     const completeness = pick(COMPLETENESS_OPTIONS);
     const defect = pick(DEFECT_OPTIONS);
     const sellerName = pick(SELLER_NAMES);
-    const finalPrice = computeFinalPrice(gadget.basePrice, completeness, defect);
+    const finalPrice = computeFinalPrice(gadget.basePrice, completeness, defect, gadget.brand);
     const avatarColor = AVATAR_COLORS[randInt(0, AVATAR_COLORS.length - 1)];
 
     return {
@@ -315,5 +332,6 @@
     renderMarketplacePage,
     removeListing,
     formatRupiah,
+    computeCurrentMarketPrice,
   };
 })();

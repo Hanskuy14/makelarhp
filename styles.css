@@ -721,3 +721,406 @@ body {
   border: 1px solid #fecaca;
 }
 .chat-action.leave:hover { background: #fecaca; }
+
+
+
+/* =========================================================
+   PART 3 — BANKING
+========================================================= */
+
+/* News trend pill on news posts */
+.news-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.news-trend.trend-up   { background: #d1fae5; color: #065f46; }
+.news-trend.trend-down { background: #fee2e2; color: #991b1b; }
+.news-trend.trend-flat { background: #e5e7eb; color: #374151; }
+
+/* ---------- Tabs ---------- */
+.bank-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bank-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  background: #fff;
+  border: 2px solid transparent;
+  color: var(--fb-text-muted);
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+.bank-tab:hover { transform: translateY(-1px); }
+.bank-tab-logo {
+  width: 26px; height: 26px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px; font-weight: 800;
+  background: rgba(0,0,0,0.08);
+}
+.bank-tab.bank-mandiri.active { background: #001a4d; color: #ffd34a; border-color: #ffd34a; }
+.bank-tab.bank-bca.active     { background: #0060af; color: #fff;    border-color: #fff; box-shadow: 0 0 0 2px #0060af; }
+.bank-tab.bank-bni.active     { background: #0d7377; color: #ff9a3c; border-color: #ff9a3c; }
+.bank-tab.bank-mandiri.active .bank-tab-logo { background: #ffd34a; color: #001a4d; }
+.bank-tab.bank-bca.active     .bank-tab-logo { background: #fff;    color: #0060af; }
+.bank-tab.bank-bni.active     .bank-tab-logo { background: #ff9a3c; color: #0d7377; }
+
+
+
+/* ---------- Debit card visual ---------- */
+.debit-card {
+  position: relative;
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  color: #fff;
+  min-height: 200px;
+  margin-bottom: 14px;
+  box-shadow: 0 16px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
+}
+.debit-card .dc-shine {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 80% 0%, rgba(255,255,255,0.25), transparent 50%);
+  pointer-events: none;
+}
+.debit-card .dc-row {
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 1;
+}
+.debit-card .dc-bank { display: flex; align-items: center; gap: 8px; }
+.debit-card .dc-logo {
+  width: 32px; height: 32px;
+  border-radius: 9999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 16px;
+  background: rgba(255,255,255,0.18);
+}
+.debit-card .dc-bank-name { font-weight: 800; font-size: 14px; letter-spacing: 0.05em; }
+.debit-card .dc-tier-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.15em;
+  padding: 4px 10px; border-radius: 9999px;
+  background: rgba(255,255,255,0.18);
+}
+.debit-card .dc-chip {
+  width: 38px; height: 28px; border-radius: 6px;
+  background: linear-gradient(135deg, #f7d784 0%, #c79e3f 100%);
+  margin-top: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: rgba(0,0,0,0.5); font-size: 14px;
+  position: relative; z-index: 1;
+}
+.debit-card .dc-number {
+  margin-top: 14px;
+  font-size: 18px; font-weight: 600;
+  letter-spacing: 0.18em;
+  position: relative; z-index: 1;
+}
+.debit-card .dc-bottom { margin-top: 14px; }
+.debit-card .dc-label { font-size: 9px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.1em; }
+.debit-card .dc-holder { font-weight: 700; font-size: 13px; }
+.debit-card .dc-balance { font-weight: 800; font-size: 16px; }
+.debit-card .dc-network {
+  position: absolute; bottom: 14px; right: 18px;
+  font-size: 28px; opacity: 0.85;
+  z-index: 1;
+}
+
+/* Bank brand themes (default = regular tier) */
+.debit-card.bank-mandiri { background: linear-gradient(135deg, #001a4d 0%, #002b80 50%, #08326a 100%); }
+.debit-card.bank-mandiri .dc-tier-badge { background: rgba(255, 211, 74, 0.25); color: #ffd34a; }
+.debit-card.bank-bca     { background: linear-gradient(135deg, #003a7a 0%, #0060af 50%, #1d8edc 100%); }
+.debit-card.bank-bca .dc-tier-badge { background: rgba(255,255,255,0.25); }
+.debit-card.bank-bni     { background: linear-gradient(135deg, #08474a 0%, #0d7377 50%, #14a098 100%); }
+.debit-card.bank-bni .dc-tier-badge { background: rgba(255, 154, 60, 0.3); color: #ffd2a8; }
+
+/* Tier overlays — each bumps richness/effects */
+.debit-card.tier-platinum {
+  background-image: linear-gradient(135deg, #2c2c33 0%, #4a4a55 100%);
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.debit-card.tier-platinum.bank-mandiri { background-image: linear-gradient(135deg, #001a4d 0%, #36446b 50%, #c0c8e5 100%); color: #fff; }
+.debit-card.tier-platinum.bank-bca     { background-image: linear-gradient(135deg, #0060af 0%, #5a7fbf 50%, #d5dcea 100%); }
+.debit-card.tier-platinum.bank-bni     { background-image: linear-gradient(135deg, #0d7377 0%, #4ea0a4 50%, #c8d5d4 100%); }
+.debit-card.tier-platinum .dc-tier-badge { background: rgba(255,255,255,0.4); color: #1a1a1a; }
+
+.debit-card.tier-priority {
+  background-image: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border: 1px solid rgba(212,175,55,0.6);
+  box-shadow: 0 16px 40px rgba(212,175,55,0.25), 0 0 20px rgba(212,175,55,0.2);
+}
+.debit-card.tier-priority.bank-mandiri { background-image: linear-gradient(135deg, #07103b 0%, #1c2660 35%, #d4af37 100%); }
+.debit-card.tier-priority.bank-bca     { background-image: linear-gradient(135deg, #0a2540 0%, #1a4a82 35%, #d4af37 100%); }
+.debit-card.tier-priority.bank-bni     { background-image: linear-gradient(135deg, #0a3735 0%, #136f72 35%, #d4af37 100%); }
+.debit-card.tier-priority .dc-tier-badge {
+  background: linear-gradient(90deg, #d4af37, #ffd700);
+  color: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(212,175,55,0.5);
+}
+.debit-card.tier-priority .dc-network { color: #d4af37; }
+
+
+
+/* ---------- Tier rules pills (under card) ---------- */
+.tier-rules {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 12px;
+}
+.tier-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.tier-pill.on { background: #1877F2; color: #fff; }
+
+/* ---------- Transaction history ---------- */
+.history-list {
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.history-list::-webkit-scrollbar { width: 6px; }
+.history-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+.history-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 6px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.history-row:last-child { border-bottom: none; }
+.history-icon {
+  width: 36px; height: 36px;
+  border-radius: 9999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px;
+}
+.history-icon.credit { background: #d1fae5; color: #065f46; }
+.history-icon.debit  { background: #fee2e2; color: #991b1b; }
+.history-body { flex: 1; min-width: 0; }
+.history-desc { font-size: 14px; font-weight: 500; }
+.history-meta { font-size: 11px; color: var(--fb-text-muted); }
+.history-amount { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.history-amount.credit { color: #047857; }
+.history-amount.debit  { color: #b91c1c; }
+
+/* ---------- Bank panel container ---------- */
+.bank-panel { animation: fadeIn 0.2s ease-out; }
+
+/* =========================================================
+   MODALS
+========================================================= */
+#defect-modal.flex,
+#transfer-modal.flex,
+#relist-modal.flex { display: flex; }
+
+.modal-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  animation: chatPop 0.18s ease-out;
+}
+.modal-callout {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.modal-form { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.modal-label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px; color: var(--fb-text-muted); font-weight: 600;
+}
+.modal-input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  color: var(--fb-text);
+}
+.modal-input:focus { border-color: var(--fb-blue); box-shadow: 0 0 0 3px rgba(24,119,242,0.18); }
+
+.modal-actions {
+  display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end;
+}
+.modal-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.modal-btn-primary { background: var(--fb-blue); color: #fff; }
+.modal-btn-primary:hover { background: var(--fb-blue-dark); }
+.modal-btn-ghost { background: #f3f4f6; color: #374151; }
+.modal-btn-ghost:hover { background: #e5e7eb; }
+
+/* Inspection overlay */
+#inspect-overlay.flex { display: flex; }
+.inspect-loop {
+  width: 96px; height: 96px;
+  border-radius: 9999px;
+  border: 4px dashed rgba(255,255,255,0.5);
+  border-top-color: #fff;
+  animation: spin 1.6s linear infinite;
+  position: relative;
+}
+.inspect-loop::after {
+  content: "\f002"; /* fa-magnifying-glass */
+  font-family: "Font Awesome 6 Free"; font-weight: 900;
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  animation: inspectBeat 1.6s ease-in-out infinite;
+}
+@keyframes inspectBeat {
+  0%,100% { transform: scale(1);   opacity: 0.85; }
+  50%     { transform: scale(1.2); opacity: 1; }
+}
+
+
+
+/* =========================================================
+   INVENTORY
+========================================================= */
+.inventory-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .inventory-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.inventory-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.inv-thumb {
+  position: relative;
+  aspect-ratio: 1.6 / 1;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  display: flex; align-items: center; justify-content: center;
+}
+.inv-thumb-tag {
+  position: absolute; top: 8px; left: 8px;
+  background: rgba(0,0,0,0.7); color: #fff;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 6px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.inv-hidden-defect {
+  position: absolute; top: 8px; right: 8px;
+  background: #fee2e2; color: #991b1b;
+  width: 28px; height: 28px;
+  border-radius: 9999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  cursor: help;
+}
+.inv-body { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.inv-title { font-weight: 700; font-size: 15px; }
+.inv-meta  { font-size: 12px; color: var(--fb-text-muted); }
+.inv-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.inv-prices {
+  display: grid; grid-template-columns: 1fr;
+  gap: 4px;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.inv-prices > div { display: flex; justify-content: space-between; }
+.inv-prices-label { color: var(--fb-text-muted); }
+.relist-btn {
+  margin-top: 8px;
+  background: #1877F2;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.relist-btn:hover  { background: #155fc4; }
+.relist-btn:active { transform: scale(0.98); }
+
+/* ---------- Relist modal contents ---------- */
+.relist-summary {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.relist-banks { display: flex; flex-direction: column; gap: 8px; }
+.relist-bank-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.relist-bank-row:hover { border-color: #1877F2; transform: translateY(-1px); }
+.relist-bank-row.priority {
+  border-color: #d4af37;
+  background: linear-gradient(135deg, #fff8dc 0%, #fff 60%);
+}
+.rb-left { display: flex; flex-direction: column; gap: 2px; }
+.rb-bank { font-weight: 700; font-size: 14px; }
+.rb-tier { font-size: 11px; color: var(--fb-text-muted); }
+.rb-right { text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.rb-fee { font-size: 11px; color: #6b7280; }
+.rb-net { font-size: 14px; color: #047857; }
+
+/* =========================================================
+   BANK PICKER & TOAST (chat purchase flow + sale feedback)
+========================================================= */
+.chat-action.bank-pick { padding-top: 6px; padding-bottom: 6px; }
+.chat-action.bank-pick-mandiri { background: #001a4d; color: #ffd34a; }
+.chat-action.bank-pick-bca     { background: #0060af; color: #fff; }
+.chat-action.bank-pick-bni     { background: #0d7377; color: #ff9a3c; }
+.chat-action.bank-pick[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+.ft-toast {
+  position: fixed; bottom: 90px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1f2937; color: #fff;
+  padding: 10px 16px; border-radius: 9999px;
+  font-size: 14px; font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 200;
+}
+.ft-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
