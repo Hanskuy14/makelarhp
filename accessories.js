@@ -50,6 +50,7 @@
       // Flip completeness; trueValue is computed on the fly via Market.computeCurrentMarketPrice.
       item.completeness = fullsetOption();
       item.repackedOnDay = s.currentDay;
+      item.totalRepairCost = (item.totalRepairCost || 0) + cost; // Part 9: track for analytics
       window.FlippingTycoon.saveGame();
       showToast(`📦 Repacked ${item.name} jadi Fullset!`);
       if (window.Notifications) {
@@ -72,6 +73,7 @@
       if (!chargeBank(sourceBank, cost, `${getOemKitLabel(listing.itemSnapshot.brand)} - ${listing.itemSnapshot.name} (listed)`, "oem-kit")) return false;
       listing.itemSnapshot.completeness = fullsetOption();
       listing.itemSnapshot.repackedOnDay = s.currentDay;
+      listing.itemSnapshot.totalRepairCost = (listing.itemSnapshot.totalRepairCost || 0) + cost; // Part 9: track for analytics
       // Immediately recompute the suggested price so walk-ins / buyer-offer math uses the new value.
       listing.suggestedPrice = window.Market.computeCurrentMarketPrice({
         gadgetId:     listing.itemSnapshot.gadgetId,
