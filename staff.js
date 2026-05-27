@@ -48,6 +48,23 @@
         "Aktifkan tombol <b>Auto-Buy Completeness</b> (semua HP Only di-repack jadi Fullset).",
       ],
     },
+    logistics: {
+      id: "logistics",
+      title: "Head of Logistics",
+      role: "Wholesale Operations",
+      icon: "truck-fast",
+      accent: "#0f766e",
+      avatar: "L",
+      avatarColor: "#0f766e",
+      hireFee: 4_000_000,
+      dailySalary: 2_500_000,
+      desc: "Pegang divisi B2B. Auto-process bulk order grosir tiap Next Day pakai partner default kamu.",
+      perks: [
+        "Auto-accept setiap <b>Bulk Order</b> (Wholesale) yang stoknya cukup.",
+        "Pilih default <b>Logistics Partner</b> (JNE / J&T / SiCepat).",
+        "Ambil <b>commission 2%</b> dari nilai pengiriman tiap order yang sukses.",
+      ],
+    },
   };
 
   /* =========================================================
@@ -57,13 +74,17 @@
     const s = S();
     if (!s.staff) {
       s.staff = {
-        cs:   { hired: false, hiredOnDay: null, totalPaid: 0, autoAcceptThreshold: 95 },
-        tech: { hired: false, hiredOnDay: null, totalPaid: 0 },
+        cs:        { hired: false, hiredOnDay: null, totalPaid: 0, autoAcceptThreshold: 95 },
+        tech:      { hired: false, hiredOnDay: null, totalPaid: 0 },
+        logistics: { hired: false, hiredOnDay: null, totalPaid: 0, totalCommission: 0, defaultPartner: "JNE" },
       };
     }
-    if (!s.staff.cs)   s.staff.cs   = { hired: false, hiredOnDay: null, totalPaid: 0, autoAcceptThreshold: 95 };
-    if (!s.staff.tech) s.staff.tech = { hired: false, hiredOnDay: null, totalPaid: 0 };
+    if (!s.staff.cs)        s.staff.cs        = { hired: false, hiredOnDay: null, totalPaid: 0, autoAcceptThreshold: 95 };
+    if (!s.staff.tech)      s.staff.tech      = { hired: false, hiredOnDay: null, totalPaid: 0 };
+    if (!s.staff.logistics) s.staff.logistics = { hired: false, hiredOnDay: null, totalPaid: 0, totalCommission: 0, defaultPartner: "JNE" };
     if (typeof s.staff.cs.autoAcceptThreshold !== "number") s.staff.cs.autoAcceptThreshold = 95;
+    if (!s.staff.logistics.defaultPartner)      s.staff.logistics.defaultPartner = "JNE";
+    if (typeof s.staff.logistics.totalCommission !== "number") s.staff.logistics.totalCommission = 0;
     if (!Array.isArray(s.staff.bulkLog)) s.staff.bulkLog = [];
     if (!s.staffView) s.staffView = { tab: "roster" };
   }
@@ -110,6 +131,13 @@
       hiredOnDay: s.currentDay,
       totalPaid: meta.hireFee,
       autoAcceptThreshold: role === "cs" ? (s.staff.cs.autoAcceptThreshold || 95) : undefined,
+      // Part 11: preserve logistics-specific fields across re-hire cycles.
+      totalCommission: role === "logistics"
+        ? ((s.staff.logistics && s.staff.logistics.totalCommission) || 0)
+        : undefined,
+      defaultPartner: role === "logistics"
+        ? ((s.staff.logistics && s.staff.logistics.defaultPartner) || "JNE")
+        : undefined,
     };
     window.FlippingTycoon.saveGame();
     showToast(`✅ ${meta.title} bergabung. Salary ${fmt(meta.dailySalary)}/hari (Mandiri).`);
@@ -518,6 +546,64 @@
     }
   }
 
+  /* =========================================================
+   * AUTO-ACCEPT WHOLESALE (B2B) — Head of Logistics
+   *
+   * Called from script.js advanceToNextDay BEFORE
+   * Wholesale.generateDailyOrders so leftover orders from yesterday
+   * get auto-processed with the staff's defaultPartner.
+   * ========================================================= */
+  function processAutoAcceptWholesale() {
+    if (!isHired("logistics")) return;
+    if (!window.Wholesale) return;
+    const s = S();
+    const partnerId = (s.staff.logistics && s.staff.logistics.defaultPartner) || "JNE";
+    const partner = window.Wholesale.PARTNERS[partnerId];
+    if (!partner) return;
+
+    const open = (s.wholesaleOrders || []).filter((o) => o.status === "open");
+    if (open.length === 0) return;
+
+    const accepted = [];
+    open.forEach((order) => {
+      if (!window.Wholesale.canFulfill(order)) return;
+      const ok = window.Wholesale.acceptOrder(order.id, partnerId, {
+        receivingBank: "Mandiri",
+        acceptedBy: "logistics",
+      });
+      if (ok) accepted.push(order);
+    });
+
+    if (accepted.length > 0) {
+      pushBulkLog({
+        kind: "auto-wholesale",
+        day: s.currentDay,
+        count: accepted.length,
+        partner: partnerId,
+      });
+      window.FlippingTycoon.saveGame();
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "success",
+          title: "Head of Logistics Auto-Accepted Bulk Orders",
+          message: `${accepted.length} bulk order di-accept otomatis pakai ${partner.name}. Komisi 2% dipotong saat shipment tiba.`,
+          actionPage: "wholesale",
+          actor: "Head of Logistics",
+          icon: "truck-fast",
+        });
+      }
+    }
+  }
+
+  function setDefaultLogisticsPartner(partnerId) {
+    ensureStaff();
+    const s = S();
+    if (!window.Wholesale || !window.Wholesale.PARTNERS[partnerId]) return false;
+    s.staff.logistics.defaultPartner = partnerId;
+    window.FlippingTycoon.saveGame();
+    return true;
+  }
+
   /* ---------- Bulk operation history (capped) ---------- */
   function pushBulkLog(entry) {
     ensureStaff();
@@ -618,6 +704,7 @@
           ${hired ? `<div><span>Total dibayar</span><b>${fmt(rec.totalPaid || 0)}</b></div>` : ""}
         </div>
         ${role === "cs" && hired ? renderCsThresholdControl(rec) : ""}
+        ${role === "logistics" && hired ? renderLogisticsPartnerControl(rec) : ""}
       </div>
       <div class="staff-action">
         ${hired
@@ -647,6 +734,15 @@
         window.FlippingTycoon.saveGame();
       });
     }
+    // Part 11: logistics partner picker wiring.
+    card.querySelectorAll(".logistics-partner-pick").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pid = btn.dataset.partner;
+        if (setDefaultLogisticsPartner(pid)) {
+          card.querySelectorAll(".logistics-partner-pick").forEach((b) => b.classList.toggle("selected", b === btn));
+        }
+      });
+    });
     return card;
   }
 
@@ -660,6 +756,26 @@
         </div>
         <input type="range" min="50" max="100" step="1" value="${v}" class="cs-threshold-slider" />
         <p class="text-[11px] text-gray-500">Saat Next Day, offer ≥ ${v}% dari asking price akan auto-accepted ke Mandiri.</p>
+      </div>
+    `;
+  }
+
+  function renderLogisticsPartnerControl(rec) {
+    const partners = (window.Wholesale && window.Wholesale.PARTNERS) || {};
+    const selected = rec.defaultPartner || "JNE";
+    const buttons = Object.values(partners).map((p) => `
+      <button class="logistics-partner-pick ${p.id === selected ? "selected" : ""}" data-partner="${p.id}" type="button">
+        <i class="fa-solid fa-${p.icon}" style="color:${p.accent}"></i>
+        <span class="lpp-name">${p.name}</span>
+        <span class="lpp-meta">${p.speedDays}d &middot; loss ${(p.lossRate*100).toFixed(0)}%</span>
+      </button>
+    `).join("");
+    const totalCommission = rec.totalCommission || 0;
+    return `
+      <div class="cs-threshold">
+        <p class="text-xs text-gray-500 font-semibold mb-1">Default Logistics Partner (auto-process)</p>
+        <div class="logistics-partner-row">${buttons || `<p class="text-[11px] text-gray-500">Wholesale belum siap.</p>`}</div>
+        <p class="text-[11px] text-gray-500 mt-1">Commission yang sudah dibayar ke staff: <b>${fmt(totalCommission)}</b> &middot; 2% dari nilai shipment tiap order.</p>
       </div>
     `;
   }
@@ -933,6 +1049,7 @@
       "auto-completeness": { icon: "box-open",      color: "#f97316", label: "Auto-Buy Completeness" },
       "bulk-list":         { icon: "tags",          color: "#1d4ed8", label: "Bulk List with Markup" },
       "auto-accept":       { icon: "robot",         color: "#7e22ce", label: "Auto-Accept Offers" },
+      "auto-wholesale":    { icon: "truck-fast",    color: "#0f766e", label: "Auto-Accept Bulk Orders" },
     }[entry.kind] || { icon: "bolt", color: "#6b7280", label: entry.kind };
 
     let detail = "";
@@ -940,6 +1057,7 @@
     else if (entry.kind === "auto-completeness") detail = `${entry.count} unit &middot; ${fmt(entry.totalCost)} via ${entry.sourceBank}`;
     else if (entry.kind === "bulk-list")    detail = `${entry.count} unit &middot; markup ${entry.markupPct >= 0 ? "+" : ""}${entry.markupPct}% &middot; total asking ${fmt(entry.totalAsking)}`;
     else if (entry.kind === "auto-accept")  detail = `${entry.count} sale ditutup &middot; threshold ≥${entry.threshold}%`;
+    else if (entry.kind === "auto-wholesale") detail = `${entry.count} bulk order di-accept &middot; default partner ${entry.partner}`;
 
     const row = document.createElement("div");
     row.className = "bulk-log-row";
@@ -982,5 +1100,7 @@
     autoBuyCompleteness,
     bulkListWithMarkup,
     processAutoAcceptOffers,
+    processAutoAcceptWholesale,
+    setDefaultLogisticsPartner,
   };
 })();
