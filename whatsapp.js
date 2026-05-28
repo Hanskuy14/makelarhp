@@ -30,7 +30,7 @@
   const MIN_REP           = 71;
   const WHOLESALE_DISC    = 0.10;     // 10% off market for borongan
   const MIN_SELECT        = 5;
-  const MAX_SELECT        = 10;
+  const MAX_SELECT        = 100;       // Part 26 — was 10
   const HISTORY_LIMIT     = 30;
 
 
@@ -127,7 +127,7 @@
     const idx = arr.indexOf(itemId);
     if (idx === -1) {
       if (arr.length >= MAX_SELECT) {
-        toast(`Maks ${MAX_SELECT} item per broadcast.`);
+        toast("Maksimal 100 HP per sekali Broadcast untuk menjaga kestabilan pasar!");
         return false;
       }
       arr.push(itemId);
@@ -142,6 +142,39 @@
     ensureState();
     S().inventoryView.selectedIds = [];
     window.FlippingTycoon.saveGame();
+  }
+
+  /* =========================================================
+   * Part 26 — "Pilih Max (Auto-Select)" Quality of Life
+   *
+   * Auto-select the first X eligible inventory items where
+   *   X = Math.min(MAX_SELECT, inventory.length)
+   *
+   * Examples (per spec):
+   *   - 500 inventory → selects 100 (capped at MAX_SELECT)
+   *   - 45 inventory  → selects 45  (all of them)
+   *   - 0 inventory   → selects 0   (no-op, returns 0)
+   *
+   * Replaces any prior selection so the player gets a clean
+   * "auto-fill the broadcast" one-click experience.
+   * ========================================================= */
+  function selectMax() {
+    ensureState();
+    if (!isUnlocked()) {
+      toast("Grup VIP belum unlocked.");
+      return 0;
+    }
+    const eligible = eligibleItems();
+    const target = Math.min(MAX_SELECT, eligible.length);
+    if (target === 0) {
+      toast("Tidak ada item yang bisa dipilih (cek repair / IMEI blocked).");
+      return 0;
+    }
+    const ids = eligible.slice(0, target).map((it) => it.id);
+    S().inventoryView.selectedIds = ids;
+    window.FlippingTycoon.saveGame();
+    toast(`✅ Auto-pilih ${target} item${target === MAX_SELECT && eligible.length > MAX_SELECT ? ` (max ${MAX_SELECT} dari ${eligible.length} eligible)` : ""}.`);
+    return target;
   }
 
   /** Suggested borongan price = sum(suggestedMarketPrice) × (1 - WHOLESALE_DISC). */
@@ -549,6 +582,7 @@
     isSelected,
     toggleSelected,
     clearSelected,
+    selectMax,            // Part 26 — auto-select up to MAX_SELECT eligible items
     getSelectedItems,
     computeBoronganPrice,
     openBroadcastModal,

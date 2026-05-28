@@ -130,12 +130,17 @@
     return wrap;
   }
 
-  /* ---------- Part 21: bulk-action bar ---------- */
+  /* ---------- Part 21 + Part 26: bulk-action bar ---------- */
   function renderBulkActionBar() {
     const wa = window.WAGroup;
     if (!wa) return null;
     const selected = wa.getSelectedItems();
     const { askingPrice, totalMarket } = wa.computeBoronganPrice(selected);
+    const eligibleCount = wa.eligibleItems().length;
+    const maxSelectable = Math.min(wa.MAX_SELECT, eligibleCount);
+    const selectMaxLabel = eligibleCount === 0
+      ? "No eligible items"
+      : `Pilih Max (${maxSelectable})`;
 
     const bar = document.createElement("div");
     bar.className = "fb-card wa-bulk-bar";
@@ -154,6 +159,11 @@
         </p>
       </div>
       <div class="wa-bulk-actions">
+        <button id="wa-select-max" class="modal-btn modal-btn-ghost" type="button"
+                ${eligibleCount === 0 ? "disabled" : ""}
+                title="Otomatis pilih ${maxSelectable} item pertama">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> ${selectMaxLabel}
+        </button>
         ${selected.length > 0 ? `<button id="wa-clear-sel" class="modal-btn modal-btn-ghost" type="button"><i class="fa-solid fa-eraser"></i> Clear</button>` : ""}
         <button id="wa-broadcast-btn"
                 class="modal-btn ${ready ? "" : "modal-btn-ghost"}"
@@ -171,6 +181,14 @@
       wa.clearSelected();
       window.FlippingTycoon.renderActivePage();
     });
+    // Part 26 — Pilih Max (Auto-Select) button
+    const selectMaxBtn = bar.querySelector("#wa-select-max");
+    if (selectMaxBtn && eligibleCount > 0) {
+      selectMaxBtn.addEventListener("click", () => {
+        wa.selectMax();
+        window.FlippingTycoon.renderActivePage();
+      });
+    }
     return bar;
   }
 
@@ -238,11 +256,17 @@
         ${imeiUnlocking ? `<span class="inv-imei-unlocking-badge"><i class="fa-solid fa-rotate fa-spin"></i> Tembak IMEI</span>` : ""}
         ${justRepaired ? `<span class="inv-repaired-badge"><i class="fa-solid fa-sparkles"></i> Repaired</span>` : ""}
         ${thumbOverlays.join("")}
-        ${(window.WAGroup && window.WAGroup.isUnlocked() && !locked && !imeiBlocked) ? `
-          <label class="wa-pick-toggle ${window.WAGroup.isSelected(item.id) ? "checked" : ""}" title="Tick untuk borongan VIP">
-            <input type="checkbox" class="wa-pick-input" data-id="${item.id}" ${window.WAGroup.isSelected(item.id) ? "checked" : ""} />
+        ${(window.WAGroup && window.WAGroup.isUnlocked() && !locked && !imeiBlocked) ? (() => {
+          const isChecked = window.WAGroup.isSelected(item.id);
+          const limitHit  = !isChecked && (S().inventoryView.selectedIds || []).length >= window.WAGroup.MAX_SELECT;
+          return `
+          <label class="wa-pick-toggle ${isChecked ? "checked" : ""} ${limitHit ? "wa-pick-disabled" : ""}"
+                 title="${limitHit ? `Maks ${window.WAGroup.MAX_SELECT} HP per broadcast` : "Tick untuk borongan VIP"}">
+            <input type="checkbox" class="wa-pick-input" data-id="${item.id}"
+                   ${isChecked ? "checked" : ""} ${limitHit ? "disabled" : ""} />
             <span class="wa-pick-box"><i class="fa-solid fa-check"></i></span>
-          </label>` : ""}
+          </label>`;
+        })() : ""}
       </div>
       <div class="inv-body">
         <p class="inv-title">${item.name}</p>
