@@ -13,7 +13,7 @@
  * clients pick up the new app shell on next launch.
  * ========================================================= */
 
-const CACHE_VERSION = "ft-cache-v8";
+const CACHE_VERSION = "ft-cache-v9";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -39,6 +39,7 @@ const APP_SHELL = [
   "./partnerships.js",
   "./fjb.js",
   "./reputation.js",
+  "./whatsapp.js",
   "./staff.js",
   "./profile.js",
   "./messenger.js",

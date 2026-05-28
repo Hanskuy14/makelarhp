@@ -757,6 +757,9 @@ function renderActivePage() {
     case "fjb":
       container.appendChild(window.FJB ? window.FJB.renderFJBPage() : renderPlaceholder("Grup FJB", "people-group", "Loading..."));
       break;
+    case "wa-vip":
+      container.appendChild(window.WAGroup ? window.WAGroup.renderVIPPage() : renderPlaceholder("Grup Reseller VIP", "whatsapp", "Loading..."));
+      break;
     case "profile":
       container.appendChild(window.Profile ? window.Profile.renderProfilePage() : renderPlaceholder("Profile", "user", "Loading..."));
       break;
