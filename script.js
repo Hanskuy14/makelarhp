@@ -1050,8 +1050,10 @@ async function advanceToNextDay() {
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
   if (window.Batam) window.Batam.applyDayTickToCargo();         // Part 7: arrivals + customs deadlines
   if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
+  if (window.RealEstate) window.RealEstate.processRukoStaffSalaries(); // Part 27: pay SPG / Tech / Sosmed
   if (window.Staff) window.Staff.processDailySalaries();        // Part 9: deduct salaries / walkout
   if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
+  if (window.RealEstate) window.RealEstate.processServiceWalkIns(); // Part 27: spawn 1-5 service customers if Tech hired
   if (window.Selling) window.Selling.processNextDayOffers();    // roll inbound buyer offers
   if (window.Staff) window.Staff.processAutoAcceptOffers();     // Part 9: CS auto-accept fair offers
   if (window.Wholesale) window.Wholesale.processDailyShipments(); // Part 11: deliver in-transit B2B orders

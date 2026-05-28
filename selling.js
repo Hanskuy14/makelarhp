@@ -100,6 +100,18 @@
     const s = S();
     ensureActiveListings();
 
+    // Part 27 — Display capacity check (per Ruko tier)
+    if (window.RealEstate && window.RealEstate.canListMore && !window.RealEstate.canListMore(1)) {
+      const cap = window.RealEstate.displayCapacity();
+      const used = window.RealEstate.displayUsed();
+      if (window.Notifications && window.Notifications.toast) {
+        window.Notifications.toast(`Etalase penuh (${used}/${cap}). Upgrade Ruko atau jual barang dulu.`);
+      } else {
+        alert(`Etalase penuh (${used}/${cap}).`);
+      }
+      return null;
+    }
+
     const suggestedPrice = window.Market.computeCurrentMarketPrice(inventoryItem);
     const listing = {
       listingId: uid("act"),
