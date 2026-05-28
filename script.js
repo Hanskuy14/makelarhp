@@ -570,6 +570,9 @@ function renderActivePage() {
     case "wholesale":
       container.appendChild(window.Wholesale ? window.Wholesale.renderWholesalePage() : renderPlaceholder("Wholesale", "truck-fast", "Loading..."));
       break;
+    case "partnerships":
+      container.appendChild(window.Partnerships ? window.Partnerships.renderPartnershipsPage() : renderPlaceholder("Partnership Hub", "handshake", "Loading..."));
+      break;
     case "profile":
       container.appendChild(window.Profile ? window.Profile.renderProfilePage() : renderPlaceholder("Profile", "user", "Loading..."));
       break;

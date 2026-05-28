@@ -232,6 +232,11 @@
             <i class="sidebar-icon fa-solid fa-truck-fast text-blue-600"></i>
             <span>Wholesale (B2B)</span>
           </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="partnerships">
+            <i class="sidebar-icon fa-solid fa-handshake text-purple-600"></i>
+            <span>Partnership Hub</span>
+          </button>
         </div>
 
         <hr class="my-3 border-gray-300" />
@@ -579,6 +584,27 @@
   </div>
 
   <!-- ============================================================
+       PARTNERSHIP BUY MODAL (Part 12) — pick bank for bulk package
+  ============================================================= -->
+  <div id="partnership-buy-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-handshake"></i>
+        </div>
+        <div>
+          <h3 id="partnership-buy-title" class="text-lg font-bold">Order Bulk Package</h3>
+          <p class="text-xs text-gray-500">Bayar upfront dari salah satu rekening bank kamu.</p>
+        </div>
+      </div>
+      <div id="partnership-buy-body"></div>
+      <div class="modal-actions">
+        <button id="partnership-buy-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        WHOLESALE ACCEPT MODAL (Part 11) — pick logistics partner & bank
   ============================================================= -->
   <div id="wholesale-accept-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
@@ -671,6 +697,7 @@
   <script src="analytics.js"></script>
   <script src="warehouse.js"></script>
   <script src="wholesale.js"></script>
+  <script src="partnerships.js"></script>
   <script src="staff.js"></script>
   <script src="profile.js"></script>
   <script src="messenger.js"></script>
