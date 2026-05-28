@@ -4531,3 +4531,150 @@ body.dark .chat-locked-note {
     padding-right: 12px;
   }
 }
+
+
+
+/* =========================================================
+ * Part 18 — Brand-Specific Partnerships
+ * Tier strip + brand-group hero + dynamic-cost package card
+ * ========================================================= */
+
+/* Tier progress strip in the header (replaces the old grid) */
+.partnership-tier-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.partnership-tier-pip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+}
+.partnership-tier-pip.active { color: #111827; background: #ecfdf5; }
+.partnership-tier-pip.current {
+  background: #111827;
+  color: #fff;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #111827;
+}
+.partnership-tier-pip .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+/* Subtabs that overflow horizontally on narrow phones */
+.subtabs-scroll {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.subtabs-scroll .subtab { white-space: nowrap; flex: 0 0 auto; }
+.subtab-locked { opacity: 0.55; }
+
+/* Brand-group hero card */
+.partnership-group-hero { padding: 14px 16px; }
+.partnership-group-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* Stock-mix mini-list inside each package card */
+.partnership-package-mix {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0 12px;
+}
+.partnership-mix-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.partnership-mix-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.partnership-mix-list li {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #374151;
+}
+.partnership-mix-list .mix-count { font-weight: 700; color: #111827; }
+.partnership-mix-list .mix-name  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.partnership-mix-list .mix-base  { color: #6b7280; font-variant-numeric: tabular-nums; }
+.partnership-mix-list .mix-more  { color: #9ca3af; font-style: italic; grid-column: 1 / -1; }
+
+/* Card action row: Order (primary) + Refresh Stock (secondary) */
+.partnership-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.partnership-card-actions .partnership-buy-btn {
+  flex: 1 1 auto;
+  margin: 0;
+}
+.partnership-refresh-btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.partnership-refresh-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+.partnership-refresh-btn:active { transform: scale(0.97); }
+
+/* Dark-mode tweaks */
+body.dark .partnership-tier-pip { background: #1f2937; color: #9ca3af; }
+body.dark .partnership-tier-pip.active { background: #064e3b; color: #d1fae5; }
+body.dark .partnership-tier-pip.current { background: #f3f4f6; color: #111827; box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #f3f4f6; }
+body.dark .partnership-package-mix { background: #111827; }
+body.dark .partnership-mix-label { color: #9ca3af; }
+body.dark .partnership-mix-list li { color: #d1d5db; }
+body.dark .partnership-mix-list .mix-count { color: #f9fafb; }
+body.dark .partnership-mix-list .mix-base { color: #9ca3af; }
+body.dark .partnership-refresh-btn {
+  background: #1f2937;
+  border-color: #374151;
+  color: #d1d5db;
+}
+body.dark .partnership-refresh-btn:hover { background: #374151; border-color: #4b5563; }
+
+/* On very narrow phones, stack the action buttons vertically */
+@media (max-width: 380px) {
+  .partnership-card-actions { flex-direction: column; }
+  .partnership-refresh-btn { width: 100%; justify-content: center; }
+}
