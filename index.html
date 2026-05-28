@@ -243,6 +243,11 @@
             <span>Grup FJB</span>
           </button>
 
+          <button class="sidebar-link sidebar-nav" data-page="wa-vip">
+            <i class="sidebar-icon fa-brands fa-whatsapp text-[#25D366]"></i>
+            <span>Grup Reseller VIP</span>
+          </button>
+
           <button class="sidebar-link sidebar-nav" data-page="analytics">
             <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i>
             <span>Performance Analytics</span>
@@ -415,6 +420,9 @@
         </button>
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="fjb" type="button">
           <i class="sidebar-icon fa-solid fa-people-group text-blue-600"></i><span>Grup FJB</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="wa-vip" type="button">
+          <i class="sidebar-icon fa-brands fa-whatsapp text-[#25D366]"></i><span>Grup Reseller VIP</span>
         </button>
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="analytics" type="button">
           <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i><span>Performance Analytics</span>
@@ -725,6 +733,28 @@
   </div>
 
   <!-- ============================================================
+       GRUP WA RESELLER VIP MODAL (Part 21) — bulk borongan chat
+  ============================================================= -->
+  <div id="wa-modal" class="hidden fixed inset-0 z-[140] bg-black/60 items-center justify-center p-2 md:p-6">
+    <div class="wa-modal-window">
+      <header class="wa-modal-header">
+        <div class="wa-modal-icon">
+          <i class="fa-brands fa-whatsapp"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="wa-modal-title">Grup Mafia HP Pusat</p>
+          <p id="wa-modal-subtitle" class="wa-modal-meta">— unit · Rp —</p>
+        </div>
+        <button id="wa-modal-close" class="wa-modal-close" type="button" onclick="document.querySelector('#wa-modal').classList.add('hidden');document.querySelector('#wa-modal').classList.remove('flex');">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </header>
+      <div id="wa-modal-body" class="wa-modal-body"></div>
+      <div id="wa-modal-footer" class="wa-modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        FJB WTB OFFER MODAL (Part 19) — pick bank to receive payment
   ============================================================= -->
   <div id="fjb-offer-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
@@ -862,6 +892,7 @@
   <script src="partnerships.js"></script>
   <script src="fjb.js"></script>
   <script src="reputation.js"></script>
+  <script src="whatsapp.js"></script>
   <script src="staff.js"></script>
   <script src="profile.js"></script>
   <script src="messenger.js"></script>

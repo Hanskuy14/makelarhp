@@ -95,11 +95,65 @@
       wrap.appendChild(empty);
       return wrap;
     }
+
+    /* Part 21 — Bulk-broadcast bar (Suhu + ≥100M net worth only).
+     * Renders as a sticky-style bar above the grid showing selected
+     * count, total wholesale price, and the "Share ke Grup VIP" CTA. */
+    const wa = window.WAGroup;
+    if (wa && wa.isUnlocked()) {
+      const bar = renderBulkActionBar();
+      if (bar) wrap.appendChild(bar);
+    }
+
     const grid = document.createElement("div");
     grid.className = "inventory-grid";
     items.forEach((item) => grid.appendChild(renderInventoryCard(item)));
     wrap.appendChild(grid);
     return wrap;
+  }
+
+  /* ---------- Part 21: bulk-action bar ---------- */
+  function renderBulkActionBar() {
+    const wa = window.WAGroup;
+    if (!wa) return null;
+    const selected = wa.getSelectedItems();
+    const { askingPrice, totalMarket } = wa.computeBoronganPrice(selected);
+
+    const bar = document.createElement("div");
+    bar.className = "fb-card wa-bulk-bar";
+    const ready = selected.length >= wa.MIN_SELECT && selected.length <= wa.MAX_SELECT;
+    bar.innerHTML = `
+      <div class="wa-bulk-info">
+        <p class="wa-bulk-title">
+          <i class="fa-brands fa-whatsapp text-[#25D366]"></i>
+          Grup Reseller VIP <span class="wa-bulk-tag">SUHU</span>
+        </p>
+        <p class="wa-bulk-meta">
+          ${selected.length} / ${wa.MAX_SELECT} dipilih
+          ${selected.length > 0
+            ? ` &middot; total wholesale <b>${fmt(askingPrice)}</b> <span class="text-gray-400">(market ${fmt(totalMarket)})</span>`
+            : ` &middot; pilih ${wa.MIN_SELECT}–${wa.MAX_SELECT} item lalu klik Share.`}
+        </p>
+      </div>
+      <div class="wa-bulk-actions">
+        ${selected.length > 0 ? `<button id="wa-clear-sel" class="modal-btn modal-btn-ghost" type="button"><i class="fa-solid fa-eraser"></i> Clear</button>` : ""}
+        <button id="wa-broadcast-btn"
+                class="modal-btn ${ready ? "" : "modal-btn-ghost"}"
+                ${ready ? `style="background:#25D366;color:#fff"` : "disabled"}>
+          <i class="fa-brands fa-whatsapp"></i>
+          ${ready ? `Share ke Grup VIP (${selected.length})` : `Pilih min ${wa.MIN_SELECT} item`}
+        </button>
+      </div>
+    `;
+    if (ready) {
+      bar.querySelector("#wa-broadcast-btn").addEventListener("click", () => wa.openBroadcastModal());
+    }
+    const clearBtn = bar.querySelector("#wa-clear-sel");
+    if (clearBtn) clearBtn.addEventListener("click", () => {
+      wa.clearSelected();
+      window.FlippingTycoon.renderActivePage();
+    });
+    return bar;
   }
 
   /* ---------- Owned-item card ---------- */
@@ -166,6 +220,11 @@
         ${imeiUnlocking ? `<span class="inv-imei-unlocking-badge"><i class="fa-solid fa-rotate fa-spin"></i> Tembak IMEI</span>` : ""}
         ${justRepaired ? `<span class="inv-repaired-badge"><i class="fa-solid fa-sparkles"></i> Repaired</span>` : ""}
         ${thumbOverlays.join("")}
+        ${(window.WAGroup && window.WAGroup.isUnlocked() && !locked && !imeiBlocked) ? `
+          <label class="wa-pick-toggle ${window.WAGroup.isSelected(item.id) ? "checked" : ""}" title="Tick untuk borongan VIP">
+            <input type="checkbox" class="wa-pick-input" data-id="${item.id}" ${window.WAGroup.isSelected(item.id) ? "checked" : ""} />
+            <span class="wa-pick-box"><i class="fa-solid fa-check"></i></span>
+          </label>` : ""}
       </div>
       <div class="inv-body">
         <p class="inv-title">${item.name}</p>
@@ -183,6 +242,18 @@
     `;
     if (!locked) {
       card.querySelector(".relist-btn").addEventListener("click", () => window.Selling.openListModal(item));
+    }
+    // Part 21: WA bulk-pick checkbox
+    const pickInput = card.querySelector(".wa-pick-input");
+    if (pickInput) {
+      pickInput.addEventListener("change", () => {
+        if (window.WAGroup && window.WAGroup.toggleSelected(item.id)) {
+          window.FlippingTycoon.renderActivePage();
+        } else {
+          // toggle was rejected (e.g. >MAX) — re-render to restore checkbox state
+          window.FlippingTycoon.renderActivePage();
+        }
+      });
     }
     return card;
   }
