@@ -799,6 +799,15 @@
 
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     listing.negotiationState = "sold";
+
+    // Part 43 — Reputation: +3 for completing a Marketplace / Chat sale
+    // ("Kirim Barang / Deal" pressed). Fires a "Barang Terjual!" toast.
+    if (window.Reputation) {
+      window.Reputation.onMarketplaceSale({
+        reason: `Sold ${itemName} to ${buyerName}`,
+      });
+    }
+
     window.FlippingTycoon.saveGame();
 
     // Part 9: record sale to Analytics.

@@ -263,6 +263,16 @@
       });
       window.Profile.recordSale({ gadget: { isExInter: !!snap.isExInter } });
     }
+
+    // Part 43 — Reputation: +1 for a walk-in / Ruko sale (less than the
+    // +3 Marketplace/Chat reward because there was no chat negotiation
+    // effort). Fires a "Walk-in customer" toast.
+    if (window.Reputation && window.Reputation.onWalkInSale) {
+      window.Reputation.onWalkInSale({
+        reason: `Walk-in sale: ${itemName}`,
+      });
+    }
+
     if (window.Notifications) {
       window.Notifications.add({
         type: "success",

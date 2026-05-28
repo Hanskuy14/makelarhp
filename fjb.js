@@ -521,6 +521,13 @@
         icon: "handshake",
       });
     }
+    // Part 43 — Reputation: +3 for completing a chat-driven sale via
+    // FJB WTB (player initiated the deal by clicking "Tawarkan").
+    if (window.Reputation && window.Reputation.onMarketplaceSale) {
+      window.Reputation.onMarketplaceSale({
+        reason: `FJB WTB sale: ${item.brand} ${item.name} ke ${post.author.name}`,
+      });
+    }
     showToast(`✅ ${item.brand} ${item.name} terjual — ${fmt(price)} masuk ${bankKey}.`);
     window.FlippingTycoon.saveGame();
     return true;

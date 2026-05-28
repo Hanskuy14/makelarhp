@@ -56,12 +56,14 @@
     },
   ];
 
-  /* Standard delta vocabulary (mirrors the Part 20 spec exactly). */
+  /* Standard delta vocabulary (mirrors the Part 20 + Part 43 spec). */
   const DELTA = {
-    CLEAN_COD:           +2,
-    SCAMMER_REPORT:      +5,
-    FORCE_DEFECT_SALE:   -5,
-    DEAL_CANCEL:        -10,
+    CLEAN_COD:           +2,    // Part 20: BUY a phone via clean COD
+    MARKETPLACE_SALE:    +3,    // Part 43: SELL via Marketplace/Chat ("Kirim Barang")
+    WALK_IN_SALE:        +1,    // Part 43: SELL via Ruko walk-in customer (no chat effort)
+    SCAMMER_REPORT:      +5,    // Part 20 / Part 40: report a scammer
+    FORCE_DEFECT_SALE:   -5,    // Part 20: force-buy with hidden defect found
+    DEAL_CANCEL:        -10,    // Part 20: cancel after seller accepted price
   };
 
 
@@ -152,6 +154,42 @@
   function onForceSaleWithDefect(o) { return applyDelta(DELTA.FORCE_DEFECT_SALE,(o && o.reason)        || "Force-sale with hidden defect"); }
   function onDealCancel(opts)       { return applyDelta(DELTA.DEAL_CANCEL,      (opts && opts.reason) || "Cancelled deal after agreement"); }
   function onScammerReport(opts)    { return applyDelta(DELTA.SCAMMER_REPORT,   (opts && opts.reason) || "Reported scammer (Part 40)"); }
+
+  /* ---------- Part 43: Reputation on Successful Sales ---------- */
+
+  /** Marketplace / Chat sale (player clicked "Kirim Barang / Deal" in chat).
+   *  Awards +3 rep AND fires a quick on-screen toast. */
+  function onMarketplaceSale(opts) {
+    const result = applyDelta(DELTA.MARKETPLACE_SALE, (opts && opts.reason) || "Sale via Marketplace / Chat");
+    if (result.delta > 0) showRepToast(`Barang Terjual! Reputasi Naik (+${result.delta}) ⭐`);
+    return result;
+  }
+
+  /** Walk-in / Ruko sale (passive — customer walked into the store).
+   *  Awards +1 rep (less than chat sales — there was no negotiation
+   *  effort) and fires a softer toast. */
+  function onWalkInSale(opts) {
+    const result = applyDelta(DELTA.WALK_IN_SALE, (opts && opts.reason) || "Walk-in sale (Ruko)");
+    if (result.delta > 0) showRepToast(`Walk-in customer ✓ Reputasi +${result.delta} ⭐`);
+    return result;
+  }
+
+  /* Reuses the existing #ft-toast element pattern other modules use
+   * (accessories / repair / staff / batam). Auto-dismisses after 2.4s. */
+  function showRepToast(msg) {
+    if (typeof document === "undefined") return;
+    let toast = document.querySelector("#ft-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "ft-toast";
+      toast.className = "ft-toast";
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add("ft-toast-show");
+    clearTimeout(toast._repTimer);
+    toast._repTimer = setTimeout(() => toast.classList.remove("ft-toast-show"), 2400);
+  }
 
 
   /* =========================================================
@@ -373,6 +411,8 @@
     onForceSaleWithDefect,
     onDealCancel,
     onScammerReport,
+    onMarketplaceSale,   // Part 43: +3 — chat / marketplace sale
+    onWalkInSale,        // Part 43: +1 — Ruko walk-in customer
 
     // tier effects
     getSellerStiffness,
