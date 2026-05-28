@@ -447,12 +447,13 @@
   </div>
 
   <!-- ============================================================
-       LOADING OVERLAY (Next Day transition)
+       LOADING OVERLAY (Part 14 + Part 22) — global perf shield
+       Used by Next Day, Bulk List, and any heavy synchronous op.
   ============================================================= -->
-  <div id="loading-overlay" class="hidden fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+  <div id="loading-overlay" class="hidden fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex-col items-center justify-center text-white">
     <div class="spinner mb-6"></div>
-    <p class="text-lg font-semibold tracking-wide">Advancing to the next day...</p>
-    <p id="loading-day-text" class="text-sm opacity-80 mt-1">Day 2</p>
+    <p id="loading-title" class="text-lg font-semibold tracking-wide">Memproses Transaksi...</p>
+    <p id="loading-day-text" class="text-sm opacity-80 mt-1">&nbsp;</p>
   </div>
 
   <!-- ============================================================

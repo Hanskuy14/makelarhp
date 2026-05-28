@@ -284,7 +284,26 @@
       return wrap;
     }
 
-    listings.forEach((listing) => wrap.appendChild(renderListingCard(listing)));
+    /* Part 22 — UI Limiter for active listings (renders 50 at a time
+     * even if the player has 500+ active listings via Bulk List). */
+    if (!s.activeListingsView) s.activeListingsView = {};
+    if (typeof s.activeListingsView.visibleCount !== "number") s.activeListingsView.visibleCount = 50;
+    const total = listings.length;
+    const limit = Math.min(s.activeListingsView.visibleCount, total);
+
+    listings.slice(0, limit).forEach((listing) => wrap.appendChild(renderListingCard(listing)));
+
+    if (limit < total) {
+      const more = document.createElement("button");
+      more.className = "ft-load-more-btn";
+      more.innerHTML = `<i class="fa-solid fa-circle-down"></i> Tampilkan ${Math.min(50, total - limit)} listing lagi  <span class="ft-load-more-meta">(${limit} / ${total})</span>`;
+      more.addEventListener("click", () => {
+        s.activeListingsView.visibleCount = Math.min(total, limit + 50);
+        window.FlippingTycoon.saveGame();
+        window.FlippingTycoon.renderActivePage();
+      });
+      wrap.appendChild(more);
+    }
     return wrap;
   }
 

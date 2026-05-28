@@ -386,6 +386,11 @@
   function bulkListWithMarkup(markupPct) {
     if (!isHired("cs")) { showToast("Hire Customer Service dulu untuk pakai Bulk List."); return null; }
     if (!window.Selling || !window.Market) return null;
+    const FT = window.FlippingTycoon;
+    if (FT && FT.isLoading && FT.isLoading()) {
+      showToast("Operasi lain sedang berjalan, tunggu sebentar...");
+      return null;
+    }
     const pct = Math.max(-50, Math.min(500, Number(markupPct) || 0));
     const s = S();
 
@@ -397,39 +402,62 @@
     });
     if (targets.length === 0) { showToast("Tidak ada unit Mulus yang siap di-list."); return { count: 0 }; }
 
-    let listed = 0;
-    let totalAsking = 0;
-    // Iterate over a copy because listItem mutates inventory in place.
-    targets.slice().forEach((it) => {
-      const suggested = window.Market.computeCurrentMarketPrice(it);
-      let asking = Math.round((suggested * (1 + pct / 100)) / 50_000) * 50_000;
-      if (asking < 50_000) asking = 50_000;
-      window.Selling.listItem(it, asking);
-      listed++;
-      totalAsking += asking;
-    });
-
-    pushBulkLog({
-      kind: "bulk-list",
-      day: s.currentDay,
-      count: listed,
-      markupPct: pct,
-      totalAsking,
-    });
-
-    window.FlippingTycoon.saveGame();
-    showToast(`🏷️ Bulk Listed ${listed} unit dengan markup ${pct >= 0 ? "+" : ""}${pct}%.`);
-    if (window.Notifications) {
-      window.Notifications.add({
-        type: "success",
-        title: "Bulk List with Markup",
-        message: `Customer Service nge-list ${listed} unit Mulus di markup ${pct >= 0 ? "+" : ""}${pct}% (total asking ${fmt(totalAsking)}).`,
-        actionPage: "inventory",
-        actor: "Customer Service",
-        icon: "tags",
-      });
+    /* =========================================================
+     * Part 22 — Async Bulk-List with loading overlay
+     *
+     * For 1000 inventory items the synchronous loop blocks the main
+     * thread for 200-800ms which freezes the browser. Split the work
+     * across a setTimeout(50) yield so the loading overlay paints
+     * BEFORE the heavy loop starts. All array mutations happen in
+     * memory; only ONE save+render after the loop finishes.
+     * ========================================================= */
+    if (FT && FT.showLoadingOverlay) {
+      FT.showLoadingOverlay("Memproses Bulk List...", `${targets.length} unit dengan markup ${pct >= 0 ? "+" : ""}${pct}%`);
     }
-    return { count: listed, totalAsking, markupPct: pct };
+
+    setTimeout(() => {
+      let listed = 0;
+      let totalAsking = 0;
+
+      // Iterate over a copy because listItem mutates inventory in place.
+      // Critically, this loop does NOT trigger any DOM re-render — every
+      // mutation happens in memory until we hit the single render call
+      // below. listItem itself avoids re-rendering during bulk runs.
+      targets.slice().forEach((it) => {
+        const suggested = window.Market.computeCurrentMarketPrice(it);
+        let asking = Math.round((suggested * (1 + pct / 100)) / 50_000) * 50_000;
+        if (asking < 50_000) asking = 50_000;
+        window.Selling.listItem(it, asking);
+        listed++;
+        totalAsking += asking;
+      });
+
+      pushBulkLog({
+        kind: "bulk-list",
+        day: s.currentDay,
+        count: listed,
+        markupPct: pct,
+        totalAsking,
+      });
+
+      if (FT && FT.saveGame) FT.saveGame();
+      showToast(`🏷️ Bulk Listed ${listed} unit dengan markup ${pct >= 0 ? "+" : ""}${pct}%.`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "success",
+          title: "Bulk List with Markup",
+          message: `Customer Service nge-list ${listed} unit Mulus di markup ${pct >= 0 ? "+" : ""}${pct}% (total asking ${fmt(totalAsking)}).`,
+          actionPage: "inventory",
+          actor: "Customer Service",
+          icon: "tags",
+        });
+      }
+      if (FT && FT.renderActivePage) FT.renderActivePage();
+      if (FT && FT.hideLoadingOverlay) FT.hideLoadingOverlay();
+    }, 50);
+
+    // Return a synthetic preview — the actual mutations happen async.
+    return { count: targets.length, async: true };
   }
 
   /* =========================================================
