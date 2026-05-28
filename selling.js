@@ -676,32 +676,23 @@
       return;
     }
 
-    /* Part 17 — Two-row layout (same as buy-side) so the Reject button
-     * isn't cut off on narrow screens.
-     *   Row 1 (grid 2-col): [Accept]  [Reject & Leave]
-     *   Row 2 (flex):       [Input flex-grow]  [Kirim Tawaran shrink-0]
-     */
     actionsEl.innerHTML = `
-      <div class="chat-actions-row chat-actions-row-grid">
-        <button id="buyer-accept" class="chat-action accept">
-          <i class="fa-solid fa-check"></i>
-          <span class="chat-action-label">Accept ${fmt(o.offeredPrice)}</span>
-        </button>
-        <button id="buyer-reject" class="chat-action leave">
-          <i class="fa-solid fa-xmark"></i>
-          <span class="chat-action-label">Reject &amp; Leave</span>
-        </button>
-      </div>
-      <div class="chat-actions-row chat-haggle-row">
+      <button id="buyer-accept" class="chat-action accept">
+        <i class="fa-solid fa-check"></i>
+        Accept ${fmt(o.offeredPrice)}
+      </button>
+      <div class="chat-haggle-row">
         <input id="buyer-counter-input" type="text" inputmode="numeric" pattern="[0-9]*"
                class="chat-offer-input" autocomplete="off"
                placeholder="Counter berapa? (IDR)" />
-        <button id="buyer-counter-send" class="chat-action haggle chat-action-send">
-          <i class="fa-solid fa-paper-plane"></i>
-          <span class="chat-action-label">Kirim</span>
+        <button id="buyer-counter-send" class="chat-action haggle">
+          <i class="fa-solid fa-paper-plane"></i> Kirim Tawaran
         </button>
       </div>
       <p id="buyer-counter-error" class="chat-offer-error"></p>
+      <button id="buyer-reject" class="chat-action leave">
+        <i class="fa-solid fa-xmark"></i> Reject &amp; Leave
+      </button>
     `;
 
     const input = actionsEl.querySelector("#buyer-counter-input");
