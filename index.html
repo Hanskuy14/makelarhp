@@ -262,7 +262,7 @@
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 md:ml-72 lg:mr-80 px-3 md:px-6 py-5">
+      <main class="flex-1 md:ml-72 lg:mr-80 px-3 md:px-6 py-5 pb-24 md:pb-5">
         <div id="page-container" class="max-w-2xl mx-auto"></div>
       </main>
 
@@ -289,12 +289,111 @@
     <!-- Floating Next Day button -->
     <button
       id="next-day-btn"
-      class="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-[#1877F2] text-white font-bold shadow-2xl hover:bg-[#155fc4] active:scale-95 transition-all"
+      class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-[#1877F2] text-white font-bold shadow-2xl hover:bg-[#155fc4] active:scale-95 transition-all min-h-[44px]"
       title="Advance to the next day"
     >
       <i class="fa-solid fa-forward"></i>
       <span>Next Day</span>
     </button>
+
+    <!-- ============================================================
+         MOBILE BOTTOM NAVIGATION (Part 13) — visible on mobile only
+    ============================================================= -->
+    <nav id="mobile-bottom-nav"
+         class="fixed bottom-0 left-0 right-0 w-full z-50 bg-white border-t border-gray-200 flex md:hidden items-stretch shadow-[0_-2px_8px_rgba(0,0,0,0.05)]">
+      <button class="mobile-nav-item sidebar-nav" data-page="news-feed" type="button">
+        <i class="fa-solid fa-newspaper"></i>
+        <span>Feed</span>
+      </button>
+      <button class="mobile-nav-item sidebar-nav" data-page="marketplace" type="button">
+        <i class="fa-solid fa-store"></i>
+        <span>Market</span>
+      </button>
+      <button class="mobile-nav-item sidebar-nav" data-page="inventory" type="button">
+        <i class="fa-solid fa-boxes-stacked"></i>
+        <span>Inventory</span>
+      </button>
+      <button class="mobile-nav-item sidebar-nav" data-page="real-estate" type="button">
+        <i class="fa-solid fa-shop"></i>
+        <span>Ruko</span>
+      </button>
+      <button id="mobile-menu-toggle" class="mobile-nav-item" type="button">
+        <i class="fa-solid fa-bars"></i>
+        <span>Menu</span>
+      </button>
+    </nav>
+
+    <!-- ============================================================
+         OFF-CANVAS HAMBURGER MENU (Part 13) — mobile only
+    ============================================================= -->
+    <div id="mobile-menu-overlay"
+         class="hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm md:hidden">
+    </div>
+    <aside id="mobile-menu-panel"
+           class="md:hidden fixed top-0 right-0 bottom-0 z-[70] w-[85%] max-w-sm bg-white shadow-2xl translate-x-full transition-transform duration-300 ease-out flex flex-col">
+      <header class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-[#1877F2] text-white">
+        <div class="flex items-center gap-3">
+          <div id="mobile-menu-avatar" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg">P</div>
+          <div>
+            <p id="mobile-menu-name" class="font-semibold leading-tight">Player Broker</p>
+            <p class="text-xs opacity-80">All Menus</p>
+          </div>
+        </div>
+        <button id="mobile-menu-close" class="w-10 h-10 rounded-full hover:bg-white/20 flex items-center justify-center" type="button">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </header>
+      <div id="mobile-menu-list" class="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="news-feed" type="button">
+          <i class="sidebar-icon fa-solid fa-newspaper text-[#1877F2]"></i><span>News Feed</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="profile" type="button">
+          <i class="sidebar-icon fa-solid fa-id-badge text-pink-500"></i><span>Profile</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="marketplace" type="button">
+          <i class="sidebar-icon fa-solid fa-store text-emerald-500"></i><span>Marketplace</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="inventory" type="button">
+          <i class="sidebar-icon fa-solid fa-boxes-stacked text-amber-500"></i><span>Inventory</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="banking" type="button">
+          <i class="sidebar-icon fa-solid fa-building-columns text-indigo-500"></i><span>Banking</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="repair" type="button">
+          <i class="sidebar-icon fa-solid fa-screwdriver-wrench text-rose-500"></i><span>Repair Center</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="real-estate" type="button">
+          <i class="sidebar-icon fa-solid fa-shop text-fuchsia-500"></i><span>Real Estate</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="batam" type="button">
+          <i class="sidebar-icon fa-solid fa-ship text-cyan-600"></i><span>Batam Supplier</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="accessories" type="button">
+          <i class="sidebar-icon fa-solid fa-box-open text-orange-500"></i><span>Toko Aksesoris</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="friends" type="button">
+          <i class="sidebar-icon fa-solid fa-user-group text-indigo-500"></i><span>Friends</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="analytics" type="button">
+          <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i><span>Performance Analytics</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="staff" type="button">
+          <i class="sidebar-icon fa-solid fa-user-tie text-blue-500"></i><span>Staff Room</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="warehouse" type="button">
+          <i class="sidebar-icon fa-solid fa-warehouse text-amber-600"></i><span>Warehouse</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="wholesale" type="button">
+          <i class="sidebar-icon fa-solid fa-truck-fast text-blue-600"></i><span>Wholesale (B2B)</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="partnerships" type="button">
+          <i class="sidebar-icon fa-solid fa-handshake text-purple-600"></i><span>Partnership Hub</span>
+        </button>
+      </div>
+      <footer class="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
+        Gadgetbook &copy; 2026 &middot; Studio @farhandwisusilo
+      </footer>
+    </aside>
   </div>
 
   <!-- ============================================================

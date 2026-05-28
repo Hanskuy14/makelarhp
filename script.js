@@ -801,9 +801,48 @@ function wireUpEvents() {
     }
   });
   $$(".sidebar-nav").forEach((btn) => {
-    btn.addEventListener("click", () => setActivePage(btn.dataset.page));
+    btn.addEventListener("click", () => {
+      setActivePage(btn.dataset.page);
+      // Auto-close the off-canvas mobile menu when an item is tapped
+      if (btn.classList.contains("mobile-menu-link")) closeMobileMenu();
+    });
   });
   $("#next-day-btn").addEventListener("click", advanceToNextDay);
+
+  // ---- Part 13: Mobile hamburger menu ----
+  const menuToggle = document.querySelector("#mobile-menu-toggle");
+  const menuClose  = document.querySelector("#mobile-menu-close");
+  const menuBg     = document.querySelector("#mobile-menu-overlay");
+  if (menuToggle) menuToggle.addEventListener("click", openMobileMenu);
+  if (menuClose)  menuClose.addEventListener("click", closeMobileMenu);
+  if (menuBg)     menuBg.addEventListener("click", closeMobileMenu);
+}
+
+function openMobileMenu() {
+  const panel   = document.querySelector("#mobile-menu-panel");
+  const overlay = document.querySelector("#mobile-menu-overlay");
+  if (!panel || !overlay) return;
+  overlay.classList.remove("hidden");
+  panel.classList.add("is-open");
+  document.body.style.overflow = "hidden";
+  // Sync header avatar/name with current profile
+  const p = (State.data && State.data.profile) || {};
+  const avEl = document.querySelector("#mobile-menu-avatar");
+  const nmEl = document.querySelector("#mobile-menu-name");
+  if (avEl) {
+    const initial = (p.name || "P").charAt(0).toUpperCase();
+    avEl.textContent = initial;
+  }
+  if (nmEl) nmEl.textContent = p.name || "Player Broker";
+}
+
+function closeMobileMenu() {
+  const panel   = document.querySelector("#mobile-menu-panel");
+  const overlay = document.querySelector("#mobile-menu-overlay");
+  if (!panel || !overlay) return;
+  overlay.classList.add("hidden");
+  panel.classList.remove("is-open");
+  document.body.style.overflow = "";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
