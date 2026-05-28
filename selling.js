@@ -587,8 +587,66 @@
 
 
   /* =========================================================
-   * Buyer chat actions (Accept / Counter / Reject)
+   * Buyer chat actions (Accept / Custom Counter / Reject)  — Part 35
+   *
+   * State stored on `listing.currentOffer`:
+   *   patience           : hidden int (2..4)
+   *   maxAcceptablePrice : buyer's hard ceiling (computed once)
+   *   chatLocked         : true after rage-quit
+   *
+   * Algorithm on player counter X (player wants X for the item):
+   *   if X <= offeredPrice          → buyer accepts (player undercut himself)
+   *   elif X <= maxAcceptablePrice  → buyer accepts at X
+   *   elif patience > 1             → buyer counters at midpoint between
+   *                                    offeredPrice and X, patience -= 1
+   *   else                          → buyer rage-quits, lock chat
    * ========================================================= */
+  function ensureBuyerNegotiationState(listing) {
+    const o = listing.currentOffer;
+    if (!o) return;
+    if (typeof o.patience !== "number") {
+      o.patience = 2 + Math.floor(Math.random() * 3); // 2..4
+    }
+    if (typeof o.maxAcceptablePrice !== "number") {
+      // Buyer can move up by up to 18% from their initial offer, capped by
+      // the player's asking price (they won't pay more than the listing).
+      const ceil = Math.min(listing.askingPrice, o.offeredPrice * 1.18);
+      o.maxAcceptablePrice = Math.max(50_000, Math.round(ceil / 50_000) * 50_000);
+    }
+    if (typeof o.chatLocked !== "boolean") o.chatLocked = false;
+  }
+
+  function buyerCounterLine(midPrice) {
+    const lines = [
+      `Belum dapet bro. Kalau ${fmt(midPrice)} langsung saya bungkus deh 🤝`,
+      `Hmm masih ketinggian. Gimana kalau ${fmt(midPrice)}? Fix ya kalau mau.`,
+      `Oke saya naik dikit ke ${fmt(midPrice)}. Lebih dari ini saya cabut ya.`,
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  function buyerAcceptCounterLine(price) {
+    const lines = [
+      `Wah oke deh, ${fmt(price)} saya ambil! Deal 🤝`,
+      `Sip ${fmt(price)} sah ya, langsung transfer.`,
+      `Yaudah ${fmt(price)} saya iyain, mantap nego nya 😅`,
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  function buyerRageQuitLine() {
+    const lines = [
+      `Males ah, nego afgan! 😤 Cari yang lain aja.`,
+      `Udah cape nego nya gan, harga gak masuk akal terus. Cabut! 👋`,
+      `Males lah, nego afgan banget. Saya tutup ya chatnya 🙏`,
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  function midpointBuyer(a, b) {
+    return Math.round(((a + b) / 2) / 50_000) * 50_000;
+  }
+
   function renderBuyerActions(listing) {
     const actionsEl = document.querySelector("#chat-actions");
     const o = listing.currentOffer;
@@ -600,23 +658,70 @@
       actionsEl.querySelector("#buyer-close-btn").addEventListener("click", closeBuyerChat);
       return;
     }
+
+    ensureBuyerNegotiationState(listing);
+
+    if (o.chatLocked) {
+      actionsEl.innerHTML = `
+        <p class="chat-locked-note">
+          <i class="fa-solid fa-lock"></i> Pembeli udah males nego — chat dikunci.
+        </p>
+        <button id="buyer-leave-locked" class="chat-action leave w-full">
+          <i class="fa-solid fa-arrow-left"></i> Close
+        </button>`;
+      actionsEl.querySelector("#buyer-leave-locked").addEventListener("click", () => {
+        // Walk-out same as the original reject path
+        finalizeBuyerWalkOut(listing, "walked-out");
+      });
+      return;
+    }
+
     actionsEl.innerHTML = `
       <button id="buyer-accept" class="chat-action accept">
         <i class="fa-solid fa-check"></i>
         Accept ${fmt(o.offeredPrice)}
       </button>
-      <button id="buyer-counter" class="chat-action haggle">
-        <i class="fa-solid fa-hand-holding-dollar"></i>
-        Counter Offer
-        <span class="text-xs opacity-80">Tawar harga lain</span>
-      </button>
+      <div class="chat-haggle-row">
+        <input id="buyer-counter-input" type="text" inputmode="numeric" pattern="[0-9]*"
+               class="chat-offer-input" autocomplete="off"
+               placeholder="Counter berapa? (IDR)" />
+        <button id="buyer-counter-send" class="chat-action haggle">
+          <i class="fa-solid fa-paper-plane"></i> Kirim Tawaran
+        </button>
+      </div>
+      <p id="buyer-counter-error" class="chat-offer-error"></p>
       <button id="buyer-reject" class="chat-action leave">
         <i class="fa-solid fa-xmark"></i> Reject &amp; Leave
       </button>
     `;
+
+    const input = actionsEl.querySelector("#buyer-counter-input");
+    const sanitize = () => {
+      const cleaned = String(input.value || "").replace(/[^0-9]/g, "");
+      if (cleaned !== input.value) input.value = cleaned;
+    };
+    input.addEventListener("input", sanitize);
+    input.addEventListener("paste", () => setTimeout(sanitize, 0));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); submit(); }
+    });
+
     actionsEl.querySelector("#buyer-accept").addEventListener("click", () => onAcceptOffer(listing));
-    actionsEl.querySelector("#buyer-counter").addEventListener("click", () => onCounterOffer(listing));
+    actionsEl.querySelector("#buyer-counter-send").addEventListener("click", submit);
     actionsEl.querySelector("#buyer-reject").addEventListener("click", () => onRejectOffer(listing));
+
+    function submit() {
+      sanitize();
+      const errEl = actionsEl.querySelector("#buyer-counter-error");
+      const raw = Number(input.value);
+      if (!isFinite(raw) || raw < 50_000) {
+        errEl.textContent = "Counter minimal Rp 50.000.";
+        return;
+      }
+      errEl.textContent = "";
+      const amount = Math.round(raw / 50_000) * 50_000;
+      onCounterOffer(listing, amount);
+    }
   }
 
   /* ---------- Accept Offer → bank picker ---------- */
@@ -746,96 +851,85 @@
     });
   }
 
-  /* ---------- Counter Offer flow ---------- */
-  function onCounterOffer(listing) {
-    const modal = document.querySelector("#counter-modal");
-    const body = modal.querySelector("#counter-body");
-    const closeBtn = modal.querySelector("#counter-cancel");
-    const submitBtn = modal.querySelector("#counter-submit");
-    const o = listing.currentOffer;
-
-    body.innerHTML = `
-      <div class="relist-summary">
-        <p class="text-xs text-gray-500">Tawaran pembeli saat ini</p>
-        <p class="text-xl font-bold">${fmt(o.offeredPrice)}</p>
-        <p class="text-xs text-gray-500 mt-2">Asking price kamu</p>
-        <p class="font-semibold">${fmt(listing.askingPrice)}</p>
-      </div>
-      <label class="modal-label">Counter Offer (IDR)
-        <input id="counter-price" type="number" min="50000" step="50000" placeholder="${listing.askingPrice}" value="${listing.askingPrice}" class="modal-input" />
-      </label>
-      <p class="text-xs text-gray-500 mt-1">Tip: terlalu jauh dari tawaran pembeli akan bikin mereka kabur 😅</p>
-      <p id="counter-error" class="text-xs text-rose-600 font-semibold"></p>
-    `;
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-    const close = () => { modal.classList.add("hidden"); modal.classList.remove("flex"); };
-    closeBtn.onclick = close;
-    submitBtn.onclick = () => {
-      const err = body.querySelector("#counter-error");
-      const newPrice = Math.floor(Number(body.querySelector("#counter-price").value) || 0);
-      if (!newPrice || newPrice < 50_000) { err.textContent = "Counter minimal Rp 50.000."; return; }
-      close();
-      doCounter(listing, Math.round(newPrice / 50_000) * 50_000);
-    };
-  }
-
-
-
-
-  function doCounter(listing, newPrice) {
+  /* ---------- Counter Offer flow (Part 35: inline, with patience) ---------- */
+  function onCounterOffer(listing, newPrice) {
+    ensureBuyerNegotiationState(listing);
     const o = listing.currentOffer;
     pushMessage(listing, "player", `Saya counter ${fmt(newPrice)} ya gan, fair lah ya 😉`);
     showTyping();
 
     setTimeout(() => {
       hideTyping();
-      const result = rollCounterResponse(newPrice, o.offeredPrice);
-      if (result.outcome === "accept") {
+
+      // 1. Player counter <= buyer's current offer → trivial accept (player undercut)
+      if (newPrice <= o.offeredPrice) {
         o.offeredPrice = newPrice;
         o.roundsAccepted = (o.roundsAccepted || 0) + 1;
-        pushMessage(listing, "buyer", `Wah oke deh, ${fmt(newPrice)} saya ambil! Deal 🤝`);
+        pushMessage(listing, "buyer", buyerAcceptCounterLine(newPrice));
         window.FlippingTycoon.saveGame();
         renderBuyerActions(listing);
-      } else if (result.outcome === "counter") {
-        o.offeredPrice = result.newOffer;
-        pushMessage(listing, "buyer", `Hmm ${fmt(newPrice)} masih ketinggian. Saya naikin dikit jadi ${fmt(result.newOffer)}, gimana?`);
-        window.FlippingTycoon.saveGame();
-        renderBuyerActions(listing);
-      } else {
-        // leave
-        pushMessage(listing, "buyer", `Aduh ketinggian banget. Saya cabut dulu deh, kalau berubah pikiran chat aja 👋`);
-        // Part 10: snapshot chat into archive before clearing the offer.
-        if (window.Profile && listing.chatLog && listing.chatLog.length > 0) {
-          const snap = listing.itemSnapshot || {};
-          const buyer = listing.currentOffer.buyer;
-          window.Profile.archiveChat({
-            role: "seller",
-            counterparty: { name: buyer.name, avatar: buyer.avatar, color: buyer.color, location: buyer.location || null },
-            gadget: { name: snap.name, icon: snap.icon, accent: snap.accent, brand: snap.brand, isExInter: !!snap.isExInter },
-            chatLog: listing.chatLog.slice(),
-            outcome: "walked-out",
-            itemKey: "active-" + listing.listingId + "-" + (buyer.id || buyer.name),
-          });
-        }
-        listing.currentOffer = null;
-        listing.negotiationState = "waiting";
-        listing.chatLog.push({ from: "system", text: "Pembeli pergi. Listing kembali menunggu pembeli baru." });
-        // Reset live chatLog so the next buyer starts fresh; the archive has the old log.
-        listing.chatLog = [];
-        renderBubble({ from: "system", text: "Pembeli pergi. Listing kembali menunggu pembeli baru." });
-        window.FlippingTycoon.saveGame();
-        const actionsEl = document.querySelector("#chat-actions");
-        actionsEl.innerHTML = `
-          <button id="buyer-done" class="chat-action accept w-full">
-            <i class="fa-solid fa-arrow-left"></i> Close
-          </button>`;
-        actionsEl.querySelector("#buyer-done").addEventListener("click", () => {
-          closeBuyerChat();
-          window.FlippingTycoon.renderActivePage();
-        });
+        return;
       }
+
+      // 2. Player counter <= buyer's hidden ceiling → accept at counter
+      if (newPrice <= o.maxAcceptablePrice) {
+        o.offeredPrice = newPrice;
+        o.roundsAccepted = (o.roundsAccepted || 0) + 1;
+        pushMessage(listing, "buyer", buyerAcceptCounterLine(newPrice));
+        window.FlippingTycoon.saveGame();
+        renderBuyerActions(listing);
+        return;
+      }
+
+      // 3. Above the ceiling — patience drops by 1
+      o.patience -= 1;
+
+      if (o.patience <= 0) {
+        o.chatLocked = true;
+        pushMessage(listing, "buyer", buyerRageQuitLine());
+        window.FlippingTycoon.saveGame();
+        renderBuyerActions(listing);
+        return;
+      }
+
+      // 4. Still has patience → meet in the middle (clamped to ceiling)
+      const mid = midpointBuyer(o.offeredPrice, newPrice);
+      const safeMid = Math.min(mid, o.maxAcceptablePrice);
+      o.offeredPrice = safeMid;
+      pushMessage(listing, "buyer", buyerCounterLine(safeMid));
+      window.FlippingTycoon.saveGame();
+      renderBuyerActions(listing);
     }, 900);
+  }
+
+  /* Shared walk-out finalizer used by Reject and chat-locked Close. */
+  function finalizeBuyerWalkOut(listing, outcome) {
+    if (window.Profile && listing.chatLog && listing.chatLog.length > 0 && listing.currentOffer) {
+      const snap = listing.itemSnapshot || {};
+      const buyer = listing.currentOffer.buyer;
+      window.Profile.archiveChat({
+        role: "seller",
+        counterparty: { name: buyer.name, avatar: buyer.avatar, color: buyer.color, location: buyer.location || null },
+        gadget: { name: snap.name, icon: snap.icon, accent: snap.accent, brand: snap.brand, isExInter: !!snap.isExInter },
+        chatLog: listing.chatLog.slice(),
+        outcome: outcome || "walked-out",
+        itemKey: "active-" + listing.listingId + "-" + (buyer.id || buyer.name),
+      });
+    }
+    listing.currentOffer = null;
+    listing.negotiationState = "waiting";
+    listing.chatLog = [{ from: "system", text: "Pembeli pergi. Listing kembali menunggu pembeli baru." }];
+    renderBubble(listing.chatLog[0]);
+    window.FlippingTycoon.saveGame();
+    const actionsEl = document.querySelector("#chat-actions");
+    actionsEl.innerHTML = `
+      <button id="buyer-done" class="chat-action accept w-full">
+        <i class="fa-solid fa-arrow-left"></i> Close
+      </button>`;
+    actionsEl.querySelector("#buyer-done").addEventListener("click", () => {
+      closeBuyerChat();
+      window.FlippingTycoon.renderActivePage();
+    });
   }
 
   /* ---------- Reject & Leave ---------- */
