@@ -747,6 +747,9 @@ function renderActivePage() {
     case "partnerships":
       container.appendChild(window.Partnerships ? window.Partnerships.renderPartnershipsPage() : renderPlaceholder("Partnership Hub", "handshake", "Loading..."));
       break;
+    case "fjb":
+      container.appendChild(window.FJB ? window.FJB.renderFJBPage() : renderPlaceholder("Grup FJB", "people-group", "Loading..."));
+      break;
     case "profile":
       container.appendChild(window.Profile ? window.Profile.renderProfilePage() : renderPlaceholder("Profile", "user", "Loading..."));
       break;
@@ -953,6 +956,7 @@ async function advanceToNextDay() {
   if (window.Staff && window.Staff.processAutoAcceptWholesale) window.Staff.processAutoAcceptWholesale(); // Part 11: HoL auto-accept fulfillable orders
   if (window.Wholesale) window.Wholesale.generateDailyOrders();         // Part 11: spawn fresh bulk orders for the new day
   if (window.Friends) window.Friends.processDailyActivity();    // Part 8: followed brokers post activity
+  if (window.FJB) window.FJB.advanceDay();                      // Part 19: snipe stale BUs, expire WTBs, generate fresh posts
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
   saveGame();
