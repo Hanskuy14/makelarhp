@@ -845,7 +845,77 @@ function closeMobileMenu() {
   document.body.style.overflow = "";
 }
 
+/* =========================================================
+ * Part 14 — Dark Mode
+ * ========================================================= */
+const THEME_KEY = "ft-theme";
+
+function initDarkMode() {
+  // Honor previously saved preference; otherwise fall back to OS.
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = saved || (prefersDark ? "dark" : "light");
+  setTheme(theme, /*persist*/ false);
+
+  // Topbar button
+  const topBtn = document.querySelector("#topbar-darkmode-btn");
+  if (topBtn) topBtn.addEventListener("click", toggleTheme);
+
+  // Hamburger menu row toggle
+  const menuToggle = document.querySelector("#mobile-darkmode-toggle");
+  if (menuToggle) {
+    menuToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleTheme();
+    });
+  }
+}
+
+function getCurrentTheme() {
+  return document.body.classList.contains("dark") ? "dark" : "light";
+}
+
+function toggleTheme() {
+  setTheme(getCurrentTheme() === "dark" ? "light" : "dark", true);
+}
+
+function setTheme(theme, persist) {
+  const isDark = theme === "dark";
+  document.body.classList.toggle("dark", isDark);
+  document.documentElement.classList.toggle("dark", isDark);
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  }
+  // Sync the topbar icon (sun when dark, moon when light)
+  const icon = document.querySelector("#topbar-darkmode-icon");
+  if (icon) {
+    icon.classList.toggle("fa-moon", !isDark);
+    icon.classList.toggle("fa-sun", isDark);
+  }
+}
+
+/* =========================================================
+ * Part 14 — PWA Service Worker registration
+ * ========================================================= */
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  // file:// won't work for service workers; skip in that case.
+  if (location.protocol === "file:") return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("service-worker.js")
+      .then((reg) => console.log("[SW] registered:", reg.scope))
+      .catch((err) => console.warn("[SW] registration failed:", err));
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Part 14: PWA service worker
+  registerServiceWorker();
+  // Part 14: Dark mode init + wire toggles
+  initDarkMode();
+
   wireUpEvents();
   if (window.Notifications) window.Notifications.attachBellHandler();
   if (window.Messenger) window.Messenger.attachButtonHandler();

@@ -4289,3 +4289,122 @@ body {
     background: transparent;
   }
 }
+
+
+
+/* =========================================================
+ * Part 14 — Dark Mode
+ *
+ * Strategy: when <body> has class .dark, override the FB-clone
+ * CSS variables and a handful of Tailwind utility classes so the
+ * whole app re-themes without touching every component.
+ * ========================================================= */
+
+body.dark {
+  --fb-bg: #111827;          /* gray-900 */
+  --fb-card: #1f2937;        /* gray-800 */
+  --fb-text: #f3f4f6;        /* gray-100 */
+  --fb-text-muted: #9ca3af;  /* gray-400 */
+  --fb-hover: #374151;       /* gray-700 */
+  --fb-border: #374151;
+  --fb-blue: #3b82f6;        /* slightly brighter for dark contrast */
+  --fb-blue-dark: #2563eb;
+  background-color: #111827 !important;
+  color: var(--fb-text) !important;
+  color-scheme: dark;
+}
+
+/* Topbar tint a touch darker in dark mode */
+body.dark .fb-topbar { background: #0b1220 !important; }
+
+/* Override Tailwind utility classes used across the app */
+body.dark .bg-white,
+body.dark .bg-\[\#f0f2f5\] { background-color: var(--fb-card) !important; }
+body.dark .bg-gray-50      { background-color: #1f2937 !important; }
+body.dark .bg-gray-100     { background-color: #374151 !important; }
+body.dark .bg-gray-200     { background-color: #4b5563 !important; }
+
+body.dark .text-\[\#050505\],
+body.dark .text-gray-900   { color: var(--fb-text) !important; }
+body.dark .text-gray-800   { color: #e5e7eb !important; }
+body.dark .text-gray-700   { color: #d1d5db !important; }
+body.dark .text-gray-600   { color: #9ca3af !important; }
+body.dark .text-gray-500   { color: #9ca3af !important; }
+body.dark .text-gray-400   { color: #6b7280 !important; }
+
+body.dark .border-gray-200 { border-color: var(--fb-border) !important; }
+body.dark .border-gray-300 { border-color: var(--fb-border) !important; }
+body.dark .border-t        { border-color: var(--fb-border) !important; }
+
+/* Cards / posts / sidebar */
+body.dark .fb-card,
+body.dark .fb-post,
+body.dark .composer { background: var(--fb-card); color: var(--fb-text); }
+body.dark .sidebar-icon { background: #374151; color: #f3f4f6; }
+body.dark .sidebar-link.active { background: #1e3a5f; color: #93c5fd; }
+body.dark .sidebar-link.active .sidebar-icon { color: #93c5fd !important; }
+body.dark .sidebar-link:hover { background: var(--fb-hover); }
+
+/* Inputs */
+body.dark .modal-input,
+body.dark input[type="text"],
+body.dark input[type="number"],
+body.dark select,
+body.dark textarea {
+  background: #111827 !important;
+  color: var(--fb-text) !important;
+  border-color: var(--fb-border) !important;
+}
+body.dark .composer input { background: var(--fb-hover) !important; color: var(--fb-text) !important; }
+
+/* Modals & chat surfaces */
+body.dark .modal-box,
+body.dark .chat-window,
+body.dark .chat-header,
+body.dark .chat-messages,
+body.dark .chat-actions { background: var(--fb-card) !important; color: var(--fb-text); }
+body.dark .modal-callout { background: #422006; border-color: #b45309; color: #fde68a; }
+body.dark .modal-btn-ghost { background: #374151 !important; color: #e5e7eb !important; }
+body.dark .modal-btn-ghost:hover { background: #4b5563 !important; }
+
+/* Mobile bottom nav + hamburger menu */
+body.dark #mobile-bottom-nav { background: #1f2937 !important; border-color: var(--fb-border) !important; }
+body.dark .mobile-nav-item { color: #9ca3af; }
+body.dark .mobile-nav-item.active { color: #93c5fd; }
+body.dark #mobile-menu-panel { background: #1f2937 !important; color: var(--fb-text); }
+
+/* Notification & messenger dropdowns */
+body.dark .notif-dropdown,
+body.dark .messenger-dropdown { background: var(--fb-card) !important; color: var(--fb-text); border-color: var(--fb-border) !important; }
+
+/* Misc accents */
+body.dark hr { border-color: var(--fb-border) !important; }
+body.dark .contact-row:hover { background: var(--fb-hover); }
+
+/* =========================================================
+ * Theme switch (used in hamburger menu Dark Mode toggle row)
+ * ========================================================= */
+.theme-switch {
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: #d1d5db;
+  position: relative;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+.theme-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform 0.2s ease;
+}
+body.dark .theme-switch { background: #1877f2; }
+body.dark .theme-switch .theme-switch-knob { transform: translateX(20px); }
+.sidebar-link.justify-between { justify-content: space-between; }
