@@ -196,18 +196,72 @@
     }
   }
 
-  /* ---------- Next Day: roll for offers ---------- */
+  /* ---------- Next Day: roll for offers (Part 23 — O(K) sampling) ----------
+   *
+   * Old behaviour: forEach N listings, RNG per-item to decide if a buyer
+   * arrives. With 1000 listings that's 1000 RNG rolls + 1000 chance
+   * computations + 1000 makeBuyer() allocations even when most would
+   * skip. Mobile thread-locks.
+   *
+   * New behaviour: bump daysListed for every listing in O(N) (cheap data),
+   * then mathematically sample at most ~50 random listings to actually
+   * spawn fresh offers on. Listings already in 'offer-pending' just have
+   * their staleDays incremented (no offer regen), exactly like before.
+   * ============================================================ */
   function processNextDayOffers() {
     const s = S();
     ensureActiveListings();
-    s.activeListings.forEach((listing) => {
-      listing.daysListed = (listing.daysListed || 0) + 1;
-      if (listing.currentOffer && listing.negotiationState === "offer-pending") {
-        // There's already a pending offer; the buyer waits one more day before walking.
-        listing.currentOffer.staleDays = (listing.currentOffer.staleDays || 0) + 1;
-        return;
+    const all = s.activeListings || [];
+    if (all.length === 0) return;
+
+    // O(N) cheap data tick: bump daysListed and stale-counter only.
+    const eligibleIdx = [];
+    for (let i = 0; i < all.length; i++) {
+      const l = all[i];
+      l.daysListed = (l.daysListed || 0) + 1;
+      if (l.currentOffer && l.negotiationState === "offer-pending") {
+        l.currentOffer.staleDays = (l.currentOffer.staleDays || 0) + 1;
+        continue;            // don't spawn a fresh offer on top of pending one
       }
+      eligibleIdx.push(i);
+    }
+    if (eligibleIdx.length === 0) {
+      window.FlippingTycoon.saveGame();
+      return;
+    }
+
+    /* Cap the per-day "buyer arrival" cost. With 1000 eligible listings
+     * we don't roll 1000 buyers — we sample at most MAX_NEW_OFFERS each
+     * day. This caps the daily offer-generation work at O(50) regardless
+     * of inventory size, while preserving the feel of "some listings
+     * get an offer today". */
+    const MAX_NEW_OFFERS    = 50;
+    const ARRIVAL_RATE_LO   = 0.06;
+    const ARRIVAL_RATE_HI   = 0.18;
+    const arrivalRate       = ARRIVAL_RATE_LO + Math.random() * (ARRIVAL_RATE_HI - ARRIVAL_RATE_LO);
+    const offersToGenerate  = Math.min(MAX_NEW_OFFERS, Math.floor(eligibleIdx.length * arrivalRate));
+    if (offersToGenerate <= 0) {
+      window.FlippingTycoon.saveGame();
+      return;
+    }
+
+    // Reservoir sampling — pick K random indices from eligibleIdx in O(K)
+    const sampled = [];
+    const pool = eligibleIdx.slice();
+    for (let k = 0; k < offersToGenerate && pool.length > 0; k++) {
+      const j = Math.floor(Math.random() * pool.length);
+      sampled.push(pool[j]);
+      pool[j] = pool[pool.length - 1];
+      pool.pop();
+    }
+
+    // Spawn fresh offers ONLY for the sampled listings.
+    let suspiciousCount = 0;
+    sampled.forEach((idx) => {
+      const listing = all[idx];
       const chance = offerChance(listing.askingPrice, listing.suggestedPrice);
+      // Per-listing chance still applies — sampling just means we LOOK at
+      // this listing today. The buyer may still walk away.
       if (Math.random() >= chance) return;
 
       const buyer = makeBuyer();
@@ -222,33 +276,26 @@
         opened: false,
         suspicious,
       };
-      // Clear chat log for this fresh negotiation.
       listing.chatLog = [];
       const opener = `Halo gan, masih ada? Lepas Rp ${offered.toLocaleString("id-ID")} ya? 🙏`;
       listing.chatLog.push({ from: "buyer", text: opener, color: buyer.color, avatar: buyer.avatar });
       listing.negotiationState = "offer-pending";
-      if (window.Notifications) {
-        if (suspicious) {
-          window.Notifications.add({
-            type: "scam",
-            title: "Warning: Suspicious Buyer Detected!",
-            message: `${buyer.name} nawar ${listing.itemSnapshot.name} cuma ${fmt(offered)} (lowball brutal). Hati-hati PHP / scam offer.`,
-            actionPage: "inventory",
-            actor: buyer.name,
-            icon: "user-secret",
-          });
-        } else {
-          window.Notifications.add({
-            type: "info",
-            title: "New Offer Received",
-            message: `${buyer.name} dari ${buyer.location} menawar ${listing.itemSnapshot.name} di ${fmt(offered)}.`,
-            actionPage: "inventory",
-            actor: buyer.name,
-            icon: "comments-dollar",
-          });
-        }
-      }
+      if (suspicious) suspiciousCount++;
     });
+
+    // ONE summary notification covering all the new offers (no per-item
+    // toast spam, which was its own perf cost on 50 simultaneous offers).
+    const newOfferCount = sampled.reduce((c, idx) => c + (all[idx].currentOffer && all[idx].currentOffer.staleDays === 0 ? 1 : 0), 0);
+    if (newOfferCount > 0 && window.Notifications) {
+      window.Notifications.add({
+        type: suspiciousCount > 0 ? "scam" : "info",
+        title: `${newOfferCount} new offer${newOfferCount === 1 ? "" : "s"} hari ini`,
+        message: `Pembeli baru nawar ${newOfferCount} listing kamu${suspiciousCount > 0 ? ` (${suspiciousCount} suspicious lowball)` : ""}. Buka Inventory tab Active Listings.`,
+        actionPage: "inventory",
+        actor: "Marketplace",
+        icon: "comments-dollar",
+      });
+    }
     window.FlippingTycoon.saveGame();
   }
 
@@ -284,25 +331,22 @@
       return wrap;
     }
 
-    /* Part 22 — UI Limiter for active listings (renders 50 at a time
-     * even if the player has 500+ active listings via Bulk List). */
-    if (!s.activeListingsView) s.activeListingsView = {};
-    if (typeof s.activeListingsView.visibleCount !== "number") s.activeListingsView.visibleCount = 50;
+    /* Part 23 — STRICT 50-item DOM cap (no Load More). */
+    const HARD_CAP = 50;
     const total = listings.length;
-    const limit = Math.min(s.activeListingsView.visibleCount, total);
+    const limit = Math.min(HARD_CAP, total);
 
     listings.slice(0, limit).forEach((listing) => wrap.appendChild(renderListingCard(listing)));
 
-    if (limit < total) {
-      const more = document.createElement("button");
-      more.className = "ft-load-more-btn";
-      more.innerHTML = `<i class="fa-solid fa-circle-down"></i> Tampilkan ${Math.min(50, total - limit)} listing lagi  <span class="ft-load-more-meta">(${limit} / ${total})</span>`;
-      more.addEventListener("click", () => {
-        s.activeListingsView.visibleCount = Math.min(total, limit + 50);
-        window.FlippingTycoon.saveGame();
-        window.FlippingTycoon.renderActivePage();
-      });
-      wrap.appendChild(more);
+    if (total > HARD_CAP) {
+      const note = document.createElement("p");
+      note.className = "ft-render-cap-note";
+      note.innerHTML = `
+        <i class="fa-solid fa-circle-info"></i>
+        Menampilkan <b>${HARD_CAP}</b> listing teratas dari total <b>${total}</b>
+        untuk menjaga performa.
+      `;
+      wrap.appendChild(note);
     }
     return wrap;
   }

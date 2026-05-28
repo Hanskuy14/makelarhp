@@ -200,16 +200,14 @@
     const grid = document.createElement("div");
     grid.className = "marketplace-grid";
 
-    /* Part 22 — UI Limiter:
-     * Even with 1000+ listings, only render the first N to the DOM.
-     * The full data array stays intact; player clicks "Load More"
-     * to reveal the next batch. Caps DOM at <= ~50-200 nodes for
-     * responsive scrolling on mobile.
-     */
+    /* Part 23 — STRICT 50-item DOM cap (no Load More).
+     * Drawing 1000 listing cards crashes mobile with OOM. We hard-cap
+     * at 50, surface the count in a banner, and trust the search/filter
+     * UI to narrow what the player wants to see. */
+    const HARD_CAP = 50;
     if (!s.marketView) s.marketView = { mode: "grid", selectedListingId: null };
-    if (typeof s.marketView.visibleCount !== "number") s.marketView.visibleCount = 50;
     const total = s.dailyListings.length;
-    const limit = Math.min(s.marketView.visibleCount, total);
+    const limit = Math.min(HARD_CAP, total);
 
     s.dailyListings.slice(0, limit).forEach((listing) => {
       const card = document.createElement("div");
@@ -240,17 +238,16 @@
 
     wrap.appendChild(grid);
 
-    // Part 22 — Load More button (only when there are hidden items)
-    if (limit < total) {
-      const more = document.createElement("button");
-      more.className = "ft-load-more-btn";
-      more.innerHTML = `<i class="fa-solid fa-circle-down"></i> Tampilkan ${Math.min(50, total - limit)} item lagi  <span class="ft-load-more-meta">(${limit} / ${total})</span>`;
-      more.addEventListener("click", () => {
-        s.marketView.visibleCount = Math.min(total, limit + 50);
-        window.FlippingTycoon.saveGame();
-        window.FlippingTycoon.renderActivePage();
-      });
-      wrap.appendChild(more);
+    // Strict 50-item warning banner (Part 23)
+    if (total > HARD_CAP) {
+      const note = document.createElement("p");
+      note.className = "ft-render-cap-note";
+      note.innerHTML = `
+        <i class="fa-solid fa-circle-info"></i>
+        Menampilkan <b>${HARD_CAP}</b> barang teratas dari total <b>${total}</b> barang
+        untuk menjaga performa.
+      `;
+      wrap.appendChild(note);
     }
     return wrap;
   }

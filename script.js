@@ -425,7 +425,44 @@ function normalizeInventoryItem(item) {
   return dirty;
 }
 
-function saveGame() { return State.save(); }
+/* =========================================================
+ * Part 23 — Deferred save / state-batching mode
+ *
+ * During heavy operations (Next Day, Bulk List, Mass Walk-in
+ * sales) every module's day-tick used to call saveGame() once
+ * at the end, but with 10+ modules running per Next Day that
+ * meant 10× JSON.stringify(state) → localStorage writes per
+ * tick. With 1000 inventory items each save can be 500 KB+
+ * and triggers a synchronous main-thread block.
+ *
+ * deferSaves() flips on a flag so saveGame() becomes a no-op
+ * (just sets _saveQueued = true). flushSaves() then performs
+ * exactly ONE save at the end of the heavy block. End result:
+ * one localStorage write per Next Day, no matter how many
+ * modules participated.
+ * ========================================================= */
+let _saveDeferred = false;
+let _saveQueued   = false;
+
+function saveGame() {
+  if (_saveDeferred) {
+    _saveQueued = true;
+    return true;     // pretend the save succeeded; we'll flush later
+  }
+  return State.save();
+}
+function deferSaves() {
+  _saveDeferred = true;
+  _saveQueued = false;
+}
+function flushSaves() {
+  _saveDeferred = false;
+  if (_saveQueued) {
+    _saveQueued = false;
+    return State.save();
+  }
+  return true;
+}
 function loadGame() { return State.load(); }
 
 /* ---------- 4. Utility helpers ---------- */
@@ -1000,12 +1037,12 @@ async function advanceToNextDay() {
   await delay(50);
 
   /* ============================================================
-   * Heavy synchronous block (Part 22: wrapped in setTimeout via
-   * the await above so the overlay paints first). For 500+ active
-   * listings + warehouse + wholesale orders + FJB posts this can
-   * take 100-500ms. Guarded by the loading overlay so the player
-   * can't double-fire actions.
+   * Heavy synchronous block (Part 22 + Part 23). Wrapped in an
+   * await above so the overlay paints first, AND in a deferSaves()
+   * window so all module ticks below treat saveGame() as a no-op
+   * (one big save at the end instead of 10+ per-module saves).
    * ============================================================ */
+  deferSaves();
   State.data.currentDay = nextDay;
   generateDailyNews();                                          // new news first so listings can apply its multiplier
   if (window.Repair) window.Repair.applyDayTickToRepairs();     // finish in-progress repairs
@@ -1030,6 +1067,8 @@ async function advanceToNextDay() {
   // feed isn't already scrolled deep when fresh stock arrives.
   if (State.data.marketView)    State.data.marketView.visibleCount    = 50;
   if (State.data.inventoryView) State.data.inventoryView.visibleCount = 50;
+  // Single state commit at the end of the heavy block (Part 23).
+  flushSaves();
   saveGame();
 
   // Brief pause so the overlay isn't a flash for fast Next Day rolls.

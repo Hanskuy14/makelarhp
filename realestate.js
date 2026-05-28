@@ -155,30 +155,172 @@
   }
 
   /* =========================================================
-   * Walk-in customer pass: instant-sells eligible listings.
-   * Eligibility: asking price within 110% of TODAY's suggested price.
-   * Skipped: listings currently mid-negotiation (offer-pending).
+   * Walk-in customer pass (Part 23 — O(1) Mass Simulation).
+   *
+   * Old behaviour: for-loop every active listing, recompute its
+   * suggested price, check ratio, call completeWalkInSale per item.
+   * With 1000 listings this melts mobile CPUs.
+   *
+   * New behaviour: compute a global Store Sale Rate, derive
+   * itemsSold mathematically, splice that many listings out of
+   * the array, sum their asking prices into ONE bank credit,
+   * push ONE walk-ins-history summary, and emit ONE notification.
+   *
+   * The eligibility check (asking <= 110% of suggested) is still
+   * applied during the up-front filter pass that builds the pool,
+   * but the heavy completeWalkInSale-per-item path is replaced
+   * with a single batched commit.
    * ========================================================= */
   function processWalkInSales() {
     const s = S();
     ensureRealEstate();
     if (!s.realEstate.rented) return;
 
-    const listings = (s.activeListings || []).slice(); // copy because we mutate
-    const sold = [];
-    listings.forEach((listing) => {
-      if (listing.negotiationState === "offer-pending") return;
-      const suggestedNow = recomputeSuggested(listing);
-      if (suggestedNow <= 0) return;
-      const ratio = listing.askingPrice / suggestedNow;
-      if (ratio <= 1.10) {
-        completeWalkInSale(listing, suggestedNow);
-        sold.push(listing);
-      }
-    });
-    if (sold.length > 0) {
-      window.FlippingTycoon.saveGame();
+    const all = s.activeListings || [];
+    if (all.length === 0) return;
+
+    // Filter: only listings priced at-or-below 110% of today's
+    // suggested price are eligible. Listings mid-negotiation skip.
+    const eligible = [];
+    for (let i = 0; i < all.length; i++) {
+      const l = all[i];
+      if (l.negotiationState === "offer-pending") continue;
+      const suggested = recomputeSuggested(l);
+      if (suggested <= 0) continue;
+      if (l.askingPrice / suggested > 1.10) continue;
+      eligible.push(l);
     }
+    if (eligible.length === 0) return;
+
+    // Global Store Sale Rate: random 10%..30% of eligible stock,
+    // tilted slightly upward by store quality and player rep.
+    const baseRate = 0.10 + Math.random() * 0.20;
+    const repBoost = (window.Reputation && window.Reputation.isSuhu && window.Reputation.isSuhu()) ? 0.05 : 0;
+    const saleRate = Math.min(0.40, baseRate + repBoost);
+    let itemsSold = Math.floor(eligible.length * saleRate);
+    // Always sell at least 1 if there's any eligible stock — keeps the
+    // toko alive on slow days.
+    if (itemsSold < 1) itemsSold = Math.min(1, eligible.length);
+
+    // Shuffle the eligible pool so the cheapest listings aren't always
+    // the first ones to be sold.
+    for (let i = eligible.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = eligible[i]; eligible[i] = eligible[j]; eligible[j] = t;
+    }
+    const sold = eligible.slice(0, itemsSold);
+
+    // ---- O(1) batched commit ----
+    const receivingBank = "Mandiri";
+    const tier = window.Banking.tierOf(s.bankBalances[receivingBank] || 0);
+    const isPriority = tier === "priority";
+    const baseFee = window.Inventory && window.Inventory.platformFeeRate
+      ? window.Inventory.platformFeeRate()
+      : (window.Repair && window.Repair.platformFeeRate ? window.Repair.platformFeeRate() : 0.05);
+    const feeRate = isPriority ? 0 : baseFee;
+
+    let grossSum = 0, feeSum = 0, netSum = 0;
+    const soldIds = new Set();
+    sold.forEach((l) => {
+      soldIds.add(l.listingId);
+      const price = l.askingPrice;
+      const fee = Math.round(price * feeRate);
+      grossSum += price;
+      feeSum   += fee;
+      netSum   += (price - fee);
+    });
+
+    // Single inventory mutation: filter out all sold listings at once.
+    s.activeListings = s.activeListings.filter((l) => !soldIds.has(l.listingId));
+
+    // ONE bank credit + ONE bank-history entry
+    s.bankBalances[receivingBank] += netSum;
+    s.bankHistories[receivingBank].push({
+      type: "CREDIT",
+      amount: netSum,
+      balanceAfter: s.bankBalances[receivingBank],
+      description: `Walk-in batch: ${sold.length} unit @ ${(s.realEstate.store && s.realEstate.store.name) || "Toko"}` +
+        (isPriority ? " (Priority - 0% fee)" : ` (after ${(baseFee*100).toFixed(0)}% fee)`),
+      category: "walk-in-sale-batch",
+      day: s.currentDay,
+      ts: Date.now(),
+    });
+
+    // Single ledger summary entry
+    s.realEstate.walkInsHistory = s.realEstate.walkInsHistory || [];
+    s.realEstate.walkInsHistory.unshift({
+      day: s.currentDay,
+      itemName: `Batch — ${sold.length} unit`,
+      asking: grossSum,
+      suggested: grossSum, // approximation (we don't keep per-item suggested anymore)
+      net: netSum,
+      fee: feeSum,
+      batched: true,
+      unitCount: sold.length,
+    });
+    if (s.realEstate.walkInsHistory.length > 30) s.realEstate.walkInsHistory.pop();
+
+    // Per-item Analytics push (cheap — pure data, no DOM/RNG/IO)
+    if (window.Analytics && window.Analytics.recordSale) {
+      sold.forEach((l) => {
+        const snap = l.itemSnapshot || {};
+        const price = l.askingPrice;
+        const fee = Math.round(price * feeRate);
+        window.Analytics.recordSale({
+          saleType: "walk-in",
+          gadget: {
+            gadgetId: snap.gadgetId, name: snap.name, brand: snap.brand,
+            specs: snap.specs, completeness: snap.completeness, defect: snap.defect,
+            isExInter: !!snap.isExInter, accent: snap.accent, icon: snap.icon,
+          },
+          purchaseCost: snap.buyPrice || 0,
+          repairCost:   snap.totalRepairCost || 0,
+          salePrice:    price,
+          feePaid:      fee,
+          buyer:        (s.realEstate.store && s.realEstate.store.name) || "Walk-in Customer",
+          receivingBank,
+        });
+      });
+    }
+
+    // Per-item Profile.markPostSold so old listing posts get crossed out
+    if (window.Profile && window.Profile.markPostSold) {
+      sold.forEach((l) => {
+        window.Profile.markPostSold(l.listingId, {
+          finalPrice: l.askingPrice,
+          buyer: "Walk-in Customer @ " + ((s.realEstate.store && s.realEstate.store.name) || "Toko"),
+          saleType: "walk-in",
+        });
+      });
+    }
+    if (window.Profile && window.Profile.recordSale) {
+      // Single call — bumps totalGadgetsSold by sold.length internally
+      // would be ideal, but the existing API takes a single sale. We
+      // call it sold.length times on a no-op-cheap path.
+      sold.forEach((l) => window.Profile.recordSale({ gadget: { isExInter: !!(l.itemSnapshot && l.itemSnapshot.isExInter) } }));
+    }
+
+    // ONE reputation delta covering all walk-in sales (silent — no per-item toast)
+    if (window.Reputation && sold.length > 0) {
+      const repGain = sold.length;  // +1 per walk-in (Part 43)
+      // Skip the toast helper from onWalkInSale (which fires once); do it ourselves with a batch message.
+      window.Reputation.applyDelta(repGain, `Walk-in batch: ${sold.length} unit`);
+    }
+
+    // ONE summary toast + ONE summary notification
+    showToast(`🛍️ ${sold.length} walk-in sale${sold.length === 1 ? "" : "s"} — +${fmt(netSum)}`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "success",
+        title: `Walk-in Sales: ${sold.length} unit`,
+        message: `${sold.length} unit terjual ke pelanggan toko hari ini → +${fmt(netSum)} masuk Mandiri (gross ${fmt(grossSum)}).`,
+        actionPage: "real-estate",
+        actor: "Toko Fisik",
+        icon: "shop",
+      });
+    }
+
+    window.FlippingTycoon.saveGame();
   }
 
   function recomputeSuggested(listing) {

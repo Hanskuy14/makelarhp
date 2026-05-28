@@ -105,29 +105,27 @@
       if (bar) wrap.appendChild(bar);
     }
 
-    /* Part 22 — UI Limiter: cap the DOM to first N items.
-     * Player clicks "Load More" to reveal the next batch. */
+    /* Part 23 — STRICT 50-item DOM cap (no Load More). */
+    const HARD_CAP = 50;
     const s = S();
     if (!s.inventoryView) s.inventoryView = {};
-    if (typeof s.inventoryView.visibleCount !== "number") s.inventoryView.visibleCount = 50;
     const total = items.length;
-    const limit = Math.min(s.inventoryView.visibleCount, total);
+    const limit = Math.min(HARD_CAP, total);
 
     const grid = document.createElement("div");
     grid.className = "inventory-grid";
     items.slice(0, limit).forEach((item) => grid.appendChild(renderInventoryCard(item)));
     wrap.appendChild(grid);
 
-    if (limit < total) {
-      const more = document.createElement("button");
-      more.className = "ft-load-more-btn";
-      more.innerHTML = `<i class="fa-solid fa-circle-down"></i> Tampilkan ${Math.min(50, total - limit)} item lagi  <span class="ft-load-more-meta">(${limit} / ${total})</span>`;
-      more.addEventListener("click", () => {
-        s.inventoryView.visibleCount = Math.min(total, limit + 50);
-        window.FlippingTycoon.saveGame();
-        window.FlippingTycoon.renderActivePage();
-      });
-      wrap.appendChild(more);
+    if (total > HARD_CAP) {
+      const note = document.createElement("p");
+      note.className = "ft-render-cap-note";
+      note.innerHTML = `
+        <i class="fa-solid fa-circle-info"></i>
+        Menampilkan <b>${HARD_CAP}</b> item teratas dari total <b>${total}</b> item
+        untuk menjaga performa.
+      `;
+      wrap.appendChild(note);
     }
     return wrap;
   }

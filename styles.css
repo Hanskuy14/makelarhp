@@ -5473,3 +5473,30 @@ body.dark .ft-load-more-btn:hover {
   color: #93c5fd;
 }
 body.dark .ft-load-more-meta { color: #6b7280; }
+
+
+/* =========================================================
+ * Part 23 — Strict 50-item DOM cap warning banner
+ * ========================================================= */
+.ft-render-cap-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 4px;
+  padding: 10px 14px;
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px dashed #fcd34d;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.5;
+}
+.ft-render-cap-note i { font-size: 14px; }
+body.dark .ft-render-cap-note {
+  background: #422006;
+  color: #fde68a;
+  border-color: #b45309;
+}
