@@ -635,6 +635,13 @@ function renderTopbar() {
   }
   const sbName = document.querySelector("#sidebar-profile-name");
   if (sbName) sbName.textContent = p.name || "Player Broker";
+
+  // Part 20 — Reputation badge in topbar
+  const repMount = document.querySelector("#topbar-rep-mount");
+  if (repMount && window.Reputation) {
+    repMount.innerHTML = "";
+    repMount.appendChild(window.Reputation.renderReputationBadge());
+  }
 }
 
 function renderSidebar() {
@@ -957,6 +964,7 @@ async function advanceToNextDay() {
   if (window.Wholesale) window.Wholesale.generateDailyOrders();         // Part 11: spawn fresh bulk orders for the new day
   if (window.Friends) window.Friends.processDailyActivity();    // Part 8: followed brokers post activity
   if (window.FJB) window.FJB.advanceDay();                      // Part 19: snipe stale BUs, expire WTBs, generate fresh posts
+  if (window.Reputation) window.Reputation.advanceDay();        // Part 20: Suhu DM rolls for inbound resellers
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
   saveGame();

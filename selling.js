@@ -52,8 +52,13 @@
     else if (ratio <= 1.20) { lo = 0.75; hi = 0.88; }
     else if (ratio <= 1.40) { lo = 0.60; hi = 0.78; } // lowball
     else                    { lo = 0.45; hi = 0.65; } // heavy lowball
+    // Part 20 — Reputation: Suhu sellers get more generous opening offers,
+    // Newbies get lowballed harder. Multiplier from window.Reputation tier.
+    const repBoost = (window.Reputation && window.Reputation.getBuyerOfferBoost)
+      ? Number(window.Reputation.getBuyerOfferBoost()) || 1
+      : 1;
     const pct = lo + Math.random() * (hi - lo);
-    const raw = askingPrice * pct;
+    const raw = askingPrice * pct * repBoost;
     return Math.max(1, Math.round(raw / 50_000) * 50_000);
   }
 
