@@ -116,6 +116,12 @@ const State = {
       const parsed = JSON.parse(raw);
       this.data = Object.assign(createDefaultState(), parsed);
       this._migrate(parsed);
+      // Persist any migration repairs immediately so a refresh doesn't
+      // re-run the same fixups (and so future bug-reports show clean data).
+      try {
+        this.data.meta.lastSavedAt = Date.now();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      } catch (e) { /* non-fatal */ }
       return true;
     } catch (err) {
       console.error("[FlippingTycoon] loadGame failed:", err);
@@ -251,8 +257,122 @@ const State = {
       }
       this.data.meta.version = 11;
     }
+
+    /* ------------------------------------------------------------------
+     * v12 — Part 16 hot-fix: repair legacy partnership / wholesale items
+     * whose `defect` object was generated WITHOUT a `multiplier` field
+     * and whose `completeness.type` was set to `undefined`. Those items
+     * cause "Rp NaN" in the List-on-Marketplace modal because the price
+     * formula multiplies by `defect.multiplier` (=undefined → NaN).
+     *
+     * We walk every container (inventory, warehouse, activeListings
+     * snapshots) and run normalizeInventoryItem() on each so the saved
+     * data is repaired in place, then re-saved.
+     * ------------------------------------------------------------------ */
+    if (version < 12) {
+      let touched = 0;
+      (this.data.inventory || []).forEach((it) => { if (normalizeInventoryItem(it)) touched++; });
+      (this.data.warehouse || []).forEach((it) => { if (normalizeInventoryItem(it)) touched++; });
+      (this.data.activeListings || []).forEach((l) => {
+        if (l && l.itemSnapshot && normalizeInventoryItem(l.itemSnapshot)) touched++;
+      });
+      if (touched > 0) {
+        console.log("[FlippingTycoon] Part 16 migration repaired", touched, "inventory item(s).");
+      }
+      this.data.meta.version = 12;
+    }
   },
 };
+
+/* =========================================================
+ * Part 16 — Inventory item normalizer
+ *
+ * Idempotent: ensures every inventory item has the fields the
+ * price math depends on (basePrice, completeness.multiplier,
+ * defect.multiplier, specs). Looks up the master GADGET_DATABASE,
+ * COMPLETENESS_OPTIONS, and DEFECT_OPTIONS to backfill correct
+ * values. Falls back to safe BNIB defaults (1.0 / 1.0) if no
+ * canonical match is found.
+ *
+ * Returns true if the item was mutated, false otherwise.
+ * Called from the v12 save migration AND from any code path that
+ * accepts items from outside (e.g. partnership purchase, wholesale
+ * order fulfillment) so a future regression can't reach storage.
+ * ========================================================= */
+function normalizeInventoryItem(item) {
+  if (!item || typeof item !== "object") return false;
+  const GD = (window.GadgetData && window.GadgetData.GADGET_DATABASE) || [];
+  const CO = (window.GadgetData && window.GadgetData.COMPLETENESS_OPTIONS) || [];
+  const DO = (window.GadgetData && window.GadgetData.DEFECT_OPTIONS) || [];
+
+  let dirty = false;
+  const gadget = item.gadgetId ? GD.find((g) => g.id === item.gadgetId) : null;
+
+  // basePrice
+  const bp = Number(item.basePrice);
+  if (!isFinite(bp) || bp <= 0) {
+    const fromMaster = gadget ? Number(gadget.basePrice) : 0;
+    const fromBuy    = Number(item.buyPrice) || 0;
+    item.basePrice = fromMaster > 0 ? fromMaster : fromBuy;
+    dirty = true;
+  }
+
+  // brand / icon / accent / year / name — backfill from master if missing
+  if (gadget) {
+    if (!item.brand)  { item.brand  = gadget.brand;  dirty = true; }
+    if (!item.icon)   { item.icon   = gadget.icon;   dirty = true; }
+    if (!item.accent) { item.accent = gadget.accent; dirty = true; }
+    if (typeof item.year !== "number") { item.year = gadget.year; dirty = true; }
+    if (!item.name)   { item.name   = gadget.model;  dirty = true; }
+  }
+
+  // specs (must be a real object with ram/rom/color)
+  if (!item.specs || typeof item.specs !== "object" || !item.specs.ram || !item.specs.rom) {
+    item.specs = gadget && gadget.specs
+      ? { ...gadget.specs }
+      : { ram: "8GB", rom: "128GB", color: "Black" };
+    dirty = true;
+  }
+
+  // completeness — must have a numeric .multiplier
+  if (!item.completeness || typeof item.completeness !== "object" ||
+      !isFinite(Number(item.completeness.multiplier)) || Number(item.completeness.multiplier) <= 0) {
+    const fallback = CO.find((c) => c.short === "Fullset") || CO[0] ||
+      { type: "Fullset", short: "Fullset", multiplier: 1.0 };
+    // Try to preserve the existing `short` label if it was set; otherwise use Fullset.
+    const matchByShort = item.completeness && item.completeness.short
+      ? CO.find((c) => c.short === item.completeness.short)
+      : null;
+    const base = matchByShort || fallback;
+    item.completeness = { ...base, multiplier: Number(base.multiplier) || 1.0 };
+    dirty = true;
+  } else if (!item.completeness.type) {
+    // Fix the cosmetic `undefined` type label without touching the multiplier.
+    const match = CO.find((c) => c.short === item.completeness.short);
+    item.completeness.type = (match && match.type) || item.completeness.short || "Fullset";
+    dirty = true;
+  }
+
+  // defect — must have a numeric .multiplier (THE Rp NaN root cause)
+  if (!item.defect || typeof item.defect !== "object" ||
+      !isFinite(Number(item.defect.multiplier)) || Number(item.defect.multiplier) <= 0) {
+    const fallback = DO.find((d) => d.short === "Mulus") || DO[0] ||
+      { type: "Mulus / No Minus", short: "Mulus", multiplier: 1.0, severity: 0 };
+    const matchByShort = item.defect && item.defect.short
+      ? DO.find((d) => d.short === item.defect.short)
+      : null;
+    const base = matchByShort || fallback;
+    item.defect = { ...base, multiplier: Number(base.multiplier) || 1.0 };
+    dirty = true;
+  }
+
+  // Misc safe defaults that downstream code relies on
+  if (typeof item.totalRepairCost !== "number") { item.totalRepairCost = 0; dirty = true; }
+  if (typeof item.isExInter      !== "boolean") { item.isExInter = false;   dirty = true; }
+  if (typeof item.imeiStatus     === "undefined"){ item.imeiStatus = item.isExInter ? "ok" : null; dirty = true; }
+
+  return dirty;
+}
 
 function saveGame() { return State.save(); }
 function loadGame() { return State.load(); }
@@ -944,4 +1064,7 @@ window.FlippingTycoon = {
   formatRupiah,
   generateDailyNews,
   getNewsMultiplierForBrand,
+  // Part 16 — exposed so generators (partnerships, wholesale, batam,
+  // etc.) can normalize fresh items before they hit storage.
+  normalizeInventoryItem,
 };
