@@ -281,6 +281,28 @@ const State = {
       }
       this.data.meta.version = 12;
     }
+
+    /* ------------------------------------------------------------------
+     * v13 — Part 34 retroactive heal: re-walk every container with the
+     * upgraded normalizeInventoryItem() so any item where buyPrice ended
+     * up >= Suggested Market Price (the flat-allocation partnership bug)
+     * gets its buyPrice clamped to basePrice * 0.75. Players who already
+     * migrated to v12 still need this pass because the v12 normalizer
+     * didn't yet have the buyPrice clamp.
+     * ------------------------------------------------------------------ */
+    if (version < 13) {
+      let healed = 0;
+      const inv = this.data.inventory || [];
+      const wh  = this.data.warehouse || [];
+      const al  = this.data.activeListings || [];
+      inv.forEach((it) => { if (normalizeInventoryItem(it)) healed++; });
+      wh.forEach((it)  => { if (normalizeInventoryItem(it)) healed++; });
+      al.forEach((l)   => { if (l && l.itemSnapshot && normalizeInventoryItem(l.itemSnapshot)) healed++; });
+      if (healed > 0) {
+        console.log("[FlippingTycoon] Part 34 migration healed", healed, "item(s) — buyPrice >= suggested fixed.");
+      }
+      this.data.meta.version = 13;
+    }
   },
 };
 
@@ -370,6 +392,35 @@ function normalizeInventoryItem(item) {
   if (typeof item.totalRepairCost !== "number") { item.totalRepairCost = 0; dirty = true; }
   if (typeof item.isExInter      !== "boolean") { item.isExInter = false;   dirty = true; }
   if (typeof item.imeiStatus     === "undefined"){ item.imeiStatus = item.isExInter ? "ok" : null; dirty = true; }
+
+  /* -----------------------------------------------------------------
+   * Part 34 — Margin sanity heal (retroactive)
+   *
+   * Sweep every item: if buyPrice ended up >= the item's own Suggested
+   * Market Price (which can never make sense for a wholesale purchase
+   * and was caused by the old "totalCost / quantity" allocation bug),
+   * forcibly reset buyPrice to basePrice * 0.75 — the standard 25%
+   * wholesale discount — so the player immediately sees a positive
+   * Gross Margin in Inventory.
+   *
+   * Important: this runs AFTER all the other normalization above, so
+   * basePrice / completeness.multiplier / defect.multiplier are all
+   * guaranteed valid by this point. computeCurrentMarketPrice can be
+   * called safely.
+   * ----------------------------------------------------------------- */
+  const buyPriceNum = Number(item.buyPrice) || 0;
+  const basePriceNum = Number(item.basePrice) || 0;
+  if (buyPriceNum > 0 && basePriceNum > 0 && window.Market &&
+      typeof window.Market.computeCurrentMarketPrice === "function") {
+    const suggested = Number(window.Market.computeCurrentMarketPrice(item)) || 0;
+    if (suggested > 0 && buyPriceNum >= suggested) {
+      const healed = Math.round(basePriceNum * 0.75 / 50_000) * 50_000;
+      if (healed > 0 && healed !== buyPriceNum) {
+        item.buyPrice = Math.max(50_000, healed);
+        dirty = true;
+      }
+    }
+  }
 
   return dirty;
 }
