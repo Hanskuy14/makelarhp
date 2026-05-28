@@ -4678,3 +4678,258 @@ body.dark .partnership-refresh-btn:hover { background: #374151; border-color: #4
   .partnership-card-actions { flex-direction: column; }
   .partnership-refresh-btn { width: 100%; justify-content: center; }
 }
+
+
+
+/* =========================================================
+ * Part 19 — FJB Group Feed
+ * Facebook-Group-style scrolling post cards
+ * ========================================================= */
+
+.fjb-post {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  margin-bottom: 14px;
+  padding: 0;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+.fjb-post.fjb-status-sniped { opacity: 0.78; }
+.fjb-post.fjb-status-fulfilled,
+.fjb-post.fjb-status-expired { opacity: 0.78; }
+
+.fjb-post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 6px;
+}
+.fjb-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.fjb-avatar-sm {
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+}
+.fjb-author {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+  margin: 0;
+}
+.fjb-meta {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 0;
+}
+
+.fjb-tag {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.fjb-tag-bu {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  animation: bu-pulse 2.2s ease-in-out infinite;
+}
+.fjb-tag-wtb {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+@keyframes bu-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+
+.fjb-post-body {
+  padding: 4px 14px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1f2937;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+
+/* Price block (BU vs WTB) */
+.fjb-price-block {
+  margin: 0 14px 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+}
+.fjb-price-block-bu  { background: #fef9e7; border-color: #fde68a; }
+.fjb-price-block-wtb { background: #eff6ff; border-color: #bfdbfe; }
+.fjb-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.fjb-price-row-secondary { font-size: 12px; }
+.fjb-price-label { color: #6b7280; font-weight: 500; }
+.fjb-price-value { color: #111827; font-weight: 700; font-size: 15px; }
+.fjb-price-strike { color: #9ca3af; text-decoration: line-through; font-weight: 600; }
+.fjb-discount-pill {
+  display: inline-block;
+  margin-top: 4px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+}
+
+/* Sniper countdown bar */
+.fjb-snipe-bar {
+  margin-top: 10px;
+  height: 6px;
+  width: 100%;
+  background: #fee2e2;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.fjb-snipe-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #dc2626, #f59e0b);
+  transition: width 0.5s linear;
+}
+.fjb-snipe-label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* Action row */
+.fjb-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 14px 12px;
+}
+.fjb-btn {
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, transform 0.1s;
+}
+.fjb-btn:active:not(:disabled) { transform: scale(0.98); }
+.fjb-btn-primary {
+  background: #1877f2;
+  color: #fff;
+}
+.fjb-btn-primary:hover { background: #155fc4; }
+.fjb-btn-success {
+  background: #10b981;
+  color: #fff;
+}
+.fjb-btn-success:hover { background: #059669; }
+.fjb-btn-ghost {
+  background: #f3f4f6;
+  color: #374151;
+}
+.fjb-btn-ghost:hover { background: #e5e7eb; }
+.fjb-btn-disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+
+/* Comments (e.g. "Sold to me gan, makasih") */
+.fjb-comments {
+  border-top: 1px solid #f3f4f6;
+  padding: 10px 14px;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fjb-comment {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.fjb-comment-body {
+  background: #fff;
+  border-radius: 14px;
+  padding: 6px 12px;
+  flex: 1;
+  min-width: 0;
+}
+.fjb-comment-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+.fjb-comment-text {
+  font-size: 13px;
+  color: #374151;
+  margin: 0;
+  word-wrap: break-word;
+}
+
+/* Dark-mode coverage */
+body.dark .fjb-post {
+  background: var(--fb-card);
+  color: var(--fb-text);
+}
+body.dark .fjb-author { color: var(--fb-text); }
+body.dark .fjb-meta   { color: var(--fb-text-muted); }
+body.dark .fjb-post-body { color: #e5e7eb; }
+body.dark .fjb-price-block { background: #111827; border-color: var(--fb-border); }
+body.dark .fjb-price-block-bu  { background: #422006; border-color: #b45309; }
+body.dark .fjb-price-block-wtb { background: #1e3a5f; border-color: #1e40af; }
+body.dark .fjb-price-label  { color: var(--fb-text-muted); }
+body.dark .fjb-price-value  { color: var(--fb-text); }
+body.dark .fjb-price-strike { color: #6b7280; }
+body.dark .fjb-tag-bu  { background: #3f1d1d; color: #fecaca; border-color: #7f1d1d; }
+body.dark .fjb-tag-wtb { background: #1e3a5f; color: #93c5fd; border-color: #1e40af; }
+body.dark .fjb-snipe-bar    { background: #3f1d1d; }
+body.dark .fjb-snipe-label  { color: #fca5a5; }
+body.dark .fjb-comments     { background: #111827; border-color: var(--fb-border); }
+body.dark .fjb-comment-body { background: var(--fb-card); }
+body.dark .fjb-comment-author { color: var(--fb-text); }
+body.dark .fjb-comment-text   { color: #d1d5db; }
+body.dark .fjb-btn-ghost { background: #374151; color: #d1d5db; }
+body.dark .fjb-btn-ghost:hover { background: #4b5563; }
+body.dark .fjb-btn-disabled { background: #1f2937; color: #6b7280; }
+
+/* Stack action buttons on very narrow phones */
+@media (max-width: 380px) {
+  .fjb-actions { flex-direction: column; }
+}

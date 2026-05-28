@@ -236,6 +236,11 @@
             <span>Friends</span>
           </button>
 
+          <button class="sidebar-link sidebar-nav" data-page="fjb">
+            <i class="sidebar-icon fa-solid fa-people-group text-blue-600"></i>
+            <span>Grup FJB</span>
+          </button>
+
           <button class="sidebar-link sidebar-nav" data-page="analytics">
             <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i>
             <span>Performance Analytics</span>
@@ -405,6 +410,9 @@
         </button>
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="friends" type="button">
           <i class="sidebar-icon fa-solid fa-user-group text-indigo-500"></i><span>Friends</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="fjb" type="button">
+          <i class="sidebar-icon fa-solid fa-people-group text-blue-600"></i><span>Grup FJB</span>
         </button>
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="analytics" type="button">
           <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i><span>Performance Analytics</span>
@@ -715,6 +723,27 @@
   </div>
 
   <!-- ============================================================
+       FJB WTB OFFER MODAL (Part 19) — pick bank to receive payment
+  ============================================================= -->
+  <div id="fjb-offer-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-handshake"></i>
+        </div>
+        <div>
+          <h3 id="fjb-offer-title" class="text-lg font-bold">Tawarkan ke Pembeli</h3>
+          <p class="text-xs text-gray-500">Direct sale tanpa listing — bayar masuk rekening pilihan kamu.</p>
+        </div>
+      </div>
+      <div id="fjb-offer-body"></div>
+      <div class="modal-actions">
+        <button id="fjb-offer-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        PARTNERSHIP BUY MODAL (Part 12) — pick bank for bulk package
   ============================================================= -->
   <div id="partnership-buy-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
@@ -829,6 +858,7 @@
   <script src="warehouse.js"></script>
   <script src="wholesale.js"></script>
   <script src="partnerships.js"></script>
+  <script src="fjb.js"></script>
   <script src="staff.js"></script>
   <script src="profile.js"></script>
   <script src="messenger.js"></script>
