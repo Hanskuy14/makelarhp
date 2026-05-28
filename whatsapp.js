@@ -516,6 +516,15 @@
       });
     }
 
+    // Part 43 — Reputation: +3 once per borongan (chat-driven sale via WA
+    // group). The bulk discount already trades cash for QoL — players
+    // still earn rep for using the channel actively.
+    if (window.Reputation && window.Reputation.onMarketplaceSale) {
+      window.Reputation.onMarketplaceSale({
+        reason: `WA Group borongan: ${items.length} unit ke ${buyer.name}`,
+      });
+    }
+
     closeModal();
     window.FlippingTycoon.saveGame();
     window.FlippingTycoon.renderActivePage();
