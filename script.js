@@ -442,6 +442,51 @@ function formatRupiah(n) {
 
 function delay(ms) { return new Promise((res) => setTimeout(res, ms)); }
 
+/* =========================================================
+ * Part 22 — Global Loading Overlay
+ *
+ * Shows a fullscreen z-100 spinner with custom title + sub
+ * lines. Used by advanceToNextDay() and Staff.bulkListWithMarkup
+ * to "shield" the main thread during heavy synchronous loops:
+ *
+ *   showLoadingOverlay("Memproses Bulk List...", "1000 unit");
+ *   await delay(50);             // yield so the browser can paint
+ *   ...heavy work...
+ *   hideLoadingOverlay();
+ *
+ * The 50 ms yield is critical — without it the synchronous loop
+ * blocks the main thread BEFORE the overlay paints, and players
+ * just see the page freeze with no feedback.
+ * ========================================================= */
+let _isLoading = false;
+function isLoading() { return _isLoading; }
+
+function showLoadingOverlay(title, sub) {
+  _isLoading = true;
+  const overlay = document.querySelector("#loading-overlay");
+  if (!overlay) return;
+  const titleEl = overlay.querySelector("#loading-title");
+  const subEl   = overlay.querySelector("#loading-day-text");
+  if (titleEl) titleEl.textContent = title || "Memproses Transaksi...";
+  if (subEl)   subEl.textContent   = sub   || "";
+  overlay.classList.remove("hidden");
+  overlay.classList.add("flex");
+  // Disable Next Day button while a heavy op is running so the user
+  // can't queue another transaction on top of one in flight.
+  const ndBtn = document.querySelector("#next-day-btn");
+  if (ndBtn) { ndBtn.disabled = true; ndBtn.classList.add("ft-btn-disabled"); }
+}
+
+function hideLoadingOverlay() {
+  _isLoading = false;
+  const overlay = document.querySelector("#loading-overlay");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  overlay.classList.remove("flex");
+  const ndBtn = document.querySelector("#next-day-btn");
+  if (ndBtn) { ndBtn.disabled = false; ndBtn.classList.remove("ft-btn-disabled"); }
+}
+
 
 
 /* =========================================================
@@ -925,6 +970,9 @@ function showSolvencyAlert(report) {
 }
 
 async function advanceToNextDay() {
+  // Block re-entry if a heavy op is already running.
+  if (_isLoading) return;
+
   // Tax/Admin Alert pre-flight: warn if Mandiri can't cover the day's debits.
   const report = estimateNextDayMandiriDebits();
   if (report && State.data.lastSolvencyWarnDay !== State.data.currentDay) {
@@ -943,37 +991,52 @@ async function advanceToNextDay() {
     if (!proceed) return;
   }
 
-  const overlay = $("#loading-overlay");
   const nextDay = State.data.currentDay + 1;
-  $("#loading-day-text").textContent = `Day ${nextDay}`;
-  overlay.classList.remove("hidden");
+  showLoadingOverlay("Memproses Next Day...", `Day ${nextDay}`);
 
-  await delay(1500);
+  // Yield so the browser can paint the overlay BEFORE the heavy
+  // synchronous loop starts. Without this, the spinner never shows
+  // up — the main thread is blocked from frame 0.
+  await delay(50);
 
+  /* ============================================================
+   * Heavy synchronous block (Part 22: wrapped in setTimeout via
+   * the await above so the overlay paints first). For 500+ active
+   * listings + warehouse + wholesale orders + FJB posts this can
+   * take 100-500ms. Guarded by the loading overlay so the player
+   * can't double-fire actions.
+   * ============================================================ */
   State.data.currentDay = nextDay;
-  generateDailyNews();                 // new news first so listings can apply its multiplier
-  if (window.Repair) window.Repair.applyDayTickToRepairs(); // finish in-progress repairs
+  generateDailyNews();                                          // new news first so listings can apply its multiplier
+  if (window.Repair) window.Repair.applyDayTickToRepairs();     // finish in-progress repairs
   if (window.Repair) window.Repair.applyDayTickToImeiUnlocks(); // finish IMEI tembak unlocks
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
   if (window.Batam) window.Batam.applyDayTickToCargo();         // Part 7: arrivals + customs deadlines
   if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
   if (window.Staff) window.Staff.processDailySalaries();        // Part 9: deduct salaries / walkout
   if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
-  if (window.Selling) window.Selling.processNextDayOffers(); // roll inbound buyer offers
+  if (window.Selling) window.Selling.processNextDayOffers();    // roll inbound buyer offers
   if (window.Staff) window.Staff.processAutoAcceptOffers();     // Part 9: CS auto-accept fair offers
-  if (window.Wholesale) window.Wholesale.processDailyShipments();      // Part 11: deliver in-transit B2B orders
-  if (window.Wholesale) window.Wholesale.expireOpenOrders();            // Part 11: drop expired open orders
+  if (window.Wholesale) window.Wholesale.processDailyShipments(); // Part 11: deliver in-transit B2B orders
+  if (window.Wholesale) window.Wholesale.expireOpenOrders();      // Part 11: drop expired open orders
   if (window.Staff && window.Staff.processAutoAcceptWholesale) window.Staff.processAutoAcceptWholesale(); // Part 11: HoL auto-accept fulfillable orders
-  if (window.Wholesale) window.Wholesale.generateDailyOrders();         // Part 11: spawn fresh bulk orders for the new day
-  if (window.Friends) window.Friends.processDailyActivity();    // Part 8: followed brokers post activity
-  if (window.FJB) window.FJB.advanceDay();                      // Part 19: snipe stale BUs, expire WTBs, generate fresh posts
-  if (window.Reputation) window.Reputation.advanceDay();        // Part 20: Suhu DM rolls for inbound resellers
+  if (window.Wholesale) window.Wholesale.generateDailyOrders();   // Part 11: spawn fresh bulk orders for the new day
+  if (window.Friends) window.Friends.processDailyActivity();      // Part 8: followed brokers post activity
+  if (window.FJB) window.FJB.advanceDay();                        // Part 19: snipe stale BUs, expire WTBs, generate fresh posts
+  if (window.Reputation) window.Reputation.advanceDay();          // Part 20: Suhu DM rolls for inbound resellers
   if (window.Market) window.Market.ensureDailyListings();
   State.data.marketView = { mode: "grid", selectedListingId: null };
+  // Part 22: reset visible-count pagination on each new day so the
+  // feed isn't already scrolled deep when fresh stock arrives.
+  if (State.data.marketView)    State.data.marketView.visibleCount    = 50;
+  if (State.data.inventoryView) State.data.inventoryView.visibleCount = 50;
   saveGame();
-  renderAll();
 
-  overlay.classList.add("hidden");
+  // Brief pause so the overlay isn't a flash for fast Next Day rolls.
+  await delay(800);
+
+  renderAll();
+  hideLoadingOverlay();
 }
 
 /* =========================================================
@@ -1133,4 +1196,9 @@ window.FlippingTycoon = {
   // Part 16 — exposed so generators (partnerships, wholesale, batam,
   // etc.) can normalize fresh items before they hit storage.
   normalizeInventoryItem,
+  // Part 22 — global loading overlay for heavy operations
+  showLoadingOverlay,
+  hideLoadingOverlay,
+  isLoading,
+  advanceToNextDay,
 };

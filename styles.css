@@ -5417,3 +5417,59 @@ body.dark .wa-bank-btn     { background: #1f2937; border-color: #374151; color: 
 body.dark .wa-bank-btn:hover { background: #064e3b; border-color: #25D366; }
 body.dark .wa-hist-row     { background: #111827; }
 body.dark .wa-hist-meta    { color: #9ca3af; }
+
+
+/* =========================================================
+ * Part 22 — Performance shield
+ * Load-more button + disabled-while-loading state for action btns
+ * ========================================================= */
+.ft-load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  margin: 8px 0 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1.5px dashed #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.ft-load-more-btn:hover {
+  background: #f3f4f6;
+  border-color: var(--fb-blue);
+  color: var(--fb-blue);
+}
+.ft-load-more-btn:active { transform: scale(0.99); }
+.ft-load-more-meta {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+/* Buttons rendered un-clickable while a heavy op is in flight */
+.ft-btn-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: not-allowed !important;
+}
+
+/* Dark-mode coverage */
+body.dark .ft-load-more-btn {
+  background: var(--fb-card);
+  border-color: var(--fb-border);
+  color: #d1d5db;
+}
+body.dark .ft-load-more-btn:hover {
+  background: var(--fb-hover);
+  border-color: #93c5fd;
+  color: #93c5fd;
+}
+body.dark .ft-load-more-meta { color: #6b7280; }

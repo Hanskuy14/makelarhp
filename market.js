@@ -200,7 +200,18 @@
     const grid = document.createElement("div");
     grid.className = "marketplace-grid";
 
-    s.dailyListings.forEach((listing) => {
+    /* Part 22 — UI Limiter:
+     * Even with 1000+ listings, only render the first N to the DOM.
+     * The full data array stays intact; player clicks "Load More"
+     * to reveal the next batch. Caps DOM at <= ~50-200 nodes for
+     * responsive scrolling on mobile.
+     */
+    if (!s.marketView) s.marketView = { mode: "grid", selectedListingId: null };
+    if (typeof s.marketView.visibleCount !== "number") s.marketView.visibleCount = 50;
+    const total = s.dailyListings.length;
+    const limit = Math.min(s.marketView.visibleCount, total);
+
+    s.dailyListings.slice(0, limit).forEach((listing) => {
       const card = document.createElement("div");
       card.className = "marketplace-card" + (listing.isExInter ? " ex-inter" : "");
       card.innerHTML = `
@@ -228,6 +239,19 @@
     });
 
     wrap.appendChild(grid);
+
+    // Part 22 — Load More button (only when there are hidden items)
+    if (limit < total) {
+      const more = document.createElement("button");
+      more.className = "ft-load-more-btn";
+      more.innerHTML = `<i class="fa-solid fa-circle-down"></i> Tampilkan ${Math.min(50, total - limit)} item lagi  <span class="ft-load-more-meta">(${limit} / ${total})</span>`;
+      more.addEventListener("click", () => {
+        s.marketView.visibleCount = Math.min(total, limit + 50);
+        window.FlippingTycoon.saveGame();
+        window.FlippingTycoon.renderActivePage();
+      });
+      wrap.appendChild(more);
+    }
     return wrap;
   }
 

@@ -105,10 +105,30 @@
       if (bar) wrap.appendChild(bar);
     }
 
+    /* Part 22 — UI Limiter: cap the DOM to first N items.
+     * Player clicks "Load More" to reveal the next batch. */
+    const s = S();
+    if (!s.inventoryView) s.inventoryView = {};
+    if (typeof s.inventoryView.visibleCount !== "number") s.inventoryView.visibleCount = 50;
+    const total = items.length;
+    const limit = Math.min(s.inventoryView.visibleCount, total);
+
     const grid = document.createElement("div");
     grid.className = "inventory-grid";
-    items.forEach((item) => grid.appendChild(renderInventoryCard(item)));
+    items.slice(0, limit).forEach((item) => grid.appendChild(renderInventoryCard(item)));
     wrap.appendChild(grid);
+
+    if (limit < total) {
+      const more = document.createElement("button");
+      more.className = "ft-load-more-btn";
+      more.innerHTML = `<i class="fa-solid fa-circle-down"></i> Tampilkan ${Math.min(50, total - limit)} item lagi  <span class="ft-load-more-meta">(${limit} / ${total})</span>`;
+      more.addEventListener("click", () => {
+        s.inventoryView.visibleCount = Math.min(total, limit + 50);
+        window.FlippingTycoon.saveGame();
+        window.FlippingTycoon.renderActivePage();
+      });
+      wrap.appendChild(more);
+    }
     return wrap;
   }
 
