@@ -5,8 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Flipping Tycoon: Gadget Broker</title>
 
-  <!-- Tailwind via CDN -->
+  <!-- PWA manifest + theme color (Part 14) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1877F2" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Flipping Tycoon" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+
+  <!-- Restore dark mode preference BEFORE Tailwind loads to avoid FOUC -->
+  <script>
+    try {
+      if (localStorage.getItem("ft-theme") === "dark") {
+        document.documentElement.classList.add("dark");
+        document.body && document.body.classList.add("dark");
+      }
+    } catch (e) {}
+  </script>
+
+  <!-- Tailwind via CDN — enable class-based dark mode -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: "class" };</script>
 
   <!-- Font Awesome for FB-like icons -->
   <link
@@ -131,6 +151,9 @@
         </div>
         <button class="fb-icon-btn" title="Menu">
           <i class="fa-solid fa-grip"></i>
+        </button>
+        <button id="topbar-darkmode-btn" class="fb-icon-btn" title="Toggle Dark Mode" type="button">
+          <i id="topbar-darkmode-icon" class="fa-solid fa-moon"></i>
         </button>
         <button class="fb-icon-btn relative" title="Messenger" id="messenger-btn">
           <i class="fa-brands fa-facebook-messenger"></i>
@@ -344,6 +367,15 @@
         </button>
       </header>
       <div id="mobile-menu-list" class="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+        <!-- Dark mode toggle row -->
+        <button id="mobile-darkmode-toggle" class="sidebar-link mobile-menu-link justify-between" type="button">
+          <span class="flex items-center gap-3">
+            <i class="sidebar-icon fa-solid fa-moon text-slate-600"></i>
+            <span>Dark Mode</span>
+          </span>
+          <span class="theme-switch" aria-hidden="true"><span class="theme-switch-knob"></span></span>
+        </button>
+        <hr class="my-2 border-gray-200 dark:border-gray-700" />
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="news-feed" type="button">
           <i class="sidebar-icon fa-solid fa-newspaper text-[#1877F2]"></i><span>News Feed</span>
         </button>

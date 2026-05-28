@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable icons need a safe-zone — content within the inner 80% circle -->
+  <rect width="512" height="512" fill="#1877F2"/>
+  <!-- Stylized letter F centered with safe padding -->
+  <path d="M196 160 L324 160 L324 196 L240 196 L240 240 L308 240 L308 276 L240 276 L240 352 L196 352 Z" fill="#ffffff"/>
+</svg>
