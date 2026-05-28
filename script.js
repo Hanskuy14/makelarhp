@@ -262,8 +262,11 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 function formatRupiah(n) {
-  if (typeof n !== "number") n = Number(n) || 0;
-  return "Rp " + n.toLocaleString("id-ID");
+  // Part 15 — never render "Rp NaN". Coerce, fall back to 0 for any
+  // non-finite value (NaN, Infinity, undefined, null, "", "abc", ...).
+  let v = Number(n);
+  if (!isFinite(v) || isNaN(v)) v = 0;
+  return "Rp " + v.toLocaleString("id-ID");
 }
 
 function delay(ms) { return new Promise((res) => setTimeout(res, ms)); }

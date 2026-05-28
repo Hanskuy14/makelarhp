@@ -34,6 +34,10 @@
    *                       * marketVariance(±5%)
    *                       * exInterMultiplier (0.7 if Ex-Inter, else 1.0)
    * Rounded to nearest Rp 50.000 to feel realistic.
+   *
+   * Part 15 — All factors are coerced via Number() with a `|| 1` fallback
+   * so a malformed inventory item (missing multiplier, etc.) never
+   * propagates a NaN into the rendered "Rp NaN" label.
    */
   function computeFinalPrice(basePrice, completeness, defect, brand, isExInter) {
     const variance = 0.95 + Math.random() * 0.10; // 0.95 .. 1.05
@@ -41,25 +45,43 @@
       ? window.FlippingTycoon.getNewsMultiplierForBrand(brand)
       : 1.0;
     const exInterMul = isExInter ? 0.70 : 1.0; // Part 6: 30% off basePrice for "No Pajak" units
-    const raw = basePrice * completeness.multiplier * defect.multiplier * variance * newsMul * exInterMul;
+    const safeBase   = Number(basePrice) || 0;
+    const compMul    = (completeness && Number(completeness.multiplier)) || 1;
+    const defMul     = (defect && Number(defect.multiplier)) || 1;
+    const safeNews   = Number(newsMul) || 1;
+    const raw = safeBase * compMul * defMul * variance * safeNews * exInterMul;
+    if (!isFinite(raw) || isNaN(raw)) return 0;
     return Math.round(raw / 50_000) * 50_000;
   }
 
   /** Public: estimate today's resale market price for an inventory item. */
   function computeCurrentMarketPrice(inventoryItem) {
+    if (!inventoryItem) return 0;
     const gadget = GADGET_DATABASE.find((g) => g.id === inventoryItem.gadgetId);
-    if (!gadget) return inventoryItem.buyPrice || 0;
-    const completeness = inventoryItem.completeness || COMPLETENESS_OPTIONS[0];
-    const defect = inventoryItem.defect || DEFECT_OPTIONS[0];
+    // Prefer the master DB basePrice; fall back to the item-local copy
+    // (set by Part 15 fix) and then to buyPrice as a last resort.
+    const basePrice = Number(
+      (gadget && gadget.basePrice) || inventoryItem.basePrice || inventoryItem.buyPrice
+    ) || 0;
+    if (basePrice <= 0) return 0;
+
+    const completeness = inventoryItem.completeness || COMPLETENESS_OPTIONS[0] || { multiplier: 1 };
+    const defect       = inventoryItem.defect       || DEFECT_OPTIONS[0]       || { multiplier: 1 };
+    const compMul = Number(completeness.multiplier) || 1;
+    const defMul  = Number(defect.multiplier)       || 1;
+
+    const brand = (gadget && gadget.brand) || inventoryItem.brand || null;
     const newsMul = window.FlippingTycoon
-      ? window.FlippingTycoon.getNewsMultiplierForBrand(gadget.brand)
-      : 1.0;
+      ? Number(window.FlippingTycoon.getNewsMultiplierForBrand(brand)) || 1
+      : 1;
+
     // Stable resale estimate (no random variance for selling, but apply news + slight scout-buyer bonus)
-    let raw = gadget.basePrice * completeness.multiplier * defect.multiplier * newsMul * 1.02;
+    let raw = basePrice * compMul * defMul * newsMul * 1.02;
     // Part 6: Blocked IMEI (Ex-Inter) tanks resale value by 60%.
     if (inventoryItem.imeiStatus === "blocked") {
       raw *= 0.40;
     }
+    if (!isFinite(raw) || isNaN(raw)) return 0;
     return Math.round(raw / 50_000) * 50_000;
   }
 
