@@ -319,6 +319,35 @@
     `;
     wrap.appendChild(statsCard);
 
+    // Part 20 — Reputation card (Tingkat Kepercayaan)
+    if (window.Reputation && window.Reputation.renderReputationCard) {
+      wrap.appendChild(window.Reputation.renderReputationCard());
+    }
+
+    // Part 20 — Inbound Reseller DMs (Suhu-only feed)
+    const leads = (S().inboundLeads || []).filter((l) => l.status !== "dismissed");
+    if (leads.length > 0) {
+      const dmCard = document.createElement("div");
+      dmCard.className = "fb-card";
+      dmCard.innerHTML = `
+        <h3 class="mb-3"><i class="fa-solid fa-envelope text-purple-600"></i> DM Reseller (Inbound Leads)</h3>
+        <div class="rep-leads-list">
+          ${leads.slice(0, 6).map((l) => `
+            <div class="rep-lead-row">
+              <div class="rep-lead-avatar" style="background:${l.color}">${escapeHtml(l.avatar)}</div>
+              <div class="rep-lead-body">
+                <p class="rep-lead-author">${escapeHtml(l.name)} <span class="rep-lead-day">D${l.day}</span></p>
+                <p class="rep-lead-text">${escapeHtml(l.text)}</p>
+              </div>
+              <span class="rep-lead-tag ${l.status === "unread" ? "unread" : ""}">${l.status === "unread" ? "Unread" : "Replied"}</span>
+            </div>
+          `).join("")}
+        </div>
+        <p class="text-xs text-gray-500 mt-3">DM ini muncul karena kamu tier <b>Suhu</b>. Mereka siap nampung stok kamu.</p>
+      `;
+      wrap.appendChild(dmCard);
+    }
+
     // ----- Posts section -----
     const postsHeader = document.createElement("div");
     postsHeader.className = "fb-card profile-posts-header";

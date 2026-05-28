@@ -179,8 +179,16 @@
       const willingness = (listing.defect.haggleAcceptRate || 0) +
                           (listing.completeness.haggleBonus || 0);
       const maxDiscount = Math.min(0.30, 0.05 + willingness * 0.4); // 5%..30%
-      const floor = listing.finalPrice * (1 - maxDiscount);
-      listing.minAcceptablePrice = Math.max(50_000, Math.round(floor / 50_000) * 50_000);
+      // Part 20 — Reputation: Newbie players see stiffer sellers (floor ×1.20),
+      // Suhu players see more flexible ones (×0.90). Multiplier is applied to
+      // the FLOOR price, so >1 = stingier seller (less willing to discount).
+      const stiffness = (window.Reputation && window.Reputation.getSellerStiffness)
+        ? Number(window.Reputation.getSellerStiffness()) || 1
+        : 1;
+      const floor = listing.finalPrice * (1 - maxDiscount) * stiffness;
+      // Never let the rep stiffness push the floor above the asking price.
+      const cappedFloor = Math.min(floor, listing.finalPrice);
+      listing.minAcceptablePrice = Math.max(50_000, Math.round(cappedFloor / 50_000) * 50_000);
     }
     if (typeof listing.chatLocked !== "boolean") {
       listing.chatLocked = false;
@@ -472,6 +480,10 @@
       closeModal();
       pushMessage(listing, "player", `Wah ada minus tersembunyi: ${found}. Sorry bro, batal aja.`);
       pushMessage(listing, "seller", `Ya udah deh. Mungkin lain kali 🙏`);
+      // Part 20 — Reputation: -10 for cancelling after the seller agreed on a price.
+      if (window.Reputation) {
+        window.Reputation.onDealCancel({ reason: "Cancel COD after seller accepted (hidden defect found)" });
+      }
       listing.purchaseFlow = "idle";
       renderActions(listing);
     };
@@ -506,6 +518,13 @@
       listing.currentPrice = newPrice;
       // Also stamp legacy state so any code path still reading haggleState behaves.
       listing.haggleState = "accepted";
+      // Part 20 — Reputation: -5 for force-buying a unit with a known
+      // hidden defect (you're knowingly taking damaged stock).
+      if (window.Reputation) {
+        window.Reputation.onForceSaleWithDefect({
+          reason: `Force-bought unit with hidden defect: ${found}`,
+        });
+      }
       pushMessage(listing, "player",
         `Karena ada minus tersembunyi (${found}), saya tawar -15% dari harga deal kita ya bro. Jadi ${fmt(newPrice)}.`);
       showTyping();
@@ -614,6 +633,15 @@
           outcome: "purchased",
           finalPrice: price,
           itemKey: "daily-" + listing.listingId,
+        });
+      }
+
+      // Part 20 — Reputation: +2 for a clean COD (no hidden defect found
+      // during inspection). The hidden-defect path already deducted -5
+      // earlier so we only award the bonus when the deal stayed clean.
+      if (window.Reputation && !listing.hiddenDefect) {
+        window.Reputation.onCleanCOD({
+          reason: `Clean COD: ${listing.brand || ""} ${listing.name || ""}`.trim(),
         });
       }
 

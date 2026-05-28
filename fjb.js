@@ -268,9 +268,13 @@
     s.fjb.posts.sort((a, b) => b.postedTimestamp - a.postedTimestamp);
     if (s.fjb.posts.length > 30) s.fjb.posts.length = 30;
 
-    // 4. Generate 2-3 BU posts and 1-2 WTB posts for the new day
+    // 4. Generate 2-3 BU posts and 1-2 WTB posts for the new day.
+    //    Part 20 — Reputation: Suhu sellers get +1 extra BU spawn (priority).
     const fresh = [];
-    const buCount  = randInt(2, 3);
+    const repBonus = (window.Reputation && window.Reputation.getFjbBuPriority)
+      ? Number(window.Reputation.getFjbBuPriority()) || 0
+      : 0;
+    const buCount  = randInt(2, 3) + repBonus;
     const wtbCount = randInt(1, 2);
     for (let i = 0; i < buCount; i++) {
       const post = generateBUPost();

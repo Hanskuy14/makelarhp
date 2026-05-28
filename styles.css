@@ -4933,3 +4933,194 @@ body.dark .fjb-btn-disabled { background: #1f2937; color: #6b7280; }
 @media (max-width: 380px) {
   .fjb-actions { flex-direction: column; }
 }
+
+
+
+/* =========================================================
+ * Part 20 — Reputation Engine (Tingkat Kepercayaan)
+ * Topbar pill badge + Profile card + Leads inbox
+ * ========================================================= */
+
+/* Topbar badge — sits next to the day pill on >=sm screens */
+.reputation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
+  cursor: help;
+}
+.reputation-badge i { font-size: 13px; }
+.reputation-badge .rep-badge-score { font-variant-numeric: tabular-nums; }
+.reputation-badge-newbie  { background: rgba(156,163,175,0.30); }
+.reputation-badge-recsel  { background: rgba(59,130,246,0.30); }
+.reputation-badge-suhu    {
+  background: linear-gradient(135deg,#a855f7,#ec4899);
+  border-color: rgba(255,255,255,0.4);
+  box-shadow: 0 0 0 0 rgba(168,85,247,0.5);
+  animation: suhu-pulse 2.4s ease-in-out infinite;
+}
+@keyframes suhu-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(168,85,247,0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(168,85,247,0); }
+}
+
+/* Reputation card on profile page */
+.reputation-card { padding: 18px 18px 16px; }
+.reputation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.rep-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  margin: 0;
+}
+.reputation-card h3 { margin: 2px 0 4px; font-size: 18px; }
+.rep-stars { font-size: 14px; letter-spacing: 1px; }
+.reputation-score-block { text-align: right; line-height: 1; }
+.rep-card-score { font-size: 36px; font-weight: 800; margin: 0; }
+.rep-card-score-max { font-size: 12px; color: #9ca3af; margin: 2px 0 0; }
+
+/* Progress bar */
+.rep-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.rep-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease, background 0.5s ease;
+}
+.rep-progress-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 14px;
+}
+
+/* Tier ladder */
+.rep-tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.rep-tier-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid transparent;
+  opacity: 0.6;
+}
+.rep-tier-row.reached { opacity: 1; }
+.rep-tier-row.current { background: #eff6ff; border-color: #bfdbfe; }
+.rep-tier-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.rep-tier-text { flex: 1; min-width: 0; }
+.rep-tier-label { margin: 0; font-weight: 700; font-size: 13px; }
+.rep-tier-range { margin: 1px 0 0; font-size: 11px; color: #6b7280; }
+.rep-tier-check { color: #2563eb; font-size: 18px; }
+
+/* History */
+.rep-history-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin: 8px 0 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.rep-history-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.rep-hist-row {
+  display: grid;
+  grid-template-columns: 32px 50px 1fr 56px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+.rep-hist-day    { color: #9ca3af; font-weight: 600; }
+.rep-hist-delta  { font-weight: 800; font-variant-numeric: tabular-nums; }
+.rep-hist-delta.pos { color: #059669; }
+.rep-hist-delta.neg { color: #dc2626; }
+.rep-hist-reason { color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rep-hist-score  { color: #6b7280; text-align: right; font-variant-numeric: tabular-nums; }
+.rep-history-empty { font-size: 12px; color: #9ca3af; font-style: italic; margin: 4px 0 0; }
+
+/* Inbound Reseller DMs (Suhu only) */
+.rep-leads-list { display: flex; flex-direction: column; gap: 8px; }
+.rep-lead-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+}
+.rep-lead-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.rep-lead-body { flex: 1; min-width: 0; }
+.rep-lead-author { margin: 0; font-weight: 700; font-size: 13px; color: #1f2937; }
+.rep-lead-day { font-weight: 500; color: #9ca3af; font-size: 11px; margin-left: 4px; }
+.rep-lead-text { margin: 2px 0 0; font-size: 13px; color: #374151; word-wrap: break-word; }
+.rep-lead-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #6b7280;
+}
+.rep-lead-tag.unread { background: #a855f7; color: #fff; }
+
+/* Dark-mode coverage */
+body.dark .rep-card-label,
+body.dark .rep-progress-label,
+body.dark .rep-tier-range  { color: var(--fb-text-muted); }
+body.dark .rep-tier-row    { background: #111827; }
+body.dark .rep-tier-row.current { background: #1e3a5f; border-color: #1e40af; }
+body.dark .rep-progress-track { background: #374151; }
+body.dark .rep-hist-row    { background: #111827; }
+body.dark .rep-hist-reason { color: #d1d5db; }
+body.dark .rep-card-score-max { color: #6b7280; }
+body.dark .rep-lead-row    { background: #2e1065; border-color: #6b21a8; }
+body.dark .rep-lead-author { color: #f9fafb; }
+body.dark .rep-lead-text   { color: #e5e7eb; }
+body.dark .rep-lead-tag    { background: #374151; color: #9ca3af; }
