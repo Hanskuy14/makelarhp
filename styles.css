@@ -4411,23 +4411,60 @@ body.dark .theme-switch .theme-switch-knob { transform: translateX(20px); }
 
 
 /* =========================================================
- * Part 35 — Advanced Chat Negotiation
- * Custom counter-offer input row + locked-state notice
+ * Part 35 + Part 17 — Advanced Chat Negotiation
+ * Two-row action bar (Accept/Leave row + Input/Send row)
+ * Designed to fit cleanly on a 360px-wide phone with no overflow.
  * ========================================================= */
+
+/* Each row is a horizontal block, rows stack vertically by default. */
+.chat-actions-row {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.chat-actions-row:last-of-type { margin-bottom: 0; }
+
+/* Row 1: Accept / Leave — equal-width 2-column grid so neither button
+ * can push the other off-screen. */
+.chat-actions-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.chat-actions-row-grid .chat-action {
+  width: 100%;
+  min-width: 0;            /* let flex/grid actually shrink */
+  justify-content: center;
+}
+.chat-actions-row-grid .chat-action-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Row 2: input + send button.
+ *  - Input grows to fill remaining space.
+ *  - Send button shrinks to fit its label, never grows past the row. */
 .chat-haggle-row {
   display: flex;
+  width: 100%;
   gap: 8px;
   align-items: stretch;
-  margin: 0;
+  margin-bottom: 4px;
 }
-.chat-haggle-row .chat-action.haggle {
+.chat-haggle-row .chat-action.haggle,
+.chat-haggle-row .chat-action-send {
   flex: 0 0 auto;
-  min-width: 140px;
+  min-width: 0;
   white-space: nowrap;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 .chat-offer-input {
   flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
   min-height: 44px;
   padding: 10px 14px;
   border-radius: 10px;
@@ -4467,6 +4504,7 @@ body.dark .theme-switch .theme-switch-knob { transform: translateX(20px); }
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
+  margin-bottom: 8px;
 }
 
 /* Dark-mode tweaks */
@@ -4482,8 +4520,14 @@ body.dark .chat-locked-note {
   border-color: #7f1d1d;
 }
 
-/* On narrow phones the input + button stack vertically for readability. */
-@media (max-width: 480px) {
-  .chat-haggle-row { flex-direction: column; }
-  .chat-haggle-row .chat-action.haggle { width: 100%; }
+/* Very narrow phones (<360px) — drop the send button label so the
+ * paper-plane icon is enough; keep the row horizontal. */
+@media (max-width: 380px) {
+  .chat-haggle-row .chat-action-send .chat-action-label {
+    display: none;
+  }
+  .chat-haggle-row .chat-action-send {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }

@@ -239,22 +239,31 @@
       return;
     }
 
+    /* Part 17 — Two-row layout that doesn't overflow on 360px phones:
+     *   Row 1 (grid 2-col): [Accept]  [Leave Chat]
+     *   Row 2 (flex):       [Input flex-grow]  [Kirim Tawaran shrink-0]
+     */
     actionsEl.innerHTML = `
-      <button id="chat-accept" class="chat-action accept">
-        <i class="fa-solid fa-check"></i> Accept ${fmt(listing.currentPrice)}
-      </button>
-      <div class="chat-haggle-row">
+      <div class="chat-actions-row chat-actions-row-grid">
+        <button id="chat-accept" class="chat-action accept">
+          <i class="fa-solid fa-check"></i>
+          <span class="chat-action-label">Accept ${fmt(listing.currentPrice)}</span>
+        </button>
+        <button id="chat-leave" class="chat-action leave">
+          <i class="fa-solid fa-xmark"></i>
+          <span class="chat-action-label">Leave Chat</span>
+        </button>
+      </div>
+      <div class="chat-actions-row chat-haggle-row">
         <input id="chat-offer-input" type="text" inputmode="numeric" pattern="[0-9]*"
                class="chat-offer-input" autocomplete="off"
                placeholder="Tawar berapa? (IDR)" />
-        <button id="chat-offer-send" class="chat-action haggle">
-          <i class="fa-solid fa-paper-plane"></i> Kirim Tawaran
+        <button id="chat-offer-send" class="chat-action haggle chat-action-send">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span class="chat-action-label">Kirim</span>
         </button>
       </div>
       <p id="chat-offer-error" class="chat-offer-error"></p>
-      <button id="chat-leave" class="chat-action leave">
-        <i class="fa-solid fa-xmark"></i> Leave Chat
-      </button>
     `;
 
     const input = actionsEl.querySelector("#chat-offer-input");
@@ -469,15 +478,41 @@
 
     negotiateBtn.onclick = () => {
       closeModal();
-      const basePrice = listing.haggleState === "accepted" ? listing.currentPrice : listing.finalPrice;
-      const newPrice = Math.round((basePrice * 0.85) / 50_000) * 50_000;
+      /* ============================================================
+       * Part 17 fix — Hidden Defect price discount math.
+       *
+       * Bug: The old code did
+       *     basePrice = listing.haggleState === "accepted"
+       *                   ? listing.currentPrice
+       *                   : listing.finalPrice;
+       * but Part 35 removed `haggleState` entirely and now keeps
+       * `listing.currentPrice` live at all times. The fallback to
+       * `listing.finalPrice` was kicking in even after the player
+       * had negotiated way below it, so applying -15% to the original
+       * asking made the price jump UP instead of DOWN.
+       *
+       * Correct behaviour: the -15% is ALWAYS taken off the
+       * currently-agreed price (currentPrice). Math is forced to
+       * round DOWN to Rp 50k so the result is always strictly less
+       * than the price before inspection — never higher.
+       * ============================================================ */
+      const previousPrice = Number(listing.currentPrice) || Number(listing.finalPrice) || 0;
+      let newPrice = Math.floor((previousPrice * 0.85) / 50_000) * 50_000;
+      // Defensive: never let it round up to or past the previous price.
+      if (newPrice >= previousPrice) {
+        newPrice = Math.max(50_000, previousPrice - 50_000);
+      }
+      if (newPrice < 50_000) newPrice = 50_000;
       listing.currentPrice = newPrice;
-      listing.haggleState = "accepted"; // lock the new price
-      pushMessage(listing, "player", `Saya tawar -15% karena minus tersembunyi ya bro.`);
+      // Also stamp legacy state so any code path still reading haggleState behaves.
+      listing.haggleState = "accepted";
+      pushMessage(listing, "player",
+        `Karena ada minus tersembunyi (${found}), saya tawar -15% dari harga deal kita ya bro. Jadi ${fmt(newPrice)}.`);
       showTyping();
       setTimeout(() => {
         hideTyping();
-        pushMessage(listing, "seller", `Hmm... oke deh, fair. Saya kasih ${fmt(newPrice)} aja. Bayar pakai bank apa?`);
+        pushMessage(listing, "seller",
+          `Hmm... oke deh, fair lah dari ${fmt(previousPrice)} jadi ${fmt(newPrice)}. Bayar pakai bank apa?`);
         showBankPickerActions(listing);
       }, 700);
     };
@@ -486,7 +521,11 @@
 
   /* ---------- Bank picker (used by both Transfer and COD paths) ---------- */
   function showBankPickerActions(listing) {
-    const price = listing.haggleState === "accepted" ? listing.currentPrice : listing.finalPrice;
+    // Part 17 — always use the live currentPrice (kept up-to-date by the
+    // Part 35 patience-meter system AND by the hidden-defect handler).
+    // Falling back to finalPrice here would charge the player the original
+    // asking instead of the negotiated amount.
+    const price = Number(listing.currentPrice) || Number(listing.finalPrice) || 0;
     const s = window.FlippingTycoon.State.data;
     const banks = ["Mandiri", "BCA", "BNI"];
     const buttons = banks.map((b) => {
@@ -512,7 +551,11 @@
   }
 
   function completePurchase(listing, sourceBank) {
-    const price = listing.haggleState === "accepted" ? listing.currentPrice : listing.finalPrice;
+    // Part 17 — same fix as showBankPickerActions: charge the live
+    // currentPrice, not the original asking. Part 35 keeps currentPrice
+    // up-to-date through every counter-offer; the hidden-defect handler
+    // also lowers it before this is called.
+    const price = Number(listing.currentPrice) || Number(listing.finalPrice) || 0;
     const s = window.FlippingTycoon.State.data;
     if ((s.bankBalances[sourceBank] || 0) < price) {
       pushMessage(listing, "system", `Saldo ${sourceBank} tidak cukup.`);
