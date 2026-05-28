@@ -401,7 +401,16 @@
     const closeBtn = modal.querySelector("#list-cancel");
     const submitBtn = modal.querySelector("#list-submit");
 
-    const suggested = window.Market.computeCurrentMarketPrice(item);
+    // Part 16 — last-line-of-defense: normalize the item right before
+    // the modal computes the suggested price. This guarantees the
+    // List-on-Marketplace UI never renders "Rp NaN" even if a legacy
+    // item somehow slipped past the v12 save migration.
+    const normalize = window.FlippingTycoon && window.FlippingTycoon.normalizeInventoryItem;
+    if (normalize && normalize(item)) {
+      try { window.FlippingTycoon.saveGame(); } catch (e) { /* ignore */ }
+    }
+
+    const suggested = window.Market.computeCurrentMarketPrice(item) || 0;
     body.innerHTML = `
       <div class="relist-summary">
         <p class="text-xs text-gray-500">Item</p>

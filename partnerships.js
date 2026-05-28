@@ -240,11 +240,15 @@
     }
 
 
-    // Add to warehouse if available, otherwise inventory
+    // Add to warehouse if available, otherwise inventory.
+    // Part 16 — defensively run every generated item through the
+    // global normalizer so even a future regression can never store
+    // an item missing defect.multiplier / completeness.multiplier.
+    const normalize = window.FlippingTycoon && window.FlippingTycoon.normalizeInventoryItem;
     if (window.Warehouse && Array.isArray(s.warehouse)) {
-      items.forEach((it) => s.warehouse.push(it));
+      items.forEach((it) => { if (normalize) normalize(it); s.warehouse.push(it); });
     } else {
-      items.forEach((it) => s.inventory.push(it));
+      items.forEach((it) => { if (normalize) normalize(it); s.inventory.push(it); });
     }
 
     // Record purchase history
