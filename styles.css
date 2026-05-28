@@ -5500,3 +5500,21 @@ body.dark .ft-render-cap-note {
   color: #fde68a;
   border-color: #b45309;
 }
+
+
+/* =========================================================
+ * Part 26 — WA VIP Pilih Max + 100-item limit
+ * Disabled checkbox state when MAX_SELECT reached
+ * ========================================================= */
+.wa-pick-toggle.wa-pick-disabled {
+  cursor: not-allowed !important;
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+.wa-pick-toggle.wa-pick-disabled .wa-pick-box {
+  background: rgba(0,0,0,0.30);
+  border-color: rgba(255,255,255,0.5);
+}
+.wa-pick-toggle.wa-pick-disabled:hover .wa-pick-box {
+  transform: none;       /* override the hover scale on disabled boxes */
+}
