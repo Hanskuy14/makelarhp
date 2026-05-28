@@ -175,7 +175,7 @@
     // Generate items and add to warehouse
     const GADGET_DATABASE = (window.GadgetData && window.GadgetData.GADGET_DATABASE) || [];
     const COMPLETENESS_OPTIONS = (window.GadgetData && window.GadgetData.COMPLETENESS_OPTIONS) || [];
-    const fullset = COMPLETENESS_OPTIONS.find((c) => c.short === "Fullset") || COMPLETENESS_OPTIONS[0];
+    const DEFECT_OPTIONS = (window.GadgetData && window.GadgetData.DEFECT_OPTIONS) || [];
 
     // Filter gadgets by brand matching the package context
     const brandFilter = s.partnerships.unlockedBrands;
@@ -193,7 +193,26 @@
       return false;
     }
 
+    /* ---------------- BNIB defaults (Part 15 fix) ----------------
+     * Partnership stock is Brand-New-In-Box from the principal brand.
+     * Hardcode condition modifiers to 1.0 so price math NEVER goes NaN.
+     * Use the canonical entries from the master tables when available
+     * (so any extra fields like haggleBonus / haggleAcceptRate / desc
+     * stay consistent with the rest of the inventory pipeline).
+     * --------------------------------------------------------------- */
+    const fullsetMaster = COMPLETENESS_OPTIONS.find((c) => c.short === "Fullset");
+    const mulusMaster   = DEFECT_OPTIONS.find((d) => d.short === "Mulus");
+
+    const BNIB_COMPLETENESS = fullsetMaster
+      ? { ...fullsetMaster, multiplier: 1.0 }
+      : { type: "Fullset", short: "Fullset", multiplier: 1.0, haggleBonus: 0.0, desc: "BNIB — Brand New In Box (Partnership)" };
+
+    const BNIB_DEFECT = mulusMaster
+      ? { ...mulusMaster, multiplier: 1.0 }
+      : { type: "Mulus / No Minus", short: "Mulus", multiplier: 1.0, severity: 0, haggleAcceptRate: 0.10, desc: "BNIB — Brand New, Segel" };
+
     const items = [];
+    const unitCost = Math.round(totalCost / pkg.units);
     for (let i = 0; i < pkg.units; i++) {
       const gadget = pool[Math.floor(Math.random() * pool.length)];
       const item = {
@@ -203,16 +222,16 @@
         brand: gadget.brand,
         icon: gadget.icon,
         accent: gadget.accent,
-        specs: {
-          ram: gadget.ramOptions ? gadget.ramOptions[Math.floor(Math.random() * gadget.ramOptions.length)] : "8GB",
-          rom: gadget.romOptions ? gadget.romOptions[Math.floor(Math.random() * gadget.romOptions.length)] : "128GB",
-          color: gadget.colorOptions ? gadget.colorOptions[Math.floor(Math.random() * gadget.colorOptions.length)] : "Black",
-        },
-        completeness: fullset ? { type: fullset.label, short: fullset.short, multiplier: fullset.multiplier } : { type: "Fullset", short: "Fullset", multiplier: 1 },
-        defect: { type: "Mulus / No Minus", short: "Mulus", severity: 0 },
+        // Strictly inherit basePrice + specs + year from the master GADGET_DB
+        basePrice: Number(gadget.basePrice) || 0,
+        year: gadget.year,
+        specs: { ...(gadget.specs || { ram: "8GB", rom: "128GB", color: "Black" }) },
+        // BNIB hardcoded multipliers (1.0 / 1.0)
+        completeness: { ...BNIB_COMPLETENESS },
+        defect: { ...BNIB_DEFECT },
         isExInter: false,
         imeiStatus: null,
-        buyPrice: Math.round(totalCost / pkg.units),
+        buyPrice: unitCost,
         totalRepairCost: 0,
         buyDay: s.currentDay,
         source: "partnership",

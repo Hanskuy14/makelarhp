@@ -411,7 +411,7 @@
         <p class="text-[11px] text-gray-500 mt-1">Asking sama atau di bawah suggested → cepat laku. Terlalu mahal → lowball atau tidak ada penawaran.</p>
       </div>
       <label class="modal-label">Custom Asking Price (IDR)
-        <input id="list-price" type="number" min="50000" step="50000" placeholder="${suggested}" value="${suggested}" class="modal-input" />
+        <input id="list-price" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="${suggested}" value="${suggested}" class="modal-input" />
       </label>
       <div class="list-quickset">
         <button data-pct="0.95" type="button"><span>-5%</span><span>${fmt(Math.round(suggested * 0.95 / 50_000) * 50_000)}</span></button>
@@ -423,6 +423,16 @@
     `;
 
     const priceInput = body.querySelector("#list-price");
+    // Part 15 — strip any non-digit character on every keystroke / paste,
+    // so the value sent to listItem() can NEVER be NaN.
+    const sanitize = () => {
+      const cleaned = String(priceInput.value || "").replace(/[^0-9]/g, "");
+      if (cleaned !== priceInput.value) priceInput.value = cleaned;
+    };
+    priceInput.addEventListener("input", sanitize);
+    priceInput.addEventListener("paste", () => setTimeout(sanitize, 0));
+    priceInput.addEventListener("blur", sanitize);
+
     body.querySelectorAll(".list-quickset button").forEach((b) => {
       b.addEventListener("click", () => {
         const pct = parseFloat(b.dataset.pct);
@@ -440,8 +450,9 @@
     closeBtn.onclick = close;
     submitBtn.onclick = () => {
       const errEl = body.querySelector("#list-error");
+      sanitize();
       const ask = Math.floor(Number(priceInput.value) || 0);
-      if (!ask || ask < 50_000) {
+      if (!ask || ask < 50_000 || isNaN(ask)) {
         errEl.textContent = "Asking price minimal Rp 50.000.";
         return;
       }
