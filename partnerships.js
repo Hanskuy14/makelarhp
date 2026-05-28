@@ -211,10 +211,77 @@
       ? { ...mulusMaster, multiplier: 1.0 }
       : { type: "Mulus / No Minus", short: "Mulus", multiplier: 1.0, severity: 0, haggleAcceptRate: 0.10, desc: "BNIB — Brand New, Segel" };
 
-    const items = [];
-    const unitCost = Math.round(totalCost / pkg.units);
+    /* ============================================================
+     * Part 34 — Dynamic Cost Allocation (Proportional Pricing)
+     *
+     * The OLD logic was buyPrice = round(totalCost / pkg.units),
+     * which gave every phone the SAME flat price regardless of
+     * model. A 50M iPhone and a 2.5M Vivo Y36 ended up with
+     * identical Modal Beli — destroying gross margin.
+     *
+     * NEW algorithm (per spec):
+     *   a) Pick the random gadget for every slot up-front.
+     *   b) Sum each gadget's master basePrice -> totalRealBaseValue
+     *   c) discountRatio = (totalRealBaseValue - totalCost)
+     *                    /  totalRealBaseValue
+     *   d) buyPrice_i = gadget_i.basePrice * (1 - discountRatio)
+     *
+     * Margin protection: clamp buyPrice to be strictly LESS than
+     * the item's expected suggested-market price. If the random
+     * roll happened to be cheap-heavy (totalRealBase < totalCost
+     * -> negative ratio -> buyPrice > basePrice), fall back to
+     * basePrice * 0.75 (standard 25% wholesale discount) so the
+     * player always sees a positive Margin Kotor in Inventory.
+     * ============================================================ */
+
+    // (a) pre-roll the gadget for each slot
+    const picks = [];
     for (let i = 0; i < pkg.units; i++) {
-      const gadget = pool[Math.floor(Math.random() * pool.length)];
+      picks.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+
+    // (b) totalRealBaseValue from the master DB
+    const totalRealBaseValue = picks.reduce(
+      (sum, g) => sum + (Number(g.basePrice) || 0),
+      0
+    );
+
+    // (c) discount ratio across the package; guard against div-by-zero
+    let discountRatio = 0;
+    if (totalRealBaseValue > 0) {
+      discountRatio = (totalRealBaseValue - totalCost) / totalRealBaseValue;
+    }
+
+    const SAFETY_DISCOUNT = 0.25; // fallback wholesale discount = 25%
+    const items = [];
+    let allocatedSum = 0;
+
+    for (let i = 0; i < pkg.units; i++) {
+      const gadget = picks[i];
+      const basePrice = Number(gadget.basePrice) || 0;
+
+      // (d) per-item buyPrice via proportional allocation
+      let buyPrice = Math.round(basePrice * (1 - discountRatio));
+
+      /* ---- Margin protection ----
+       * BNIB suggested ≈ basePrice * 1.02 (Mulus * Fullset * news 1.0
+       * * scout 1.02). To guarantee a positive Margin Kotor we cap
+       * buyPrice to AT MOST basePrice * 0.95 (≈ 7% margin). When the
+       * proportional formula would have already pushed buyPrice above
+       * basePrice (cheap-heavy roll), drop straight to the 25% safety
+       * discount so the player sees an unmistakably positive margin.
+       */
+      const marginCeiling = Math.round(basePrice * 0.95);
+      if (buyPrice >= basePrice) {
+        buyPrice = Math.round(basePrice * (1 - SAFETY_DISCOUNT));
+      } else if (buyPrice > marginCeiling) {
+        buyPrice = marginCeiling;
+      }
+      if (buyPrice < 50_000) buyPrice = 50_000;
+      // Round to the nearest Rp 50k to feel like a real wholesale price tag
+      buyPrice = Math.round(buyPrice / 50_000) * 50_000;
+      allocatedSum += buyPrice;
+
       const item = {
         id: uid("ptn"),
         gadgetId: gadget.id,
@@ -223,7 +290,7 @@
         icon: gadget.icon,
         accent: gadget.accent,
         // Strictly inherit basePrice + specs + year from the master GADGET_DB
-        basePrice: Number(gadget.basePrice) || 0,
+        basePrice,
         year: gadget.year,
         specs: { ...(gadget.specs || { ram: "8GB", rom: "128GB", color: "Black" }) },
         // BNIB hardcoded multipliers (1.0 / 1.0)
@@ -231,12 +298,25 @@
         defect: { ...BNIB_DEFECT },
         isExInter: false,
         imeiStatus: null,
-        buyPrice: unitCost,
+        buyPrice,
         totalRepairCost: 0,
         buyDay: s.currentDay,
         source: "partnership",
       };
       items.push(item);
+    }
+
+    // Diagnostic log so we can sanity-check the allocation in DevTools
+    if (typeof console !== "undefined") {
+      console.log(
+        "[Partnership] %s: totalCost=%s, realBase=%s, ratio=%s%%, allocated=%s, delta=%s",
+        pkg.name,
+        totalCost.toLocaleString("id-ID"),
+        totalRealBaseValue.toLocaleString("id-ID"),
+        (discountRatio * 100).toFixed(2),
+        allocatedSum.toLocaleString("id-ID"),
+        (allocatedSum - totalCost).toLocaleString("id-ID")
+      );
     }
 
 
