@@ -4408,3 +4408,82 @@ body.dark .contact-row:hover { background: var(--fb-hover); }
 body.dark .theme-switch { background: #1877f2; }
 body.dark .theme-switch .theme-switch-knob { transform: translateX(20px); }
 .sidebar-link.justify-between { justify-content: space-between; }
+
+
+/* =========================================================
+ * Part 35 — Advanced Chat Negotiation
+ * Custom counter-offer input row + locked-state notice
+ * ========================================================= */
+.chat-haggle-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin: 0;
+}
+.chat-haggle-row .chat-action.haggle {
+  flex: 0 0 auto;
+  min-width: 140px;
+  white-space: nowrap;
+}
+.chat-offer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: var(--fb-text);
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: left;
+}
+.chat-offer-input::placeholder {
+  color: #9ca3af;
+  font-weight: 500;
+}
+.chat-offer-input:focus {
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.18);
+}
+.chat-offer-error {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e11d48;
+  margin: 4px 2px 0;
+  min-height: 16px;
+}
+.chat-locked-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Dark-mode tweaks */
+body.dark .chat-offer-input {
+  background: #111827 !important;
+  border-color: var(--fb-border) !important;
+  color: var(--fb-text) !important;
+}
+body.dark .chat-offer-input::placeholder { color: #6b7280; }
+body.dark .chat-locked-note {
+  background: #3f1d1d;
+  color: #fecaca;
+  border-color: #7f1d1d;
+}
+
+/* On narrow phones the input + button stack vertically for readability. */
+@media (max-width: 480px) {
+  .chat-haggle-row { flex-direction: column; }
+  .chat-haggle-row .chat-action.haggle { width: 100%; }
+}

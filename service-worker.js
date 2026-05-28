@@ -13,7 +13,7 @@
  * clients pick up the new app shell on next launch.
  * ========================================================= */
 
-const CACHE_VERSION = "ft-cache-v3";
+const CACHE_VERSION = "ft-cache-v4";
 const APP_SHELL = [
   "./",
   "./index.html",

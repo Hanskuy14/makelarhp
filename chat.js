@@ -144,90 +144,195 @@
     return lines.join("\n");
   }
 
-  function haggleSuccessLine(listing, newPrice) {
-    const lines = [
-      `Hmm... oke deh bro buat kakak, saya lepas di ${fmt(newPrice)} aja. Deal? 🤝`,
-      `Wah pinter nego ya 😅 Yaudah saya kasih ${fmt(newPrice)}, gak boleh kurang lagi.`,
-      `Oke ${fmt(newPrice)} fix ya, anggap saja diskon karena kondisi ${listing.defect.short}.`,
-    ];
-    return lines[Math.floor(Math.random() * lines.length)];
-  }
-
-  function haggleRejectLine(listing) {
-    const lines = [
-      `Aduh maaf bro, harga ${fmt(listing.finalPrice)} udah mentok. Saya juga ambil dari supplier 😅`,
-      `Wah gak bisa kurang lagi, kondisi ${listing.defect.short} pun harga segitu udah miring banget.`,
-      `Maaf, harga net ya. Banyak yang minat soalnya, kalau gak ambil sekarang bisa keduluan.`,
-    ];
-    return lines[Math.floor(Math.random() * lines.length)];
-  }
-
   function dealLine(listing) {
     return `Sip mantap! Transfer ke rekening saya ya, barang langsung dikirim/COD. Makasih bro 📦✨`;
   }
 
 
-  /* ---------- Haggle RNG ----------
-   * Success rate = defect.haggleAcceptRate + completeness.haggleBonus
-   * Defect severity 0 (Mulus) : ~10% (very stiff)
-   * Defect severity 4 (Retak) : ~85% (eager to dump)
-   * "Batangan" adds +10% (no box, more flexible).
-   */
-  function rollHaggle(listing) {
-    const rate = Math.min(0.95, listing.defect.haggleAcceptRate + listing.completeness.haggleBonus);
-    return Math.random() < rate;
+  /* =========================================================
+   * Part 35 — Advanced Negotiation
+   *
+   * State stored on `listing`:
+   *   patience           : hidden int (2..4), -1 each rejected counter
+   *   minAcceptablePrice : seller's hard floor (computed once)
+   *   currentPrice       : current "live" asking from the seller
+   *   chatLocked         : true when seller rage-quits (patience hit 0)
+   *
+   * Algorithm on player offer X:
+   *   if X >= currentPrice              → seller accepts at X (overpaid)
+   *   elif X >= minAcceptablePrice      → seller accepts at X (player won)
+   *   elif patience > 1                 → seller counters at midpoint
+   *                                        between currentPrice and X,
+   *                                        patience -= 1, currentPrice = mid
+   *   else (patience == 1, will hit 0)  → seller rage-quits, lock chat
+   * ========================================================= */
+
+  function ensureNegotiationState(listing) {
+    if (typeof listing.patience !== "number") {
+      // Random 2..4 inclusive
+      listing.patience = 2 + Math.floor(Math.random() * 3);
+    }
+    if (typeof listing.minAcceptablePrice !== "number") {
+      // Stiff (Mulus): floor ≈ 90% of asking; flexible (Retak): floor ≈ 70%.
+      // Uses defect.haggleAcceptRate + completeness.haggleBonus as the
+      // "willingness to discount" proxy, same data the old system used.
+      const willingness = (listing.defect.haggleAcceptRate || 0) +
+                          (listing.completeness.haggleBonus || 0);
+      const maxDiscount = Math.min(0.30, 0.05 + willingness * 0.4); // 5%..30%
+      const floor = listing.finalPrice * (1 - maxDiscount);
+      listing.minAcceptablePrice = Math.max(50_000, Math.round(floor / 50_000) * 50_000);
+    }
+    if (typeof listing.chatLocked !== "boolean") {
+      listing.chatLocked = false;
+    }
+    if (typeof listing.currentPrice !== "number") {
+      listing.currentPrice = listing.finalPrice;
+    }
   }
 
-  /* ---------- Action button rendering ---------- */
+  function midpoint(a, b) {
+    return Math.round(((a + b) / 2) / 50_000) * 50_000;
+  }
+
+  function counterLine(midPrice) {
+    const lines = [
+      `Belum dapet gan. Kalau ${fmt(midPrice)} langsung bungkus deh 🤝`,
+      `Hmm masih ketinggian buat saya. Gimana kalo ${fmt(midPrice)}? Fix ya kalau mau.`,
+      `Saya turunin lagi nih ke ${fmt(midPrice)}. Lebih murah lagi gak bisa bro 😅`,
+      `Oke nego tipis, ${fmt(midPrice)} aja. Kalau cocok langsung COD/transfer.`,
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  function acceptCounterLine(price) {
+    const lines = [
+      `Wah oke deh kakak, ${fmt(price)} saya iyain! Deal 🤝`,
+      `Yaudah ${fmt(price)} fix ya, mantap nego nya 😅`,
+      `Sip ${fmt(price)} sah ya, langsung diproses bro.`,
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  function rageQuitLine() {
+    const lines = [
+      `Males ah, nego afgan! 😤 Cari yang lain aja gan.`,
+      `Udah cape nego nya bro, kasih harga gak masuk akal terus. Cabut! 👋`,
+      `Males lah, nego afgan banget. Saya tutup ya chatnya 🙏`,
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  /* ---------- Action button rendering (Part 35) ---------- */
   function renderActions(listing) {
+    ensureNegotiationState(listing);
     actionsEl.innerHTML = "";
 
-    const haggleDisabled = listing.haggleState === "rejected";
-    const haggleAccepted = listing.haggleState === "accepted";
-
-    const acceptLabel = haggleAccepted
-      ? `Accept ${fmt(listing.currentPrice)}`
-      : `Accept ${fmt(listing.finalPrice)}`;
+    if (listing.chatLocked) {
+      actionsEl.innerHTML = `
+        <p class="chat-locked-note">
+          <i class="fa-solid fa-lock"></i> Seller udah males nego — chat dikunci.
+        </p>
+        <button id="chat-leave" class="chat-action leave w-full">
+          <i class="fa-solid fa-arrow-left"></i> Leave Chat
+        </button>`;
+      actionsEl.querySelector("#chat-leave").addEventListener("click", closeChat);
+      return;
+    }
 
     actionsEl.innerHTML = `
       <button id="chat-accept" class="chat-action accept">
-        <i class="fa-solid fa-check"></i> ${acceptLabel}
+        <i class="fa-solid fa-check"></i> Accept ${fmt(listing.currentPrice)}
       </button>
-      <button id="chat-haggle" class="chat-action haggle" ${haggleDisabled || haggleAccepted ? "disabled" : ""}>
-        <i class="fa-solid fa-hand-holding-dollar"></i>
-        Haggle (-10%)
-        <span class="text-xs opacity-80">${Math.round((listing.defect.haggleAcceptRate + listing.completeness.haggleBonus) * 100)}% chance</span>
-      </button>
+      <div class="chat-haggle-row">
+        <input id="chat-offer-input" type="text" inputmode="numeric" pattern="[0-9]*"
+               class="chat-offer-input" autocomplete="off"
+               placeholder="Tawar berapa? (IDR)" />
+        <button id="chat-offer-send" class="chat-action haggle">
+          <i class="fa-solid fa-paper-plane"></i> Kirim Tawaran
+        </button>
+      </div>
+      <p id="chat-offer-error" class="chat-offer-error"></p>
       <button id="chat-leave" class="chat-action leave">
         <i class="fa-solid fa-xmark"></i> Leave Chat
       </button>
     `;
 
+    const input = actionsEl.querySelector("#chat-offer-input");
+    // Strip non-digits on every keystroke / paste
+    const sanitize = () => {
+      const cleaned = String(input.value || "").replace(/[^0-9]/g, "");
+      if (cleaned !== input.value) input.value = cleaned;
+    };
+    input.addEventListener("input", sanitize);
+    input.addEventListener("paste", () => setTimeout(sanitize, 0));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); submitOffer(); }
+    });
+
     actionsEl.querySelector("#chat-accept").addEventListener("click", () => onAccept(listing));
-    actionsEl.querySelector("#chat-haggle").addEventListener("click", () => onHaggle(listing));
+    actionsEl.querySelector("#chat-offer-send").addEventListener("click", submitOffer);
     actionsEl.querySelector("#chat-leave").addEventListener("click", closeChat);
+
+    function submitOffer() {
+      sanitize();
+      const errEl = actionsEl.querySelector("#chat-offer-error");
+      const raw = Number(input.value);
+      if (!isFinite(raw) || raw < 50_000) {
+        errEl.textContent = "Tawaran minimal Rp 50.000.";
+        return;
+      }
+      errEl.textContent = "";
+      const amount = Math.round(raw / 50_000) * 50_000;
+      onSendOffer(listing, amount);
+    }
   }
 
 
   /* ---------- Action handlers ---------- */
-  function onHaggle(listing) {
-    if (listing.haggleState) return;
-    pushMessage(listing, "player", `Bisa kurang lagi gak bro? Saya tawar 10% nih, soalnya kondisi ${listing.defect.short}.`);
+  function onSendOffer(listing, amount) {
+    ensureNegotiationState(listing);
+    pushMessage(listing, "player", `Saya tawar ${fmt(amount)} ya bro. Dikasih gak? 🙏`);
 
-    // Tiny "typing..." delay then result
     showTyping();
     setTimeout(() => {
       hideTyping();
-      const success = rollHaggle(listing);
-      if (success) {
-        const newPrice = Math.round((listing.finalPrice * 0.9) / 50_000) * 50_000;
-        listing.currentPrice = newPrice;
-        listing.haggleState = "accepted";
-        pushMessage(listing, "seller", haggleSuccessLine(listing, newPrice));
-      } else {
-        listing.haggleState = "rejected";
-        pushMessage(listing, "seller", haggleRejectLine(listing));
+
+      // 1. Player offered AT or ABOVE seller's current ask → instant deal at the
+      //    player's amount (they've already conceded above the live price).
+      if (amount >= listing.currentPrice) {
+        listing.currentPrice = amount;
+        pushMessage(listing, "seller", acceptCounterLine(amount));
+        window.FlippingTycoon.saveGame();
+        renderActions(listing);
+        return;
       }
+
+      // 2. Player offered AT or ABOVE seller's hidden floor → seller accepts.
+      if (amount >= listing.minAcceptablePrice) {
+        listing.currentPrice = amount;
+        pushMessage(listing, "seller", acceptCounterLine(amount));
+        window.FlippingTycoon.saveGame();
+        renderActions(listing);
+        return;
+      }
+
+      // 3. Below the floor — patience drops by 1.
+      listing.patience -= 1;
+
+      if (listing.patience <= 0) {
+        listing.chatLocked = true;
+        pushMessage(listing, "seller", rageQuitLine());
+        window.FlippingTycoon.saveGame();
+        renderActions(listing);
+        return;
+      }
+
+      // 4. Still has patience → meet in the middle.
+      const mid = midpoint(listing.currentPrice, amount);
+      // Don't let the midpoint slip below the floor — clamp up.
+      const safeMid = Math.max(mid, listing.minAcceptablePrice);
+      listing.currentPrice = safeMid;
+      pushMessage(listing, "seller", counterLine(safeMid));
       window.FlippingTycoon.saveGame();
       renderActions(listing);
     }, 900);
