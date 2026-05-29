@@ -844,6 +844,27 @@
   </div>
 
   <!-- ============================================================
+       TRANSFER TO BRANCH MODAL (Part 30) — pick destination city
+  ============================================================= -->
+  <div id="transfer-branch-modal" class="hidden fixed inset-0 z-[140] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <div>
+          <h3 id="transfer-branch-title" class="text-lg font-bold">Transfer ke Cabang</h3>
+          <p class="text-xs text-gray-500">Stok yang dikirim akan dijual otomatis tiap Next Day di cabang itu.</p>
+        </div>
+      </div>
+      <div id="transfer-branch-body"></div>
+      <div class="modal-actions">
+        <button id="transfer-branch-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        CORPORATE KONSINYASI MODAL (Part 28) — pick units to ship
   ============================================================= -->
   <div id="corp-send-modal" class="hidden fixed inset-0 z-[140] bg-black/60 items-center justify-center p-2 md:p-6">
