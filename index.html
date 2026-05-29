@@ -56,49 +56,121 @@
   </div>
 
   <!-- ============================================================
-       HOME SCREEN
+       HOME SCREEN (Part 29 — Premium Tycoon-style landing)
   ============================================================= -->
-  <div id="home-screen" class="hidden fixed inset-0 z-[90] flex-col items-center justify-center bg-gradient-to-br from-[#1877F2] via-[#0d5fc7] to-[#0a3d82] text-white">
-    <div class="text-center px-6">
-      <div class="mb-6 inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white/10 backdrop-blur-sm shadow-2xl">
-        <i class="fa-solid fa-mobile-screen-button text-5xl text-white"></i>
-      </div>
-      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight">
-        Flipping Tycoon
-      </h1>
-      <h2 class="mt-2 text-xl md:text-2xl font-medium opacity-90">
-        Gadget Broker
-      </h2>
-      <p class="mt-4 max-w-md mx-auto text-sm md:text-base opacity-80">
-        Buy low, sell high. Manage your inventory, juggle three bank accounts,
-        and become the king of the gadget marketplace.
-      </p>
+  <div id="home-screen" class="hidden fixed inset-0 z-[90] flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white overflow-y-auto">
+    <!-- Background ambient effects -->
+    <div class="home-orb home-orb-1" aria-hidden="true"></div>
+    <div class="home-orb home-orb-2" aria-hidden="true"></div>
+    <div class="home-grid-bg" aria-hidden="true"></div>
 
-      <div class="mt-10 flex flex-col items-center gap-3">
-        <button
-          id="start-game-btn"
-          class="px-10 py-3 rounded-full bg-white text-[#1877F2] font-bold text-lg shadow-xl hover:scale-105 hover:shadow-2xl transition-all"
-        >
-          Start Game
+    <div class="relative z-10 text-center px-6 py-10 max-w-2xl mx-auto w-full">
+      <!-- Logo block (fades in first) -->
+      <div class="home-logo-block animate-fade-in">
+        <div class="mb-5 inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/20 home-logo-glow">
+          <i class="fa-solid fa-mobile-screen-button text-5xl text-white"></i>
+        </div>
+        <h1 class="home-title text-5xl md:text-7xl font-extrabold tracking-tight">
+          Flipping Tycoon
+        </h1>
+        <h2 class="mt-2 text-xl md:text-2xl font-semibold text-blue-200/90 tracking-wide">
+          Gadget Broker
+        </h2>
+        <p class="mt-4 max-w-md mx-auto text-sm md:text-base text-slate-300/90">
+          Buy low, sell high. Manage your inventory, juggle three bank accounts,
+          and become the king of the gadget marketplace.
+        </p>
+      </div>
+
+      <!-- Action block (slides up after logo) -->
+      <div class="mt-8 flex flex-col items-stretch gap-3 max-w-md mx-auto animate-fade-in-up">
+        <!-- Save Profile Card (rendered by JS when a save exists) -->
+        <button id="continue-game-btn"
+                class="hidden home-save-card group" type="button">
+          <div class="home-save-card-inner">
+            <div class="home-save-card-header">
+              <div class="home-save-card-icon">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+              <div class="text-left flex-1 min-w-0">
+                <p class="home-save-card-label">Continue Saved Game</p>
+                <p id="home-save-name" class="home-save-card-name">Player Broker</p>
+              </div>
+              <i class="fa-solid fa-chevron-right home-save-card-arrow"></i>
+            </div>
+            <div class="home-save-card-stats">
+              <div>
+                <span>Day</span>
+                <b id="home-save-day">—</b>
+              </div>
+              <div>
+                <span>Net Worth</span>
+                <b id="home-save-networth">—</b>
+              </div>
+              <div>
+                <span>Store</span>
+                <b id="home-save-store">—</b>
+              </div>
+              <div>
+                <span>Reputation</span>
+                <b id="home-save-rep">—</b>
+              </div>
+            </div>
+          </div>
         </button>
-        <button
-          id="continue-game-btn"
-          class="hidden px-6 py-2 rounded-full bg-white/10 text-white font-medium border border-white/30 hover:bg-white/20 transition-all"
-        >
-          Continue Saved Game
+
+        <!-- Start New Game (primary when no save, danger-outline when save exists) -->
+        <button id="start-game-btn" class="home-btn-primary" type="button">
+          <i class="fa-solid fa-play"></i>
+          <span id="start-game-label">Start New Game</span>
         </button>
-        <button
-          id="reset-game-btn"
-          class="hidden text-xs underline opacity-70 hover:opacity-100"
-        >
+
+        <!-- Reset save (legacy hidden; we keep it for back-compat handlers) -->
+        <button id="reset-game-btn" class="hidden text-xs underline opacity-70 hover:opacity-100" type="button">
           Reset save
         </button>
       </div>
     </div>
 
-    <p class="absolute bottom-4 text-xs opacity-60">
-      v0.1 &middot; Studio @farhandwisusilo
-    </p>
+    <!-- Footer -->
+    <footer class="absolute bottom-3 left-0 right-0 text-center text-[11px] text-slate-500 leading-relaxed animate-fade-in">
+      <p><span class="font-mono">v1.0</span> &middot; Studio <span class="text-slate-400">@farhandwisusilo</span></p>
+      <p class="mt-0.5">&copy; 2026 Flipping Tycoon: Gadget Broker. All gadget brands are trademarks of their owners.</p>
+    </footer>
+  </div>
+
+  <!-- ============================================================
+       NEW-GAME CONFIRM MODAL (Part 29) — double-confirm wipe
+  ============================================================= -->
+  <div id="new-game-confirm-modal" class="hidden fixed inset-0 z-[140] bg-black/70 items-center justify-center p-4">
+    <div class="modal-box max-w-md w-full">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">Mulai Game Baru?</h3>
+          <p class="text-xs text-gray-500">Save kamu yang sekarang akan dihapus permanen.</p>
+        </div>
+      </div>
+      <div class="modal-callout">
+        <p class="text-sm font-medium" id="new-game-confirm-summary">
+          Save aktif: Day —, Net Worth —, Store —.
+        </p>
+      </div>
+      <p class="text-sm text-gray-600 mt-3">
+        Aksi ini <b>tidak bisa di-undo</b>. Yakin mau wipe save dan mulai dari nol?
+      </p>
+      <div class="modal-actions">
+        <button id="new-game-cancel" class="modal-btn modal-btn-ghost">
+          <i class="fa-solid fa-arrow-left"></i> Cancel — keep save
+        </button>
+        <button id="new-game-confirm" class="modal-btn" style="background:#dc2626;color:#fff">
+          <i class="fa-solid fa-trash-can"></i> Yes, wipe & start fresh
+        </button>
+      </div>
+    </div>
+  </div>
   </div>
 
   <!-- ============================================================
