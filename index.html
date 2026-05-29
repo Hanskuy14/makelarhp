@@ -248,6 +248,16 @@
             <span>Grup Reseller VIP</span>
           </button>
 
+          <button class="sidebar-link sidebar-nav" data-page="branches">
+            <i class="sidebar-icon fa-solid fa-city text-indigo-600"></i>
+            <span>City Branches</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="corporate">
+            <i class="sidebar-icon fa-solid fa-handshake-angle text-amber-500"></i>
+            <span>Corporate B2B</span>
+          </button>
+
           <button class="sidebar-link sidebar-nav" data-page="analytics">
             <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i>
             <span>Performance Analytics</span>
@@ -423,6 +433,12 @@
         </button>
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="wa-vip" type="button">
           <i class="sidebar-icon fa-brands fa-whatsapp text-[#25D366]"></i><span>Grup Reseller VIP</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="branches" type="button">
+          <i class="sidebar-icon fa-solid fa-city text-indigo-600"></i><span>City Branches</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="corporate" type="button">
+          <i class="sidebar-icon fa-solid fa-handshake-angle text-amber-500"></i><span>Corporate B2B</span>
         </button>
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="analytics" type="button">
           <i class="sidebar-icon fa-solid fa-chart-line text-emerald-500"></i><span>Performance Analytics</span>
@@ -756,6 +772,27 @@
   </div>
 
   <!-- ============================================================
+       CORPORATE KONSINYASI MODAL (Part 28) — pick units to ship
+  ============================================================= -->
+  <div id="corp-send-modal" class="hidden fixed inset-0 z-[140] bg-black/60 items-center justify-center p-2 md:p-6">
+    <div class="modal-box max-w-2xl w-full" style="max-height: 90vh; overflow-y: auto;">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <div>
+          <h3 id="corp-send-title" class="text-lg font-bold">Kirim Konsinyasi</h3>
+          <p class="text-xs text-gray-500">Tick item yang mau dikirim. Cash auto-masuk Mandiri setelah 3 in-game days.</p>
+        </div>
+      </div>
+      <div id="corp-send-body"></div>
+      <div class="modal-actions">
+        <button id="corp-send-cancel" class="modal-btn modal-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        FJB WTB OFFER MODAL (Part 19) — pick bank to receive payment
   ============================================================= -->
   <div id="fjb-offer-modal" class="hidden fixed inset-0 z-[130] bg-black/60 items-center justify-center p-4">
@@ -894,6 +931,8 @@
   <script src="fjb.js"></script>
   <script src="reputation.js"></script>
   <script src="whatsapp.js"></script>
+  <script src="branches.js"></script>
+  <script src="corporate.js"></script>
   <script src="staff.js"></script>
   <script src="profile.js"></script>
   <script src="messenger.js"></script>

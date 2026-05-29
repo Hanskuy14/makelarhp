@@ -5657,3 +5657,134 @@ body.dark .ruko-service-row { background: #1e3a5f; border-color: #1e40af; }
 body.dark .ruko-service-complaint { color: #f3f4f6; }
 body.dark .ruko-service-input { background: #111827; color: var(--fb-text); border-color: var(--fb-border); }
 body.dark .ruko-service-hist-row { background: #111827; }
+
+
+/* =========================================================
+ * Part 28 — City Branches + Corporate B2B
+ * ========================================================= */
+
+/* ---- City Branches grid ---- */
+.branches-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) { .branches-grid { grid-template-columns: 1fr 1fr; } }
+.branch-card.locked   { opacity: 0.7; filter: grayscale(0.3); }
+.branch-card.unlocked { border: 1px solid #d1fae5; }
+.branch-card-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+.branch-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px; flex-shrink: 0;
+}
+.branch-pill {
+  font-size: 10px; font-weight: 800; padding: 3px 10px;
+  border-radius: 999px; letter-spacing: 0.4px;
+}
+.branch-pill.active { background: #10b981; color: #fff; }
+.branch-pill.ready  { background: #f59e0b; color: #fff; }
+.branch-pill.locked { background: #e5e7eb; color: #6b7280; }
+.branch-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0;
+}
+.branch-stats > div { padding: 6px 10px; background: #f3f4f6; border-radius: 8px; }
+.branch-stats span { display: block; font-size: 11px; color: #6b7280; }
+.branch-stats b { font-size: 13px; }
+.branch-summary {
+  display: flex; flex-direction: column; gap: 4px;
+  background: #ecfdf5; border-radius: 8px; padding: 8px 10px; margin: 8px 0;
+  font-size: 12px;
+}
+.branch-summary > div { display: flex; justify-content: space-between; }
+.branch-summary span { color: #6b7280; }
+.branch-actions { margin-top: 8px; }
+.branch-actions .modal-btn { width: 100%; }
+
+/* ---- Corporate B2B ---- */
+.corp-partner-card.accepted { border: 1px solid #d1fae5; background: #f0fdf4; }
+.corp-partner-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.corp-partner-icon {
+  width: 52px; height: 52px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px; flex-shrink: 0;
+}
+.corp-status-pill {
+  display: inline-block; margin-left: 8px;
+  font-size: 10px; font-weight: 800; padding: 2px 8px;
+  border-radius: 999px;
+}
+.corp-status-pill.accepted { background: #10b981; color: #fff; }
+.corp-status-pill.rejected { background: #ef4444; color: #fff; }
+.corp-status-pill.pending  { background: #e5e7eb; color: #6b7280; }
+.corp-partner-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0;
+}
+.corp-partner-stats > div { padding: 8px; background: #f9fafb; border-radius: 8px; }
+.corp-partner-stats span { display: block; font-size: 11px; color: #6b7280; }
+.corp-partner-stats b { font-size: 13px; }
+.corp-partner-actions .modal-btn { width: 100%; }
+
+/* Active consignments + history rows */
+.corp-cons-list, .corp-hist-list { display: flex; flex-direction: column; gap: 6px; }
+.corp-cons-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; border-radius: 10px;
+  background: #eff6ff; border: 1px solid #bfdbfe;
+}
+.corp-cons-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
+}
+.corp-cons-info { flex: 1; min-width: 0; }
+.corp-cons-title { font-weight: 700; font-size: 13px; margin: 0; }
+.corp-cons-meta  { font-size: 11px; color: #6b7280; margin: 2px 0 0; }
+.corp-cons-revenue { font-weight: 800; color: #059669; flex-shrink: 0; }
+.corp-hist-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: 8px; background: #f9fafb;
+}
+
+/* Send modal */
+.corp-send-summary {
+  background: #fff7ed; border: 1px solid #fed7aa;
+  border-radius: 10px; padding: 10px; margin-bottom: 10px;
+  font-size: 13px; color: #9a3412;
+}
+.corp-send-actions-mini {
+  display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.corp-send-actions-mini .modal-btn { flex: 1; min-width: 110px; }
+.corp-pick-list {
+  max-height: 320px; overflow-y: auto;
+  border: 1px solid #e5e7eb; border-radius: 8px;
+}
+.corp-pick-row {
+  display: grid; grid-template-columns: 24px 1fr auto;
+  gap: 8px; align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13px; cursor: pointer;
+}
+.corp-pick-row:last-child { border-bottom: 0; }
+.corp-pick-row.checked { background: #ecfdf5; }
+.corp-pick-row input { margin: 0; }
+.corp-pick-name  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.corp-pick-price { font-weight: 700; font-variant-numeric: tabular-nums; color: #6b7280; }
+
+/* Dark-mode coverage */
+body.dark .branch-stats > div, body.dark .corp-partner-stats > div { background: #111827; }
+body.dark .branch-summary { background: #064e3b; color: #d1fae5; }
+body.dark .branch-summary span { color: #9ca3af; }
+body.dark .corp-partner-card.accepted { background: #064e3b; border-color: #10b981; }
+body.dark .corp-cons-row { background: #1e3a5f; border-color: #1e40af; }
+body.dark .corp-hist-row { background: #111827; }
+body.dark .corp-send-summary { background: #422006; border-color: #b45309; color: #fde68a; }
+body.dark .corp-pick-list { border-color: var(--fb-border); }
+body.dark .corp-pick-row { border-bottom-color: var(--fb-border); color: #d1d5db; }
+body.dark .corp-pick-row.checked { background: #064e3b; }

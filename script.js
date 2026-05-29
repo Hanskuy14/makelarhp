@@ -842,6 +842,12 @@ function renderActivePage() {
     case "wa-vip":
       container.appendChild(window.WAGroup ? window.WAGroup.renderVIPPage() : renderPlaceholder("Grup Reseller VIP", "whatsapp", "Loading..."));
       break;
+    case "branches":
+      container.appendChild(window.Branches ? window.Branches.renderBranchesPage() : renderPlaceholder("City Branches", "city", "Loading..."));
+      break;
+    case "corporate":
+      container.appendChild(window.Corporate ? window.Corporate.renderCorporatePage() : renderPlaceholder("Corporate B2B", "handshake-angle", "Loading..."));
+      break;
     case "profile":
       container.appendChild(window.Profile ? window.Profile.renderProfilePage() : renderPlaceholder("Profile", "user", "Loading..."));
       break;
@@ -1054,6 +1060,9 @@ async function advanceToNextDay() {
   if (window.Staff) window.Staff.processDailySalaries();        // Part 9: deduct salaries / walkout
   if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
   if (window.RealEstate) window.RealEstate.processServiceWalkIns(); // Part 27: spawn 1-5 service customers if Tech hired
+  if (window.Branches) window.Branches.processDailyRent();        // Part 28: pay branch rent (close on default)
+  if (window.Branches) window.Branches.processBranchSales();      // Part 28: demand-tilted walk-ins per active branch
+  if (window.Corporate) window.Corporate.processDailyDeliveries();// Part 28: complete consignments hitting deliversDay
   if (window.Selling) window.Selling.processNextDayOffers();    // roll inbound buyer offers
   if (window.Staff) window.Staff.processAutoAcceptOffers();     // Part 9: CS auto-accept fair offers
   if (window.Wholesale) window.Wholesale.processDailyShipments(); // Part 11: deliver in-transit B2B orders
