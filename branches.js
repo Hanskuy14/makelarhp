@@ -112,6 +112,21 @@
   ];
 
 
+  /* ---------- Branch Tier Ladder (Part 30) ---------- */
+  /* Same 4-tier shape as the HQ Ruko, but cheaper to upgrade and
+   * smaller in capacity since branches are secondary stores. */
+  const BRANCH_TIERS = [
+    { tier: 1, label: "Kios Mini",       displayCapacity: 100,  upgradeFee: 0,           dailyExtraRent: 0 },
+    { tier: 2, label: "Kios Cabang",     displayCapacity: 400,  upgradeFee: 80_000_000,  dailyExtraRent: 1_000_000 },
+    { tier: 3, label: "Ruko Cabang",     displayCapacity: 1200, upgradeFee: 200_000_000, dailyExtraRent: 2_500_000 },
+    { tier: 4, label: "Premium Branch",  displayCapacity: 3000, upgradeFee: 500_000_000, dailyExtraRent: 5_000_000 },
+  ];
+  const MAX_BRANCH_TIER = 4;
+
+  function tierMeta(tier) {
+    return BRANCH_TIERS.find((t) => t.tier === tier) || BRANCH_TIERS[0];
+  }
+
   /* ---------- State init ---------- */
   function ensureState() {
     const s = S();
@@ -124,9 +139,42 @@
           totalRevenue: 0,
           totalSold: 0,
           lastBatch: null,
+          storeTier: 1,
         };
       }
+      // Part 30 — backfill storeTier for legacy saves
+      if (typeof s.cityBranches[c.id].storeTier !== "number") {
+        s.cityBranches[c.id].storeTier = 1;
+      }
     });
+
+    // Part 30 — backfill location property on every inventory item.
+    // Items default to 'HQ' (where they were before this PR existed).
+    (s.inventory || []).forEach((it) => {
+      if (!it.location) it.location = "HQ";
+    });
+  }
+
+  /* ---------- Per-branch capacity helpers ---------- */
+  function getBranchTier(cityId) {
+    ensureState();
+    return S().cityBranches[cityId] ? S().cityBranches[cityId].storeTier || 1 : 1;
+  }
+  function getBranchCapacity(cityId) {
+    if (cityId === "HQ" || cityId === "jakarta") {
+      // Jakarta = HQ, defer to RealEstate.displayCapacity (Part 27 ladder)
+      if (window.RealEstate && window.RealEstate.displayCapacity) {
+        return window.RealEstate.displayCapacity();
+      }
+      return 5000;
+    }
+    return tierMeta(getBranchTier(cityId)).displayCapacity;
+  }
+  function getBranchUsed(cityId) {
+    return ((S().inventory || []).filter((it) => (it.location || "HQ") === cityId)).length;
+  }
+  function getBranchRemaining(cityId) {
+    return Math.max(0, getBranchCapacity(cityId) - getBranchUsed(cityId));
   }
 
   /** Last 30-day revenue gating for unlock costs. */
@@ -208,7 +256,114 @@
     return true;
   }
 
-  /* ---------- Daily branch ticks ---------- */
+  /* ---------- Part 30 — Upgrade a branch's storeTier ---------- */
+  function upgradeBranchTier(cityId) {
+    ensureState();
+    const s = S();
+    const city = CITIES.find((c) => c.id === cityId);
+    if (!city) return false;
+    if (!s.cityBranches[cityId].unlocked) {
+      showToast("Cabang belum aktif.");
+      return false;
+    }
+    if (city.hq) {
+      showToast("HQ Jakarta upgrade dilakukan via Real Estate page.");
+      return false;
+    }
+    const cur = getBranchTier(cityId);
+    if (cur >= MAX_BRANCH_TIER) {
+      showToast(`${city.name} udah max tier (T${MAX_BRANCH_TIER}).`);
+      return false;
+    }
+    const next = tierMeta(cur + 1);
+    if ((s.bankBalances.Mandiri || 0) < next.upgradeFee) {
+      showToast(`Mandiri kurang ${fmt(next.upgradeFee)} buat upgrade ${city.name} ke T${next.tier}.`);
+      return false;
+    }
+    s.bankBalances.Mandiri -= next.upgradeFee;
+    s.bankHistories.Mandiri.push({
+      type: "DEBIT",
+      amount: next.upgradeFee,
+      balanceAfter: s.bankBalances.Mandiri,
+      description: `Upgrade cabang ${city.name} ke T${next.tier} (${next.label})`,
+      category: "branch-upgrade",
+      day: s.currentDay,
+      ts: Date.now(),
+    });
+    s.cityBranches[cityId].storeTier = next.tier;
+
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "success",
+        title: `${city.name} → T${next.tier} (${next.label})`,
+        message: `Cabang ${city.name} naik ke ${next.label}. Display capacity sekarang ${next.displayCapacity.toLocaleString("id-ID")} unit.`,
+        actionPage: "branches",
+        icon: city.icon,
+      });
+    }
+    showToast(`✅ ${city.name} → T${next.tier} ${next.label} (cap ${next.displayCapacity.toLocaleString("id-ID")}).`);
+    window.FlippingTycoon.saveGame();
+    return true;
+  }
+
+  /* ---------- Part 30 — Transfer items between locations ---------- */
+  function transferToBranch(itemIds, cityId) {
+    ensureState();
+    const s = S();
+    if (!s.cityBranches[cityId] || !s.cityBranches[cityId].unlocked) {
+      showToast("Cabang tujuan belum aktif.");
+      return { ok: false, reason: "branch-locked" };
+    }
+    const ids = Array.isArray(itemIds) ? itemIds : [];
+    if (ids.length === 0) return { ok: false, reason: "no-items" };
+
+    // Capacity check at destination
+    const remaining = getBranchRemaining(cityId);
+    if (ids.length > remaining) {
+      const cap = getBranchCapacity(cityId);
+      const used = getBranchUsed(cityId);
+      showToast(`Cabang ${cityId} kapasitas ${used}/${cap} — bisa transfer max ${remaining}.`);
+      return { ok: false, reason: "capacity", remaining };
+    }
+
+    const idSet = new Set(ids);
+    let moved = 0;
+    (s.inventory || []).forEach((it) => {
+      if (idSet.has(it.id)) {
+        if (it.repair && it.repair.completesOnDay) return;
+        if (it.imeiUnlock && it.imeiUnlock.status === "in-progress") return;
+        it.location = cityId;
+        moved++;
+      }
+    });
+    window.FlippingTycoon.saveGame();
+    if (moved > 0 && window.Notifications) {
+      const cityName = (CITIES.find((c) => c.id === cityId) || {}).name || cityId;
+      window.Notifications.add({
+        type: "info",
+        title: `Logistik: ${moved} unit → ${cityName}`,
+        message: `${moved} unit dipindah dari HQ ke cabang ${cityName}. Akan dijual otomatis tiap Next Day.`,
+        actionPage: "branches",
+        icon: "truck",
+      });
+    }
+    return { ok: true, moved };
+  }
+
+  function transferBackToHQ(itemIds) {
+    ensureState();
+    const s = S();
+    const idSet = new Set(itemIds || []);
+    let moved = 0;
+    (s.inventory || []).forEach((it) => {
+      if (idSet.has(it.id) && (it.location || "HQ") !== "HQ") {
+        it.location = "HQ";
+        moved++;
+      }
+    });
+    if (moved > 0) window.FlippingTycoon.saveGame();
+    return { ok: true, moved };
+  }
 
   /** Pay daily rent for unlocked non-HQ branches. */
   function processDailyRent() {
@@ -257,8 +412,9 @@
   }
 
   /** Run a demand-tilted walk-in pass for each unlocked branch.
-   *  Each branch picks 1-3 random items matching its filter,
-   *  sells them at sum(buyPrice) × (1 + markupPct), credits Mandiri. */
+   *  Part 30: pulls from items where `location === cityId`, respecting
+   *  per-branch capacity. HQ Jakarta uses items with location 'HQ' OR
+   *  'jakarta' for back-compat. */
   function processBranchSales() {
     ensureState();
     const s = S();
@@ -270,7 +426,18 @@
 
     cities.forEach((city) => {
       const meta = s.cityBranches[city.id];
+
+      /* Part 30 — strict location filter:
+       * HQ Jakarta accepts items located at 'HQ' OR 'jakarta'.
+       * Other branches accept ONLY items located at their cityId. */
+      const locFilter = (it) => {
+        const loc = it.location || "HQ";
+        if (city.id === "jakarta" || city.hq) return loc === "HQ" || loc === "jakarta";
+        return loc === city.id;
+      };
+
       const eligible = (s.inventory || []).filter((it) => {
+        if (!locFilter(it)) return false;
         if (it.repair && it.repair.completesOnDay) return false;
         if (it.imeiUnlock && it.imeiUnlock.status === "in-progress") return false;
         if (it.imeiStatus === "blocked") return false;
@@ -284,7 +451,6 @@
       // Roll how many sales for this branch
       const range = city.saleRange;
       const target = Math.min(eligible.length, range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1)));
-      // Shuffle and pick
       const pool = eligible.slice();
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -346,8 +512,6 @@
       });
     }
     if (grandUnits > 0 && window.Reputation && window.Reputation.applyDelta) {
-      // Half rep per unit for branch sales (less than walk-in toko +1, since
-      // it's even more passive than walk-in in the main store).
       const repGain = Math.max(1, Math.floor(grandUnits / 2));
       window.Reputation.applyDelta(repGain, `Branch sales: ${grandUnits} unit across ${cities.length} cabang`);
     }
@@ -399,6 +563,16 @@
     const unlockable = !unlocked && monthlyRev >= city.requiredRevenue;
     card.className = `fb-card branch-card ${unlocked ? "unlocked" : unlockable ? "ready" : "locked"}`;
 
+    /* Part 30 — per-branch tier + capacity */
+    const currentTier = getBranchTier(city.id);
+    const currentTierMeta = tierMeta(currentTier);
+    const atMaxTier = currentTier >= MAX_BRANCH_TIER;
+    const nextTierMeta = atMaxTier ? null : tierMeta(currentTier + 1);
+    const capacity = getBranchCapacity(city.id);
+    const used = getBranchUsed(city.id);
+    const capPct = capacity > 0 ? Math.round((used / capacity) * 100) : 0;
+    const capColor = capPct >= 90 ? "#dc2626" : capPct >= 70 ? "#f59e0b" : "#10b981";
+
     const lastBatch = meta.lastBatch;
     card.innerHTML = `
       <div class="branch-card-header">
@@ -422,6 +596,11 @@
         <div><span>Daily rent</span><b>${city.hq ? "—" : fmt(city.dailyRent)}</b></div>
         <div><span>Min revenue</span><b>${city.hq ? "—" : fmt(city.requiredRevenue)}</b></div>
         <div><span>Sale range/day</span><b>${city.saleRange[0]}–${city.saleRange[1]} unit</b></div>
+        <div><span>Tier</span><b>T${currentTier} · ${currentTierMeta.label}</b></div>
+        <div><span>Capacity</span><b>${used.toLocaleString("id-ID")} / ${capacity.toLocaleString("id-ID")}</b></div>
+      </div>
+      <div class="branch-cap-track">
+        <div class="branch-cap-fill" style="width:${capPct}%;background:${capColor}"></div>
       </div>
       ${unlocked ? `
         <div class="branch-summary">
@@ -431,9 +610,16 @@
         </div>` : ""}
       <div class="branch-actions">
         ${city.hq
-          ? `<button class="modal-btn modal-btn-ghost" disabled><i class="fa-solid fa-flag"></i> HQ — selalu aktif</button>`
+          ? `<button class="modal-btn modal-btn-ghost" disabled><i class="fa-solid fa-flag"></i> HQ — upgrade via Real Estate</button>`
           : unlocked
-            ? `<button class="modal-btn modal-btn-ghost branch-close-btn" data-id="${city.id}"><i class="fa-solid fa-xmark"></i> Tutup Cabang</button>`
+            ? `<div class="branch-action-row">
+                ${!atMaxTier
+                  ? `<button class="modal-btn modal-btn-primary branch-upgrade-btn" data-id="${city.id}" style="background:${city.accent};color:#fff" title="Upgrade ke ${nextTierMeta ? nextTierMeta.label : "next tier"} (cap ${nextTierMeta ? nextTierMeta.displayCapacity.toLocaleString("id-ID") : ""})">
+                      <i class="fa-solid fa-arrow-up"></i> Upgrade Toko T${currentTier + 1} — ${fmt(nextTierMeta ? nextTierMeta.upgradeFee : 0)}
+                    </button>`
+                  : `<button class="modal-btn modal-btn-ghost" disabled><i class="fa-solid fa-trophy"></i> Tier MAX (T${MAX_BRANCH_TIER})</button>`}
+                <button class="modal-btn modal-btn-ghost branch-close-btn" data-id="${city.id}"><i class="fa-solid fa-xmark"></i> Tutup Cabang</button>
+              </div>`
             : unlockable
               ? `<button class="modal-btn modal-btn-primary branch-open-btn" data-id="${city.id}" style="background:${city.accent};color:#fff"><i class="fa-solid fa-key"></i> Buka Cabang — ${fmt(city.setupFee)}</button>`
               : `<button class="modal-btn modal-btn-ghost" disabled><i class="fa-solid fa-lock"></i> Butuh revenue ${fmt(city.requiredRevenue)}/30hr</button>`}
@@ -449,6 +635,12 @@
     if (closeBtn) closeBtn.addEventListener("click", () => {
       if (confirm(`Tutup cabang ${city.name}? Sewa berhenti, tapi gak ada refund.`)) {
         if (closeBranch(city.id)) window.FlippingTycoon.renderActivePage();
+      }
+    });
+    const upBtn = card.querySelector(".branch-upgrade-btn");
+    if (upBtn) upBtn.addEventListener("click", () => {
+      if (confirm(`Upgrade ${city.name} ke T${currentTier + 1} ${nextTierMeta.label}?\nFee ${fmt(nextTierMeta.upgradeFee)} dari Mandiri.\nCapacity baru: ${nextTierMeta.displayCapacity.toLocaleString("id-ID")} unit.`)) {
+        if (upgradeBranchTier(city.id)) window.FlippingTycoon.renderActivePage();
       }
     });
     return card;
@@ -482,5 +674,16 @@
     processDailyRent,
     processBranchSales,
     CITIES,
+    // Part 30 — per-branch tier + logistics
+    BRANCH_TIERS,
+    MAX_BRANCH_TIER,
+    getBranchTier,
+    getBranchCapacity,
+    getBranchUsed,
+    getBranchRemaining,
+    tierMeta,
+    upgradeBranchTier,
+    transferToBranch,
+    transferBackToHQ,
   };
 })();

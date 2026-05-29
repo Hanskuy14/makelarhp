@@ -96,6 +96,16 @@
       return wrap;
     }
 
+    /* Part 30 — Branches.ensureState backfills location='HQ' on every item.
+     * Show the bulk-transfer bar whenever ≥1 non-HQ branch is unlocked. */
+    if (window.Branches) {
+      const hasBranch = window.Branches.unlockedCities().some((c) => !c.hq);
+      if (hasBranch) {
+        const transferBar = renderTransferBar();
+        if (transferBar) wrap.appendChild(transferBar);
+      }
+    }
+
     /* Part 21 — Bulk-broadcast bar (Suhu + ≥100M net worth only).
      * Renders as a sticky-style bar above the grid showing selected
      * count, total wholesale price, and the "Share ke Grup VIP" CTA. */
@@ -128,6 +138,116 @@
       wrap.appendChild(note);
     }
     return wrap;
+  }
+
+  /* ---------- Part 30: Transfer-to-Branch bulk bar ---------- */
+  function renderTransferBar() {
+    const B = window.Branches;
+    if (!B) return null;
+    const branches = B.unlockedCities().filter((c) => !c.hq);
+    if (branches.length === 0) return null;
+
+    const s = S();
+    const inv = s.inventory || [];
+    if (inv.length === 0) return null;
+
+    // Reuse the WA selection state for picked items (saves a duplicate UI)
+    const selectedIds = (s.inventoryView && s.inventoryView.selectedIds) || [];
+    const selectedHqOnly = inv.filter((it) =>
+      selectedIds.includes(it.id) && (it.location || "HQ") === "HQ"
+    );
+
+    const bar = document.createElement("div");
+    bar.className = "fb-card transfer-bar";
+    bar.innerHTML = `
+      <div class="transfer-bar-info">
+        <p class="transfer-bar-title">
+          <i class="fa-solid fa-truck text-blue-600"></i>
+          Logistics — Transfer Stock antar cabang
+        </p>
+        <p class="transfer-bar-meta">
+          ${selectedIds.length === 0
+            ? `Tick item dulu di bawah, lalu klik <b>Kirim ke Cabang</b>. Tujuan: ${branches.length} cabang aktif.`
+            : `<b>${selectedHqOnly.length}</b> dari ${selectedIds.length} item dipilih (yang masih di HQ).`}
+        </p>
+      </div>
+      <div class="transfer-bar-actions">
+        <button id="transfer-to-branch-btn"
+                class="modal-btn ${selectedHqOnly.length > 0 ? "modal-btn-primary" : "modal-btn-ghost"}"
+                ${selectedHqOnly.length > 0 ? `style="background:#3b82f6;color:#fff"` : "disabled"}>
+          <i class="fa-solid fa-truck-fast"></i>
+          Kirim ke Cabang ${selectedHqOnly.length > 0 ? `(${selectedHqOnly.length})` : ""}
+        </button>
+      </div>
+    `;
+    if (selectedHqOnly.length > 0) {
+      bar.querySelector("#transfer-to-branch-btn").addEventListener("click", () => {
+        openTransferModal(selectedHqOnly.map((it) => it.id));
+      });
+    }
+    return bar;
+  }
+
+  function openTransferModal(itemIds) {
+    const B = window.Branches;
+    if (!B) return;
+    const modal = document.querySelector("#transfer-branch-modal");
+    if (!modal) { alert("Transfer modal not loaded."); return; }
+    const body = modal.querySelector("#transfer-branch-body");
+    const cancelBtn = modal.querySelector("#transfer-branch-cancel");
+    const titleEl = modal.querySelector("#transfer-branch-title");
+
+    titleEl.textContent = `Transfer ${itemIds.length} item → cabang mana?`;
+
+    const branches = B.unlockedCities().filter((c) => !c.hq);
+    body.innerHTML = `
+      <p class="text-sm text-gray-600 mb-3">
+        Pilih cabang tujuan. Item akan dikirim ke etalase cabang dan dijual otomatis tiap Next Day sesuai demand profile cabang itu.
+      </p>
+      <div class="transfer-branch-options">
+        ${branches.map((c) => {
+          const cap = B.getBranchCapacity(c.id);
+          const used = B.getBranchUsed(c.id);
+          const rem = cap - used;
+          const enough = rem >= itemIds.length;
+          return `
+            <button class="transfer-branch-opt ${enough ? "" : "disabled"}" data-city="${c.id}" ${enough ? "" : "disabled"}>
+              <div class="transfer-branch-icon" style="background:${c.accent}">
+                <i class="fa-solid fa-${c.icon}"></i>
+              </div>
+              <div class="transfer-branch-body-text">
+                <p class="transfer-branch-name">${c.name}</p>
+                <p class="transfer-branch-pref">${c.preference}</p>
+                <p class="transfer-branch-cap">Capacity: <b>${used.toLocaleString("id-ID")} / ${cap.toLocaleString("id-ID")}</b> (sisa ${rem.toLocaleString("id-ID")})</p>
+              </div>
+              <span class="text-xs ${enough ? "text-emerald-600" : "text-rose-500"}">
+                ${enough ? `✓ Cukup` : `✗ Kurang ${(itemIds.length - rem)}`}
+              </span>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    `;
+    body.querySelectorAll(".transfer-branch-opt:not(.disabled)").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const cityId = btn.dataset.city;
+        const result = B.transferToBranch(itemIds, cityId);
+        if (result.ok) {
+          // Clear the selection in WA group store so the bar resets
+          if (window.WAGroup && window.WAGroup.clearSelected) window.WAGroup.clearSelected();
+          closeTransferModal();
+          window.FlippingTycoon.renderActivePage();
+        }
+      });
+    });
+    cancelBtn.onclick = closeTransferModal;
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    function closeTransferModal() {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
   }
 
   /* ---------- Part 21 + Part 26: bulk-action bar ---------- */
@@ -251,6 +371,7 @@
       <div class="inv-thumb">
         ${gadgetIconHtml(item, "text-6xl")}
         <span class="inv-thumb-tag">${item.brand || "—"}</span>
+        ${item.location && item.location !== "HQ" ? `<span class="inv-location-tag" title="Stok ada di cabang ${item.location}"><i class="fa-solid fa-city"></i> ${item.location.charAt(0).toUpperCase() + item.location.slice(1)}</span>` : ""}
         ${item.hiddenDefect ? `<span class="inv-hidden-defect" title="${item.hiddenDefect}"><i class="fa-solid fa-triangle-exclamation"></i></span>` : ""}
         ${locked && !imeiUnlocking ? `<span class="inv-repair-badge"><i class="fa-solid fa-screwdriver-wrench"></i> In Repair</span>` : ""}
         ${imeiUnlocking ? `<span class="inv-imei-unlocking-badge"><i class="fa-solid fa-rotate fa-spin"></i> Tembak IMEI</span>` : ""}
