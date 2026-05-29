@@ -5788,3 +5788,223 @@ body.dark .corp-send-summary { background: #422006; border-color: #b45309; color
 body.dark .corp-pick-list { border-color: var(--fb-border); }
 body.dark .corp-pick-row { border-bottom-color: var(--fb-border); color: #d1d5db; }
 body.dark .corp-pick-row.checked { background: #064e3b; }
+
+
+/* =========================================================
+ * Part 29 — Premium Tycoon-style landing page
+ * ========================================================= */
+
+/* Force flex layout when not hidden (matches the existing pattern) */
+#home-screen:not(.hidden) { display: flex; }
+
+/* Subtle grid pattern overlay */
+.home-grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+/* Glowing orbs behind the logo */
+.home-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: orb-float 14s ease-in-out infinite;
+}
+.home-orb-1 {
+  width: 380px; height: 380px;
+  top: 18%; left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+}
+.home-orb-2 {
+  width: 280px; height: 280px;
+  bottom: 12%; right: 8%;
+  background: radial-gradient(circle, #14b8a6 0%, transparent 70%);
+  opacity: 0.35;
+  animation-delay: -4s;
+}
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-20px, 20px) scale(1.08); }
+}
+.home-orb-1 { animation-name: orb-float-center; }
+@keyframes orb-float-center {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50%      { transform: translateX(-50%) scale(1.10); }
+}
+
+/* Logo block + glow */
+.home-logo-glow {
+  box-shadow:
+    0 0 40px rgba(59, 130, 246, 0.45),
+    0 0 80px rgba(20, 184, 166, 0.25),
+    inset 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+/* Gradient title */
+.home-title {
+  background: linear-gradient(135deg, #60a5fa 0%, #5eead4 50%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+  text-shadow: 0 4px 30px rgba(59, 130, 246, 0.25);
+}
+
+/* Continue Save card */
+.home-save-card {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(20, 184, 166, 0.10));
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  border-radius: 16px;
+  padding: 16px 18px;
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 8px 24px -10px rgba(59, 130, 246, 0.4);
+}
+.home-save-card:hover {
+  transform: scale(1.03);
+  border-color: rgba(96, 165, 250, 0.85);
+  box-shadow: 0 16px 40px -10px rgba(59, 130, 246, 0.55), 0 0 0 1px rgba(96, 165, 250, 0.3);
+}
+.home-save-card:active { transform: scale(0.99); }
+.home-save-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.home-save-card-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6, #14b8a6);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 20px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+.home-save-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #93c5fd;
+  margin: 0;
+}
+.home-save-card-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-save-card-arrow {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 16px;
+  transition: transform 0.2s, color 0.2s;
+}
+.home-save-card:hover .home-save-card-arrow {
+  color: #fff;
+  transform: translateX(4px);
+}
+.home-save-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.home-save-card-stats > div {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.home-save-card-stats span {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+.home-save-card-stats b {
+  display: block;
+  font-size: 14px;
+  color: #fff;
+  font-weight: 700;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons */
+.home-btn-primary,
+.home-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  border: 1.5px solid transparent;
+}
+.home-btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #14b8a6);
+  color: #fff;
+  box-shadow: 0 8px 24px -8px rgba(59, 130, 246, 0.6);
+}
+.home-btn-primary:hover {
+  transform: scale(1.03);
+  box-shadow: 0 12px 32px -8px rgba(59, 130, 246, 0.8);
+}
+.home-btn-primary:active { transform: scale(0.99); }
+
+.home-btn-secondary {
+  background: transparent;
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.40);
+}
+.home-btn-secondary:hover {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.85);
+  color: #fecaca;
+}
+
+/* Entry animations */
+@keyframes ft-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ft-fade-in-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in    { animation: ft-fade-in 0.7s ease-out both; }
+.animate-fade-in-up { animation: ft-fade-in-up 0.8s ease-out 0.25s both; }
+
+/* Smaller phones: tighten the layout */
+@media (max-width: 480px) {
+  .home-title { font-size: 2.5rem; }
+  .home-save-card { padding: 14px; }
+  .home-save-card-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* New-game confirm modal — make sure its display:flex flips on .flex */
+#new-game-confirm-modal.flex { display: flex; }

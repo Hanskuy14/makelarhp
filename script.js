@@ -582,17 +582,120 @@ async function runSplash() {
 function showHomeScreen() {
   $("#home-screen").classList.remove("hidden");
   $("#app").classList.add("hidden");
+
+  const continueBtn = $("#continue-game-btn");
+  const startBtn    = $("#start-game-btn");
+  const startLabel  = $("#start-game-label");
+
   if (State.hasSave()) {
-    $("#continue-game-btn").classList.remove("hidden");
-    $("#reset-game-btn").classList.remove("hidden");
+    // Read the save WITHOUT mutating live state — we just want a preview.
+    const preview = readSavePreview();
+    populateSavePreview(preview);
+    if (continueBtn) continueBtn.classList.remove("hidden");
+    if (startBtn)    startBtn.classList.add("home-btn-secondary");      // danger-outline
+    if (startBtn)    startBtn.classList.remove("home-btn-primary");
+    if (startLabel)  startLabel.textContent = "Start New Game (wipes save)";
+  } else {
+    if (continueBtn) continueBtn.classList.add("hidden");
+    if (startBtn)    startBtn.classList.add("home-btn-primary");
+    if (startBtn)    startBtn.classList.remove("home-btn-secondary");
+    if (startLabel)  startLabel.textContent = "Start New Game";
   }
+}
+
+/* =========================================================
+ * Part 29 — Save Preview reader
+ *
+ * Reads localStorage WITHOUT mutating the live game state and
+ * surfaces the headline numbers (day, net worth, store, rep)
+ * for the home-screen Continue card.
+ * ========================================================= */
+function readSavePreview() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data) return null;
+
+    const player = data.player || {};
+    const banks  = data.bankBalances || {};
+    const totalBank =
+      (Number(banks.Mandiri) || 0) +
+      (Number(banks.BCA)     || 0) +
+      (Number(banks.BNI)     || 0);
+    const invValue = (data.inventory  || []).reduce((s, it) => s + (Number(it.buyPrice) || 0), 0);
+    const whValue  = (data.warehouse  || []).reduce((s, it) => s + (Number(it.buyPrice) || 0), 0);
+    const netWorth = totalBank + invValue + whValue;
+
+    const re = data.realEstate || {};
+    const store = (re.rented && re.store) ? re.store : null;
+
+    const repScore = (data.reputation && Number(data.reputation.score)) || 0;
+    let repTier = "Newbie";
+    if      (repScore >= 71) repTier = "Suhu";
+    else if (repScore >= 21) repTier = "Recsel";
+
+    return {
+      name: player.name || "Player Broker",
+      currentDay: Number(data.currentDay) || 1,
+      netWorth,
+      storeName: store ? `${store.name} (T${store.tier || "?"})` : "Online-only",
+      repScore,
+      repTier,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function populateSavePreview(p) {
+  if (!p) return;
+  const set = (id, txt) => { const el = document.querySelector(id); if (el) el.textContent = txt; };
+  set("#home-save-name",    p.name);
+  set("#home-save-day",     "Day " + p.currentDay);
+  set("#home-save-networth", "Rp " + (p.netWorth || 0).toLocaleString("id-ID"));
+  set("#home-save-store",   p.storeName);
+  set("#home-save-rep",     `${p.repTier} · ${p.repScore}/100`);
 }
 
 function startNewGame() {
   // Don't wipe the existing save until the player actually submits the onboarding
   // form. If they click "Back", we want to return them to the home screen with their
   // previous save intact.
+  // Part 29 — when a save exists, double-confirm before letting them wipe.
+  if (State.hasSave()) {
+    showNewGameConfirmModal();
+    return;
+  }
   showOnboardingModal();
+}
+
+/* Part 29 — double-confirm modal before nuking an existing save. */
+function showNewGameConfirmModal() {
+  const modal = $("#new-game-confirm-modal");
+  if (!modal) {
+    // Modal missing — fall back to a native confirm
+    if (confirm("Yakin mulai game baru? Save akan dihapus permanen.")) showOnboardingModal();
+    return;
+  }
+  const preview = readSavePreview();
+  const summary = $("#new-game-confirm-summary");
+  if (summary && preview) {
+    summary.innerHTML = `
+      Save aktif: Day <b>${preview.currentDay}</b> &middot;
+      Net Worth <b>Rp ${(preview.netWorth || 0).toLocaleString("id-ID")}</b> &middot;
+      Store <b>${preview.storeName}</b> &middot;
+      Rep <b>${preview.repTier}</b>.
+    `;
+  }
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+
+  const cancelBtn = $("#new-game-cancel");
+  const confirmBtn = $("#new-game-confirm");
+  const close = () => { modal.classList.add("hidden"); modal.classList.remove("flex"); };
+  cancelBtn.onclick  = close;
+  confirmBtn.onclick = () => { close(); showOnboardingModal(); };
 }
 
 function continueGame() {
