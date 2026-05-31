@@ -366,10 +366,46 @@
     // global normalizer so even a future regression can never store
     // an item missing defect.multiplier / completeness.multiplier.
     const normalize = window.FlippingTycoon && window.FlippingTycoon.normalizeInventoryItem;
-    if (window.Warehouse && Array.isArray(s.warehouse)) {
-      items.forEach((it) => { if (normalize) normalize(it); s.warehouse.push(it); });
+    items.forEach((it) => { if (normalize) normalize(it); });
+
+    /* =========================================================
+     * Part 33 — Real-time shipping
+     *
+     * Bulk packages no longer instantly hit Warehouse/Inventory.
+     * They are queued into Logistics.activeShipments with a 2h
+     * real-time countdown. Items move to their destination
+     * (warehouse if module available, otherwise inventory) only
+     * when the player taps "Klaim Barang" or finishes the 2x
+     * rewarded-ad skip loop.
+     * ========================================================= */
+    const shipDestination = (window.Warehouse && Array.isArray(s.warehouse)) ? "warehouse" : "inventory";
+    const shipLabel = `${brandGroup.shortLabel} ${tierPkg.label} (${items.length} unit)`;
+
+    if (window.Logistics && window.Logistics.addShipment) {
+      window.Logistics.addShipment({
+        source: "partnership",
+        label: shipLabel,
+        icon: "handshake",
+        accent: "#7c3aed",
+        destination: shipDestination,
+        items,
+        totalCost,
+        paymentBank: bankKey,
+        meta: {
+          brandGroupId: brandGroup.id,
+          tierPkgId:    tierPkg.id,
+          tierId:       tier.id,
+          discount:     tier.discount,
+        },
+      });
     } else {
-      items.forEach((it) => { if (normalize) normalize(it); s.inventory.push(it); });
+      // Fallback: keep legacy instant delivery so the player's
+      // money is never lost if the Logistics module is missing.
+      if (shipDestination === "warehouse") {
+        items.forEach((it) => s.warehouse.push(it));
+      } else {
+        items.forEach((it) => s.inventory.push(it));
+      }
     }
 
     // Record purchase history
@@ -395,16 +431,35 @@
     window.FlippingTycoon.saveGame();
 
     const purchaseLabel = `${brandGroup.shortLabel} ${tierPkg.label}`;
-    showToast(`✅ ${purchaseLabel} purchased! ${items.length} unit masuk Warehouse via ${bankKey}.`);
-    if (window.Notifications) {
-      window.Notifications.add({
-        type: "success",
-        title: `Partnership Order: ${purchaseLabel}`,
-        message: `${items.length} unit gadget dikirim ke Warehouse. Total ${fmt(totalCost)} dari ${bankKey} (disc ${(tier.discount * 100).toFixed(0)}%).`,
-        actionPage: "partnerships",
-        actor: "Partnership Hub",
-        icon: "handshake",
-      });
+    const useRealtimeShipping = !!(window.Logistics && window.Logistics.addShipment);
+    const etaHours = useRealtimeShipping
+      ? Math.round(window.Logistics.SHIPMENT_DURATION_MS / 3_600_000)
+      : 0;
+
+    if (useRealtimeShipping) {
+      showToast(`📦 ${purchaseLabel} dipesan! ETA ${etaHours} jam — pantau di tab Kargo / Logistik.`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "info",
+          title: `Partnership Order: ${purchaseLabel}`,
+          message: `${items.length} unit dijadwalkan kirim. ETA ${etaHours} jam real-time. Total ${fmt(totalCost)} dari ${bankKey} (disc ${(tier.discount * 100).toFixed(0)}%). Bisa di-skip pakai 2x rewarded ad di tab Kargo / Logistik.`,
+          actionPage: "logistics",
+          actor: "Partnership Hub",
+          icon: "truck-fast",
+        });
+      }
+    } else {
+      showToast(`✅ ${purchaseLabel} purchased! ${items.length} unit masuk Warehouse via ${bankKey}.`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "success",
+          title: `Partnership Order: ${purchaseLabel}`,
+          message: `${items.length} unit gadget dikirim ke Warehouse. Total ${fmt(totalCost)} dari ${bankKey} (disc ${(tier.discount * 100).toFixed(0)}%).`,
+          actionPage: "partnerships",
+          actor: "Partnership Hub",
+          icon: "handshake",
+        });
+      }
     }
     return true;
   }
@@ -641,7 +696,8 @@
         <p class="text-sm text-gray-600">Package: <b>${brandGroup.shortLabel} ${tierPkg.label}</b> (${picks.length} unit)</p>
         <p class="text-sm text-gray-600">Filter basePrice: ${fmt(tierPkg.minBase)}${isFinite(tierPkg.maxBase) ? "–" + fmt(tierPkg.maxBase) : "+"}</p>
         <p class="text-sm text-gray-600">Total biaya: <b class="text-blue-700">${fmt(cost)}</b> (disc ${(tier.discount * 100).toFixed(0)}% &middot; tier ${tier.label})</p>
-        <p class="text-xs text-emerald-600 mt-1">Stok BNIB &middot; Fullset Mulus &middot; auto masuk Warehouse.</p>
+        <p class="text-xs text-cyan-700 mt-1"><i class="fa-solid fa-clock"></i> ETA <b>2 jam real-time</b> &mdash; tracking di tab Kargo / Logistik. Bisa di-skip pakai 2x rewarded ad.</p>
+        <p class="text-xs text-emerald-600 mt-1">Stok BNIB &middot; Fullset Mulus &middot; saat klaim auto masuk Warehouse.</p>
       </div>
       <p class="modal-label" style="margin-bottom:4px">Pilih rekening pembayaran:</p>
       <div class="partnership-bank-options">

@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 11,
+      version: 14,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -29,7 +29,7 @@ function createDefaultState() {
       totalGadgetsSold: 0,
       startingCapital: 15_000_000,
       joinedDay: 1,
-      bio: "Buy low, sell high. Toko broker gadget profesional di Gadgetbook Marketplace.",
+      bio: "Buy low, sell high. Toko broker gadget profesional di Netbook Marketplace.",
       avatar: "P",
       avatarColor: "#1877f2",
     },
@@ -82,6 +82,7 @@ function createDefaultState() {
     wholesaleHistory: [],               // Part 11: completed/cancelled orders log (capped 60)
     wholesaleView: { tab: "open" },     // Part 11
     lastWholesaleGenDay: 0,             // Part 11: last day bulk orders auto-generated
+    activeShipments: [],                // Part 33: real-time shipping queue (Batam + Partnership)
   };
 }
 
@@ -229,7 +230,7 @@ const State = {
       if (typeof p.totalGadgetsSold   !== "number") p.totalGadgetsSold   = (this.data.salesHistory || []).length;
       if (typeof p.startingCapital    !== "number") p.startingCapital    = 15_000_000;
       if (typeof p.joinedDay          !== "number") p.joinedDay          = 1;
-      if (typeof p.bio                !== "string") p.bio                = "Buy low, sell high. Toko broker gadget profesional di Gadgetbook Marketplace.";
+      if (typeof p.bio                !== "string") p.bio                = "Buy low, sell high. Toko broker gadget profesional di Netbook Marketplace.";
       if (!p.avatar)                  p.avatar                          = (p.name || "P").charAt(0).toUpperCase();
       if (!p.avatarColor)              p.avatarColor                    = "#1877f2";
 
@@ -302,6 +303,17 @@ const State = {
         console.log("[FlippingTycoon] Part 34 migration healed", healed, "item(s) — buyPrice >= suggested fixed.");
       }
       this.data.meta.version = 13;
+    }
+
+    /* ------------------------------------------------------------------
+     * v14 — Part 33: real-time shipping queue.
+     *
+     * Adds an empty `activeShipments` array if missing so the new
+     * Logistics module can rely on it without re-checking on every call.
+     * ------------------------------------------------------------------ */
+    if (version < 14) {
+      if (!Array.isArray(this.data.activeShipments)) this.data.activeShipments = [];
+      this.data.meta.version = 14;
     }
   },
 };
@@ -882,6 +894,21 @@ function renderSidebar() {
       badge.remove();
     }
   }
+  // Part 33: ready-to-claim shipments badge on Logistik link
+  document.querySelectorAll('.sidebar-nav[data-page="logistics"]').forEach((logiBtn) => {
+    let badge = logiBtn.querySelector(".sidebar-badge");
+    const readyShips = window.Logistics ? window.Logistics.readyCount() : 0;
+    if (readyShips > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "sidebar-badge";
+        logiBtn.appendChild(badge);
+      }
+      badge.textContent = readyShips;
+    } else if (badge) {
+      badge.remove();
+    }
+  });
 }
 
 function setActivePage(page) {
@@ -938,6 +965,9 @@ function renderActivePage() {
       break;
     case "partnerships":
       container.appendChild(window.Partnerships ? window.Partnerships.renderPartnershipsPage() : renderPlaceholder("Partnership Hub", "handshake", "Loading..."));
+      break;
+    case "logistics":
+      container.appendChild(window.Logistics ? window.Logistics.renderLogisticsPage() : renderPlaceholder("Kargo / Logistik", "truck-fast", "Loading..."));
       break;
     case "fjb":
       container.appendChild(window.FJB ? window.FJB.renderFJBPage() : renderPlaceholder("Grup FJB", "people-group", "Loading..."));
@@ -1016,9 +1046,9 @@ function renderNewsPost(news, isToday) {
   const brandTag = news.brand ? `${news.brand} ${pct >= 0 ? "+" : ""}${pct}%` : "Pasar Stabil";
   post.innerHTML = `
     <div class="fb-post-header">
-      <div class="fb-post-avatar">G</div>
+      <div class="fb-post-avatar">N</div>
       <div>
-        <p class="font-semibold leading-tight">Gadgetbook News</p>
+        <p class="font-semibold leading-tight">Netbook News</p>
         <p class="text-xs text-gray-500">Day ${news.day} ${isToday ? "&middot; <b>Today</b>" : ""} &middot; <i class="fa-solid fa-earth-asia"></i></p>
       </div>
       <div class="ml-auto">

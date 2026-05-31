@@ -6110,3 +6110,256 @@ body.dark .transfer-branch-cap  { color: #d1d5db; }
 
 /* Modal flex display */
 #transfer-branch-modal.flex { display: flex; }
+
+
+/* =========================================================
+ * Part 33 — Real-Time Shipping & Ad-Skip Mechanic
+ * Kargo / Logistik tab, shipment cards, ad overlay
+ * ========================================================= */
+
+/* ---- Shipment card ---- */
+.shipment-card { padding: 16px; transition: box-shadow 0.2s ease, transform 0.2s ease; }
+.shipment-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+.shipment-card-ready {
+  border: 2px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 60%);
+  animation: shipReadyPulse 1.8s ease-in-out infinite;
+}
+@keyframes shipReadyPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35); }
+  50%      { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+
+.shipment-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ship-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ship-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #111827;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.ship-meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 2px 0 0;
+}
+
+.ship-source-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ship-timer {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* ---- Progress bar ---- */
+.ship-progress-track {
+  width: 100%;
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+.ship-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s linear, background 0.3s ease;
+  background: #0e7490;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+
+/* ---- Action buttons ---- */
+.ship-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (min-width: 640px) {
+  .ship-actions { flex-direction: row; }
+}
+
+.ship-claim-btn,
+.ship-ad-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease, background 0.2s ease;
+  min-height: 44px;
+}
+.ship-claim-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(16,185,129,0.35);
+}
+.ship-claim-btn:hover { filter: brightness(1.05); }
+.ship-claim-btn:active { transform: scale(0.98); }
+
+.ship-ad-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(245,158,11,0.30);
+}
+.ship-ad-btn:hover { filter: brightness(1.05); }
+.ship-ad-btn:active { transform: scale(0.98); }
+
+.ship-ad-note {
+  font-size: 11px;
+  color: #92400e;
+  margin: 8px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ship-ad-note.ok { color: #059669; }
+
+/* ---- Batam logi tile (jump card on Batam page) ---- */
+.batam-logi-tile {
+  background: linear-gradient(135deg, #ecfeff 0%, #ffffff 70%);
+  border: 1px solid #a5f3fc;
+}
+
+/* ---- Ad overlay ---- */
+.ad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.92);
+  align-items: center;
+  justify-content: center;
+}
+.ad-overlay.flex { display: flex; }
+.ad-overlay.hidden { display: none; }
+
+.ad-overlay-card {
+  text-align: center;
+  color: #ffffff;
+  padding: 32px 24px;
+  max-width: 320px;
+  width: calc(100% - 32px);
+}
+
+.ad-overlay-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.65;
+  margin: 0 0 12px;
+}
+
+.ad-overlay-art {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f59e0b 100%);
+  box-shadow: 0 12px 40px rgba(236, 72, 153, 0.45);
+  animation: adPulse 1.4s ease-in-out infinite;
+}
+@keyframes adPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+.ad-overlay-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+.ad-overlay-sub {
+  font-size: 13px;
+  opacity: 0.85;
+  margin: 0 0 18px;
+}
+
+.ad-overlay-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.ad-overlay-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #a855f7, #ec4899, #f59e0b);
+  transition: width 0.1s linear;
+}
+
+/* ---- Toast helper (reused from Batam) ---- */
+.ft-toast {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(17, 24, 39, 0.95);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 250;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+.ft-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---- Dark mode ---- */
+body.dark .shipment-card-ready {
+  background: linear-gradient(135deg, #064e3b 0%, var(--fb-card) 60%);
+  border-color: #10b981;
+}
+body.dark .ship-title { color: #f3f4f6; }
+body.dark .ship-meta  { color: #9ca3af; }
+body.dark .ship-progress-track { background: #374151; }
+body.dark .batam-logi-tile {
+  background: linear-gradient(135deg, #083344 0%, var(--fb-card) 70%);
+  border-color: #155e75;
+}
