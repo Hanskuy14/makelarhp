@@ -2,7 +2,7 @@
  * Flipping Tycoon: Gadget Broker
  * Part 19 — FJB (Forum Jual Beli) Group Feed
  *
- * A scrolling Facebook-Group-style feed where AI users post
+ * A scrolling NetBook-Group-style feed where AI users post
  * two kinds of deals every Next Day:
  *
  *   - BU (Butuh Uang)  : A unit priced 30%-40% BELOW market.

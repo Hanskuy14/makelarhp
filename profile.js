@@ -1,6 +1,6 @@
 /* =========================================================
  * Flipping Tycoon: Gadget Broker
- * Part 10 — Player Profile (Facebook-style)
+ * Part 10 — Player Profile (NetBook-style)
  *
  * Owns:
  *   - profilePosts (auto-generated when listing items, marked

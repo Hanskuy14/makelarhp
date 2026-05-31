@@ -8,11 +8,11 @@
  * runs a daily demand-tilted walk-in pass that prefers items
  * matching that city's market profile.
  *
- *   Jakarta (HQ)  — Apple flagships (basePrice >= 10M)
+ *   Jakarta (HQ)  — Pear flagships (basePrice >= 10M)
  *   Bandung       — general (any item, balanced)
- *   Surabaya      — Samsung
+ *   Surabaya      — Sumsang
  *   Medan         — Ex-Inter (BM / no pajak)
- *   Makassar      — Vivo / Oppo mid-range (3M-10M)
+ *   Makassar      — Pipo / Ope mid-range (3M-10M)
  *
  * Each branch contributes 1-3 extra walk-in sales per Next Day,
  * sampled from inventory matching that city's preference. Sale
@@ -41,8 +41,8 @@
       setupFee: 0,
       dailyRent: 0,
       requiredRevenue: 0,
-      preference: "Apple flagships (basePrice >= Rp 10M)",
-      filter: (it) => it.brand === "Apple" && (Number(it.basePrice) || 0) >= 10_000_000,
+      preference: "Pear flagships (basePrice >= Rp 10M)",
+      filter: (it) => it.brand === "Pear" && (Number(it.basePrice) || 0) >= 10_000_000,
       saleRange: [1, 3],
       markupPct: 0.10,
     },
@@ -71,8 +71,8 @@
       setupFee: 80_000_000,
       dailyRent: 2_500_000,
       requiredRevenue: 350_000_000,
-      preference: "Samsung Galaxy (S, Z, Note series)",
-      filter: (it) => it.brand === "Samsung",
+      preference: "Sumsang Universe (S, Z, Note series)",
+      filter: (it) => it.brand === "Sumsang",
       saleRange: [1, 2],
       markupPct: 0.10,
     },
@@ -101,10 +101,10 @@
       setupFee: 150_000_000,
       dailyRent: 5_000_000,
       requiredRevenue: 800_000_000,
-      preference: "Mid-range Vivo / Oppo (3-10M)",
+      preference: "Mid-range Pipo / Ope (3-10M)",
       filter: (it) => {
         const bp = Number(it.basePrice) || 0;
-        return (it.brand === "Vivo" || it.brand === "Oppo") && bp >= 3_000_000 && bp < 10_000_000;
+        return (it.brand === "Pipo" || it.brand === "Ope") && bp >= 3_000_000 && bp < 10_000_000;
       },
       saleRange: [1, 2],
       markupPct: 0.10,

@@ -3,7 +3,7 @@
  * Part 11 — Wholesale (B2B) Bulk Orders
  *
  * Small-shop owner AI buyers post bulk orders for a single
- * gadget model (e.g., "Request: 20 units of iPhone 13 Pro Max").
+ * gadget model (e.g., "Request: 20 units of PearPhone 13 Pro Max").
  *
  *   - Prices are fixed (slightly below market) but high-volume.
  *   - Player must accept the order AND choose a Logistics Partner
