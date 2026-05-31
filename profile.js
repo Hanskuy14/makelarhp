@@ -39,7 +39,7 @@
   }
 
   function defaultBio(player) {
-    return `Buy low, sell high. ${player.storeName || "Toko"} — broker gadget profesional di Gadgetbook Marketplace.`;
+    return `Buy low, sell high. ${player.storeName || "Toko"} — broker gadget profesional di Netbook Marketplace.`;
   }
 
   function pickAvatarColor(name) {
@@ -89,7 +89,7 @@
       type: "welcome",
       day: s.currentDay || 1,
       timestamp: Date.now(),
-      text: `🎉 ${cleanName} bergabung di Gadgetbook Marketplace dengan toko <b>${cleanStore}</b>. Modal awal ${fmt(cap)}. Ayo flipping!`,
+      text: `🎉 ${cleanName} bergabung di Netbook Marketplace dengan toko <b>${cleanStore}</b>. Modal awal ${fmt(cap)}. Ayo flipping!`,
     }];
 
     window.FlippingTycoon.saveGame();
@@ -406,7 +406,7 @@
       post_div.innerHTML = `
         ${headerHtml}
         <div class="fb-post-body">
-          <p class="font-semibold">Welcome to Gadgetbook Marketplace!</p>
+          <p class="font-semibold">Welcome to Netbook Marketplace!</p>
           <p class="text-sm text-gray-600 mt-1">${post.text}</p>
         </div>
         <div class="fb-post-actions">

@@ -95,7 +95,7 @@
     const closeBtn = modal.querySelector("#batam-cancel");
 
     titleEl.textContent = "Order Kargo Container";
-    subEl.textContent   = `${size} unit &middot; 50% off basePrice &middot; ETA ${DELIVERY_DAYS} hari`;
+    subEl.innerHTML   = `${size} unit &middot; 50% off basePrice &middot; ETA 2 jam real-time`;
 
     const banks = ["Mandiri", "BCA", "BNI"];
     const totalCost = manifest.totalCost;
@@ -135,7 +135,10 @@
           ${size > 3 ? `<p class="bm-more">...dan ${size - 3} unit lainnya, di-roll random saat order.</p>` : ""}
         </div>
         <p class="text-xs text-cyan-700 mt-2">
-          <i class="fa-solid fa-clock"></i> Kargo tiba Day ${S().currentDay + DELIVERY_DAYS}.
+          <i class="fa-solid fa-clock"></i> ETA 2 jam real-time &mdash; pantau di tab <b>Kargo / Logistik</b>. Timer jalan terus walau aplikasi ditutup.
+        </p>
+        <p class="text-xs text-amber-700 mt-1">
+          <i class="fa-solid fa-bolt"></i> Bisa di-skip pakai <b>2x rewarded ad</b> (50% off &rarr; instan sampai).
         </p>
         <p class="text-xs text-rose-700 mt-1">
           <i class="fa-solid fa-triangle-exclamation"></i>
@@ -184,8 +187,73 @@
       ts: Date.now(),
     });
 
+    /* =========================================================
+     * Part 33 — Real-time shipping
+     *
+     * Bulk orders no longer arrive instantly nor wait on the
+     * in-game day tick. They are queued in Logistics.activeShipments
+     * with a 2h real-time countdown (Date.now()-driven so it
+     * progresses even when the PWA is closed).
+     *
+     * Each manifest item is pre-shaped into the inventory record
+     * Batam used to push on `deliverCargo`, so the claim step is a
+     * pure dest.push() with no extra wiring.
+     * ========================================================= */
+    const cargoShortId = uid("cargo").slice(-4);
+    const inventoryItems = manifest.items.map((it) => ({
+      id: it.id,
+      gadgetId: it.gadgetId,
+      name: it.name,
+      brand: it.brand,
+      specs: it.specs,
+      basePrice: it.basePrice,
+      year: it.year,
+      icon: it.icon,
+      accent: it.accent,
+      completeness: it.completeness,
+      defect: it.defect,
+      hiddenDefect: null,
+      buyPrice: it.buyPrice,
+      buyDay: s.currentDay,                  // overwritten on claim
+      paymentMethod: "Batam Cargo",
+      sourceBank,
+      // Black-market provenance: Batam units start "ok" and roll for IMEI block daily.
+      isExInter: true,
+      imeiStatus: "ok",
+      importedFromCargo: cargoShortId,
+    }));
+
+    if (window.Logistics && window.Logistics.addShipment) {
+      const ship = window.Logistics.addShipment({
+        source: "batam",
+        label: `Batam Cargo #${cargoShortId} (${size} unit)`,
+        icon: "ship",
+        accent: "#0e7490",
+        destination: "inventory",
+        items: inventoryItems,
+        totalCost: manifest.totalCost,
+        paymentBank: sourceBank,
+        meta: { cargoShortId, size },
+      });
+      const etaHours = Math.round(window.Logistics.SHIPMENT_DURATION_MS / 3_600_000);
+      showToast(`📦 Kargo dipesan! ETA ${etaHours} jam — pantau di tab Kargo / Logistik.`);
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "info",
+          title: "Kargo Batam Dijadwalkan",
+          message: `${size} unit dari Batam berangkat. Sampai dalam ${etaHours} jam real-time. Bisa di-skip pakai 2x rewarded ad.`,
+          actionPage: "logistics",
+          actor: "Batam Syndicate",
+          icon: "truck-fast",
+        });
+      }
+      return ship;
+    }
+
+    // Fallback (Logistics module missing) — keep legacy behaviour so
+    // the game never silently swallows the player's money.
     const cargo = {
-      id: uid("cargo"),
+      id: "cargo-" + cargoShortId,
       orderedDay: s.currentDay,
       arrivalDay: s.currentDay + DELIVERY_DAYS,
       size,
@@ -473,11 +541,12 @@
           <h3>Order Kargo Container</h3>
           <p class="text-sm text-gray-600 mt-1">
             Random 10&ndash;20 unit per kargo &middot; <b>50% off</b> dari basePrice
-            &middot; ETA <b>${DELIVERY_DAYS} hari</b>.
+            &middot; ETA <b>2 jam real-time</b>.
           </p>
           <ul class="batam-order-perks">
             <li><i class="fa-solid fa-bolt"></i> Margin gede karena beli grosir, langsung Batangan-friendly buat repacking.</li>
-            <li><i class="fa-solid fa-triangle-exclamation"></i> ${Math.round(CUSTOMS_RISK*100)}% RNG kena Red Line: bayar denda 30% dalam ${CUSTOMS_GRACE} hari atau seluruh kargo <b>disita</b>.</li>
+            <li><i class="fa-solid fa-clock-rotate-left"></i> Tracking real-time di tab <b>Kargo / Logistik</b> &mdash; timer jalan terus walau game ditutup.</li>
+            <li><i class="fa-solid fa-tv"></i> Ada <b>2x rewarded ad</b> per kargo: ad-1 potong waktu 50%, ad-2 instan sampai.</li>
             <li><i class="fa-solid fa-skull-crossbones"></i> Semua unit otomatis Ex-Inter (No Pajak) &mdash; rentan IMEI block.</li>
           </ul>
         </div>
@@ -491,6 +560,43 @@
       const btn = document.querySelector("#batam-order-btn");
       if (btn) btn.addEventListener("click", openOrderModal);
     }, 0);
+
+    /* Part 33 — Real-time logistics summary tile */
+    if (window.Logistics) {
+      const ships = (s.activeShipments || []).filter((sh) => sh.source === "batam");
+      if (ships.length > 0) {
+        const ready = ships.filter(window.Logistics.isReady).length;
+        const logiCard = document.createElement("div");
+        logiCard.className = "fb-card batam-logi-tile";
+        logiCard.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="upgrade-icon" style="background:#ecfeff;color:#0e7490;font-size:20px">
+              <i class="fa-solid fa-truck-fast"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3>${ships.length} kargo Batam dalam perjalanan${ready > 0 ? ` &middot; <span class="text-emerald-600 font-bold">${ready} siap diklaim</span>` : ""}</h3>
+              <p class="text-sm text-gray-600">Pantau timer, tonton ad, atau klaim barang di tab Kargo / Logistik.</p>
+            </div>
+            <button id="batam-logi-go" class="batam-order-btn" style="background:#0e7490">
+              <i class="fa-solid fa-arrow-right"></i> Lihat Logistik
+            </button>
+          </div>
+        `;
+        wrap.appendChild(logiCard);
+        setTimeout(() => {
+          const goBtn = document.querySelector("#batam-logi-go");
+          if (goBtn) goBtn.addEventListener("click", () => {
+            if (window.FlippingTycoon && window.FlippingTycoon.setActivePage) {
+              window.FlippingTycoon.setActivePage("logistics");
+            } else {
+              s.activePage = "logistics";
+              window.FlippingTycoon.saveGame();
+              window.FlippingTycoon.renderActivePage();
+            }
+          });
+        }, 0);
+      }
+    }
 
     // Active cargos
     const activeCargos = (s.batamCargo || []).filter((c) => c.status === "in-transit" || c.status === "customs-hold" || c.status === "delivered" || c.status === "confiscated");
