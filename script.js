@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 14,
+      version: 15,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -83,6 +83,9 @@ function createDefaultState() {
     wholesaleView: { tab: "open" },     // Part 11
     lastWholesaleGenDay: 0,             // Part 11: last day bulk orders auto-generated
     activeShipments: [],                // Part 33: real-time shipping queue (Batam + Partnership)
+    /* Part 34 — Premium IAP unlocks */
+    isEditorUnlocked: false,            // Part 34: non-consumable IAP flag (item_editor_unlock)
+    brandMapping: {},                   // Part 34: { pear: "Apple", sumsang: "Samsung", ... }
   };
 }
 
@@ -314,6 +317,21 @@ const State = {
     if (version < 14) {
       if (!Array.isArray(this.data.activeShipments)) this.data.activeShipments = [];
       this.data.meta.version = 14;
+    }
+
+    /* ------------------------------------------------------------------
+     * v15 — Part 34: In-Game Editor Pack premium IAP.
+     *
+     * Backfills the non-consumable unlock flag and the brand mapping
+     * dict so legacy saves don't see `undefined` when the editor
+     * module reads them.
+     * ------------------------------------------------------------------ */
+    if (version < 15) {
+      if (typeof this.data.isEditorUnlocked !== "boolean") this.data.isEditorUnlocked = false;
+      if (!this.data.brandMapping || typeof this.data.brandMapping !== "object") {
+        this.data.brandMapping = {};
+      }
+      this.data.meta.version = 15;
     }
   },
 };
@@ -909,6 +927,13 @@ function renderSidebar() {
       badge.remove();
     }
   });
+
+  // Part 34: hide the In-Game Editor sidebar entry until the player
+  // owns the IAP unlock. The Premium Unlocks entry is always visible.
+  const editorUnlocked = !!State.data.isEditorUnlocked;
+  document.querySelectorAll('.sidebar-nav[data-page="editor"]').forEach((btn) => {
+    btn.style.display = editorUnlocked ? "" : "none";
+  });
 }
 
 function setActivePage(page) {
@@ -968,6 +993,9 @@ function renderActivePage() {
       break;
     case "logistics":
       container.appendChild(window.Logistics ? window.Logistics.renderLogisticsPage() : renderPlaceholder("Kargo / Logistik", "truck-fast", "Loading..."));
+      break;
+    case "premium":
+      container.appendChild(window.PremiumUnlocks ? window.PremiumUnlocks.renderPremiumUnlocksPage() : renderPlaceholder("Premium Unlocks", "gem", "Loading..."));
       break;
     case "fjb":
       container.appendChild(window.FJB ? window.FJB.renderFJBPage() : renderPlaceholder("Grup FJB", "people-group", "Loading..."));
@@ -1237,7 +1265,17 @@ function wireUpEvents() {
   });
   $$(".sidebar-nav").forEach((btn) => {
     btn.addEventListener("click", () => {
-      setActivePage(btn.dataset.page);
+      const page = btn.dataset.page;
+      // Part 34 — the "editor" sidebar entry isn't a real page; it
+      // pops the In-Game Editor modal instead.
+      if (page === "editor") {
+        if (window.Editor && window.Editor.openEditorModal) {
+          window.Editor.openEditorModal();
+        }
+        if (btn.classList.contains("mobile-menu-link")) closeMobileMenu();
+        return;
+      }
+      setActivePage(page);
       // Auto-close the off-canvas mobile menu when an item is tapped
       if (btn.classList.contains("mobile-menu-link")) closeMobileMenu();
     });
