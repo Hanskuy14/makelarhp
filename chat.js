@@ -1,6 +1,6 @@
 /* =========================================================
  * Flipping Tycoon: Gadget Broker
- * Part 2 — FB Messenger Chat: AI seller, haggle RNG, purchase
+ * Part 2 — NB Messenger Chat: AI seller, haggle RNG, purchase
  * ========================================================= */
 
 (function () {

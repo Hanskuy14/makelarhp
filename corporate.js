@@ -44,7 +44,7 @@
       tierWeight: 0.05,    // multiplied by (tier-1)^2
       repWeight:  0.50,    // multiplied by rep/100 (0-1)
       // What kinds of units they're willing to take
-      preferred: { brand: ["Apple"], minBase: 10_000_000, maxBase: Infinity, label: "Premium Apple flagships" },
+      preferred: { brand: ["Pear"], minBase: 10_000_000, maxBase: Infinity, label: "Premium Pear flagships" },
     },
     {
       id: "erophone",

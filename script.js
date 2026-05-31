@@ -531,18 +531,18 @@ function hideLoadingOverlay() {
  * ========================================================= */
 
 const NEWS_TEMPLATES = [
-  { headline: "iPhone 17 dirumorkan rilis bulan depan!",                  brand: "Apple",   multiplier: 1.10, blurb: "Pasar second iPhone ramai diserbu, harga melambung 10%." },
-  { headline: "Bug iOS terbaru bikin baterai iPhone boros parah.",        brand: "Apple",   multiplier: 0.92, blurb: "Banyak yang lepas iPhone-nya, harga anjlok 8% hari ini." },
-  { headline: "Apple umumkan Trade-in besar untuk iPad.",                 brand: "Apple",   multiplier: 0.94, blurb: "iPad bekas membanjir Marketplace, harga turun 6%." },
-  { headline: "Samsung One UI 7 menyala mulus di seri lama!",             brand: "Samsung", multiplier: 1.08, blurb: "Demand Galaxy second naik 8% setelah update memukau." },
-  { headline: "Galaxy S Series ditemukan masalah panas berlebih.",        brand: "Samsung", multiplier: 0.90, blurb: "Banyak user trade-in, harga second turun 10%." },
-  { headline: "Z Fold/Flip viral di TikTok, demand foldable meledak.",    brand: "Samsung", multiplier: 1.07, blurb: "Foldable Samsung jadi rebutan, naik 7%." },
-  { headline: "Xiaomi 14 raih juara DxOMark, kolektor berburu.",          brand: "Xiaomi",  multiplier: 1.09, blurb: "Xiaomi second naik 9% karena hype kamera." },
-  { headline: "Xiaomi luncurkan diskon massal seri Redmi.",               brand: "Xiaomi",  multiplier: 0.93, blurb: "Stok Redmi membanjir pasar, harga turun 7%." },
-  { headline: "Oppo Reno 12 leak: desain mirip seri lama.",               brand: "Oppo",    multiplier: 1.06, blurb: "Pengguna lama enggan upgrade, second Oppo naik 6%." },
-  { headline: "Oppo Find X ditarik karena cacat layar.",                  brand: "Oppo",    multiplier: 0.88, blurb: "Kepercayaan brand turun, harga second jatuh 12%." },
-  { headline: "Vivo X100 Pro terpilih HP kamera terbaik tahun ini.",      brand: "Vivo",    multiplier: 1.10, blurb: "Vivo flagship melejit 10% di pasar second." },
-  { headline: "Vivo Y Series obral besar-besaran via promo bank.",        brand: "Vivo",    multiplier: 0.92, blurb: "Y Series second tertekan diskon promo, harga drop 8%." },
+  { headline: "PearPhone 17 dirumorkan rilis bulan depan!",                  brand: "Pear",   multiplier: 1.10, blurb: "Pasar second PearPhone ramai diserbu, harga melambung 10%." },
+  { headline: "Bug iOS terbaru bikin baterai PearPhone boros parah.",        brand: "Pear",   multiplier: 0.92, blurb: "Banyak yang lepas PearPhone-nya, harga anjlok 8% hari ini." },
+  { headline: "Pear umumkan Trade-in besar untuk PearPad.",                 brand: "Pear",   multiplier: 0.94, blurb: "PearPad bekas membanjir Marketplace, harga turun 6%." },
+  { headline: "Sumsang One UI 7 menyala mulus di seri lama!",             brand: "Sumsang", multiplier: 1.08, blurb: "Demand Universe second naik 8% setelah update memukau." },
+  { headline: "Universe S Series ditemukan masalah panas berlebih.",        brand: "Sumsang", multiplier: 0.90, blurb: "Banyak user trade-in, harga second turun 10%." },
+  { headline: "Z Fold/Flip viral di TikTok, demand foldable meledak.",    brand: "Sumsang", multiplier: 1.07, blurb: "Foldable Sumsang jadi rebutan, naik 7%." },
+  { headline: "Siaomi 14 raih juara DxOMark, kolektor berburu.",          brand: "Siaomi",  multiplier: 1.09, blurb: "Siaomi second naik 9% karena hype kamera." },
+  { headline: "Siaomi luncurkan diskon massal seri Note.",               brand: "Siaomi",  multiplier: 0.93, blurb: "Stok membanjir pasar, harga turun 7%." },
+  { headline: "Ope Reno 12 leak: desain mirip seri lama.",               brand: "Ope",    multiplier: 1.06, blurb: "Pengguna lama enggan upgrade, second Ope naik 6%." },
+  { headline: "Ope Find X ditarik karena cacat layar.",                  brand: "Ope",    multiplier: 0.88, blurb: "Kepercayaan brand turun, harga second jatuh 12%." },
+  { headline: "Pipo X100 Pro terpilih HP kamera terbaik tahun ini.",      brand: "Pipo",    multiplier: 1.10, blurb: "Pipo flagship melejit 10% di pasar second." },
+  { headline: "Pipo Y Series obral besar-besaran via promo bank.",        brand: "Pipo",    multiplier: 0.92, blurb: "Y Series second tertekan diskon promo, harga drop 8%." },
   { headline: "Pasar gadget tenang, tidak ada gejolak harga.",            brand: null,      multiplier: 1.00, blurb: "Hari yang stabil. Saatnya scout deal di Marketplace." },
 ];
 

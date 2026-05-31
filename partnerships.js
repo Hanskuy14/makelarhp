@@ -5,8 +5,8 @@
  *           + Dynamic Per-Package Pricing (no hardcoded totals)
  *
  * Partnership Hub: Players negotiate B2B contracts with three
- * specific principals — Apple Authorized, Samsung Corporate, and
- * BBK Distributor (Xiaomi/Vivo/Oppo). Each principal sells three
+ * specific principals — Pear Authorized, Samsul Corporate, and
+ * BBK Distributor (Siaomi/Pipo/Ope). Each principal sells three
  * tier packages (Flagship / Mid-Range / Entry-Level) whose stock
  * is STRICTLY filtered by basePrice band against the master DB.
  *
@@ -26,31 +26,31 @@
   /* ---------- Brand Groups (Part 18) ---------- */
   const BRAND_GROUPS = [
     { id: "apple",
-      label: "Apple Authorized",
-      shortLabel: "Apple",
-      brands: ["Apple"],
+      label: "Pear Authorized",
+      shortLabel: "Pear",
+      brands: ["Pear"],
       minRevenue: 0,
       icon: "apple",
       accent: "#1c1c1e",
-      tagline: "Stok resmi distributor Apple. iPhone & iPad BNIB.",
+      tagline: "Stok resmi distributor Pear. PearPhone & PearPad BNIB.",
     },
     { id: "samsung",
-      label: "Samsung Corporate",
-      shortLabel: "Samsung",
-      brands: ["Samsung"],
+      label: "Samsul Corporate",
+      shortLabel: "Sumsang",
+      brands: ["Sumsang"],
       minRevenue: 50_000_000,
       icon: "mobile-screen",
       accent: "#1428a0",
-      tagline: "Kontrak korporat Samsung Indonesia. Galaxy S, Z & Tab.",
+      tagline: "Kontrak korporat Samsul Indonesia. Universe S, Z & Tab.",
     },
     { id: "bbk",
-      label: "BBK Distributor (Xiaomi/Vivo/Oppo)",
+      label: "BBK Distributor (Siaomi/Pipo/Ope)",
       shortLabel: "BBK",
-      brands: ["Xiaomi", "Vivo", "Oppo"],
+      brands: ["Siaomi", "Pipo", "Ope"],
       minRevenue: 30_000_000,
       icon: "boxes-stacked",
       accent: "#10b981",
-      tagline: "Distributor Chinese mid-tier — Xiaomi, Vivo, Oppo dalam satu kontrak.",
+      tagline: "Distributor Chinese mid-tier — Siaomi, Pipo, Ope dalam satu kontrak.",
     },
   ];
 

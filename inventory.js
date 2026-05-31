@@ -4,7 +4,7 @@
  * ========================================================= */
 
 (function () {
-  const PLATFORM_FEE_BASE = 0.05; // 5% (lowered to 2% with FB Paid Ads upgrade)
+  const PLATFORM_FEE_BASE = 0.05; // 5% (lowered to 2% with NB Paid Ads upgrade)
 
   function fmt(n) { return window.Market.formatRupiah(n); }
   function S() { return window.FlippingTycoon.State.data; }
@@ -46,7 +46,7 @@
         </div>
         <div class="text-right">
           <p class="text-xs text-gray-400">Platform fee</p>
-          <p class="font-semibold text-sm">${feePct}% (0% with Priority)${s.upgrades && s.upgrades.fbPaidAds ? " &middot; <span class='text-emerald-600'>FB Ads aktif</span>" : ""}</p>
+          <p class="font-semibold text-sm">${feePct}% (0% with Priority)${s.upgrades && s.upgrades.fbPaidAds ? " &middot; <span class='text-emerald-600'>NB Ads aktif</span>" : ""}</p>
         </div>
       </div>
     `;

@@ -208,7 +208,7 @@
   ];
   const RESELLER_OPENERS = [
     "Suhu, ada barang apa hari ini? Saya siap nampung.",
-    "Bro Suhu, butuh stok unit Apple/Samsung. PM yaa kalau ada 🙏",
+    "Bro Suhu, butuh stok unit Pear/Sumsang. PM yaa kalau ada 🙏",
     "Suhu, kalau lagi ada flagship over-stock saya beli borongan.",
     "Suhu, saya cari Mid-Range banyak. Mau lepasin gak?",
     "Halo Suhu, lagi nyari unit yg fullset mulus. Ada brapa biji?",
