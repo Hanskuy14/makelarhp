@@ -15,18 +15,18 @@
    * AI broker roster
    * ========================================================= */
   const BROKERS = [
-    { id: "br-andre",   name: "Andre Reseller",   handle: "@andrejakflip",     avatar: "A", color: "#06b6d4", specialty: "iPhone Pro Max",     followers:  18_400, location: "Jakarta",  bio: "Spesialis iPhone bekas garansi resmi. Fast deal." },
-    { id: "br-budi",    name: "Budi Counter HP",  handle: "@budicounter",      avatar: "B", color: "#d946ef", specialty: "Samsung Foldable",   followers:  24_900, location: "Bandung",  bio: "Counter ITC, ratusan transaksi per bulan." },
-    { id: "br-citra",   name: "Citra Gadget",     handle: "@citragadget",      avatar: "C", color: "#84cc16", specialty: "Xiaomi & Poco",      followers:   9_700, location: "Surabaya", bio: "Bandar Xiaomi second second2nd. Jujur, ramah, ngotot." },
-    { id: "br-dimas",   name: "Dimas Second",     handle: "@dimassecondhand",  avatar: "D", color: "#f97316", specialty: "iPad & Tablet",      followers:  31_200, location: "Bekasi",   bio: "iPad Pro / Air, langganan content creator." },
+    { id: "br-andre",   name: "Andre Reseller",   handle: "@andrejakflip",     avatar: "A", color: "#06b6d4", specialty: "PearPhone Pro Max",     followers:  18_400, location: "Jakarta",  bio: "Spesialis PearPhone bekas garansi resmi. Fast deal." },
+    { id: "br-budi",    name: "Budi Counter HP",  handle: "@budicounter",      avatar: "B", color: "#d946ef", specialty: "Sumsang Foldable",   followers:  24_900, location: "Bandung",  bio: "Counter ITC, ratusan transaksi per bulan." },
+    { id: "br-citra",   name: "Citra Gadget",     handle: "@citragadget",      avatar: "C", color: "#84cc16", specialty: "Siaomi & Poto",      followers:   9_700, location: "Surabaya", bio: "Bandar Siaomi second second2nd. Jujur, ramah, ngotot." },
+    { id: "br-dimas",   name: "Dimas Second",     handle: "@dimassecondhand",  avatar: "D", color: "#f97316", specialty: "PearPad & Tablet",      followers:  31_200, location: "Bekasi",   bio: "PearPad Pro / Air, langganan content creator." },
     { id: "br-eka",     name: "Eka Importir",     handle: "@ekaimport_btm",    avatar: "E", color: "#a855f7", specialty: "Ex-Inter (Batam)",   followers:  47_500, location: "Batam",    bio: "Connection langsung ke pelabuhan. No pajak no problem." },
-    { id: "br-fauzan",  name: "Fauzan Phone Hub", handle: "@fauzanphonehub",   avatar: "F", color: "#ef4444", specialty: "Galaxy S Flagship",  followers:   6_200, location: "Tangerang", bio: "Newcomer, harga kompetitif." },
-    { id: "br-gita",    name: "Gita Galaxy",      handle: "@gitagalaxyid",     avatar: "G", color: "#3b82f6", specialty: "Galaxy Note & Z",    followers:  88_300, location: "Yogyakarta", bio: "Influencer review HP, 88k+ followers." },
-    { id: "br-hadi",    name: "Hadi Hape Bekas",  handle: "@hadihapebekas",    avatar: "H", color: "#10b981", specialty: "Vivo & Oppo",        followers:   4_100, location: "Depok",    bio: "Counter rumahan, fokus brand China." },
-    { id: "br-indra",   name: "Indra iStore",     handle: "@indraistore",      avatar: "I", color: "#f59e0b", specialty: "Apple Premium",      followers: 152_000, location: "Jakarta",  bio: "Apple-only, fullset original. Konsumen ribet welcome." },
-    { id: "br-kiki",    name: "Kiki Konter",      handle: "@kikikonter",       avatar: "K", color: "#ec4899", specialty: "Xiaomi Flagship",    followers:  12_400, location: "Medan",    bio: "Mantan teknisi service, tau dalemannya." },
+    { id: "br-fauzan",  name: "Fauzan Phone Hub", handle: "@fauzanphonehub",   avatar: "F", color: "#ef4444", specialty: "Universe S Flagship",  followers:   6_200, location: "Tangerang", bio: "Newcomer, harga kompetitif." },
+    { id: "br-gita",    name: "Gita Universe",      handle: "@gitagalaxyid",     avatar: "G", color: "#3b82f6", specialty: "Universe Note & Z",    followers:  88_300, location: "Yogyakarta", bio: "Influencer review HP, 88k+ followers." },
+    { id: "br-hadi",    name: "Hadi Hape Bekas",  handle: "@hadihapebekas",    avatar: "H", color: "#10b981", specialty: "Pipo & Ope",        followers:   4_100, location: "Depok",    bio: "Counter rumahan, fokus brand China." },
+    { id: "br-indra",   name: "Indra iStore",     handle: "@indraistore",      avatar: "I", color: "#f59e0b", specialty: "Pear Premium",      followers: 152_000, location: "Jakarta",  bio: "Pear-only, fullset original. Konsumen ribet welcome." },
+    { id: "br-kiki",    name: "Kiki Konter",      handle: "@kikikonter",       avatar: "K", color: "#ec4899", specialty: "Siaomi Flagship",    followers:  12_400, location: "Medan",    bio: "Mantan teknisi service, tau dalemannya." },
     { id: "br-maman",   name: "Maman MobileMart", handle: "@mamanmobilemart",  avatar: "M", color: "#8b5cf6", specialty: "Mid-range All Brand", followers:   7_900, location: "Bekasi",   bio: "Stok banyak, varian lengkap." },
-    { id: "br-oka",     name: "Oka Outlet HP",    handle: "@okaoutlethp",      avatar: "O", color: "#0ea5e9", specialty: "Foldable Samsung",   followers:  22_600, location: "Bali",     bio: "Outlet di Denpasar, sering bawa unit langka." },
+    { id: "br-oka",     name: "Oka Outlet HP",    handle: "@okaoutlethp",      avatar: "O", color: "#0ea5e9", specialty: "Foldable Sumsang",   followers:  22_600, location: "Bali",     bio: "Outlet di Denpasar, sering bawa unit langka." },
   ];
 
   /* ---------- State helpers ---------- */
@@ -94,17 +94,17 @@
   ];
 
   const FLAGSHIP_POOL = [
-    "iPhone 15 Pro Max", "iPhone 16 Pro Max", "iPhone 14 Pro Max",
-    "Galaxy S24 Ultra", "Galaxy S23 Ultra", "Galaxy Z Fold 5",
-    "Galaxy Z Flip 5", "iPad Pro M2", "Xiaomi 14", "Vivo X100 Pro",
+    "PearPhone 15 Pro Max", "PearPhone 16 Pro Max", "PearPhone 14 Pro Max",
+    "Universe S24 Ultra", "Universe S23 Ultra", "Universe Z Fold 5",
+    "Universe Z Flip 5", "PearPad Pro M2", "Siaomi 14", "Pipo X100 Pro",
   ];
   const RARE_POOL = [
-    "iPhone 15 Pro Max 1TB Natural Titanium",
-    "Galaxy Z Fold 5 1TB BNIB Sealed",
-    "iPhone 16 Pro Max Desert Titanium 256GB ex-resmi",
-    "iPad Pro M2 11\" Cellular 2TB",
-    "Galaxy S24 Ultra Titanium Yellow Korea spec",
-    "Xiaomi 14 Ultra Photography Kit",
+    "PearPhone 15 Pro Max 1TB Natural Titanium",
+    "Universe Z Fold 5 1TB BNIB Sealed",
+    "PearPhone 16 Pro Max Desert Titanium 256GB ex-resmi",
+    "PearPad Pro M2 11\" Cellular 2TB",
+    "Universe S24 Ultra Titanium Yellow Korea spec",
+    "Siaomi 14 Ultra Photography Kit",
   ];
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }

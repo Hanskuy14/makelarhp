@@ -33,7 +33,7 @@
     },
     {
       id: "fbPaidAds",
-      name: "FB Paid Ads",
+      name: "NB Paid Ads",
       blurb: "Boost listing reach via Gadgetbook Ads Manager.",
       effect: "Default Marketplace platform fee: 5% to 2% forever (Priority still 0%).",
       cost: 25_000_000,

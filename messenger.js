@@ -2,7 +2,7 @@
  * Flipping Tycoon: Gadget Broker
  * Part 10 — Messenger Overlay
  *
- * Top-bar Messenger button opens a Facebook-style chat list:
+ * Top-bar Messenger button opens a NetBook-style chat list:
  *   Active Chats   = ongoing negotiations (live & resumable)
  *     - Buyer chats: marketplace listings the player has talked to
  *     - Seller chats: the player's listings with offer-pending state

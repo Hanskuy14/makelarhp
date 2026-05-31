@@ -866,7 +866,7 @@
       type: "CREDIT",
       amount: net,
       balanceAfter: s.bankBalances[receivingBank],
-      description: `Sale of ${itemName} to ${buyerName}` + (isPriority ? " (Priority - 0% fee)" : ` (after ${(baseFee*100).toFixed(0)}% platform fee${s.upgrades && s.upgrades.fbPaidAds ? " via FB Ads" : ""})`),
+      description: `Sale of ${itemName} to ${buyerName}` + (isPriority ? " (Priority - 0% fee)" : ` (after ${(baseFee*100).toFixed(0)}% platform fee${s.upgrades && s.upgrades.fbPaidAds ? " via NB Ads" : ""})`),
       category: "sale",
       day: s.currentDay,
       ts: Date.now(),

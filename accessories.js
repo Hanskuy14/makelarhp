@@ -9,8 +9,8 @@
 
   /* ---------- OEM kit pricing by brand ---------- */
   const OEM_PRICES = {
-    Apple:   450_000,
-    Samsung: 300_000,
+    Pear:   450_000,
+    Sumsang: 300_000,
   };
   const OEM_DEFAULT_PRICE = 150_000;
 
@@ -18,8 +18,8 @@
     return OEM_PRICES[brand] != null ? OEM_PRICES[brand] : OEM_DEFAULT_PRICE;
   }
   function getOemKitLabel(brand) {
-    if (brand === "Apple")   return "Apple OEM Box Kit";
-    if (brand === "Samsung") return "Samsung OEM Box Kit";
+    if (brand === "Pear")   return "Pear OEM Box Kit";
+    if (brand === "Sumsang") return "Sumsang OEM Box Kit";
     return "Android/Other OEM Box Kit";
   }
 
@@ -152,13 +152,13 @@
       <div class="oem-price-legend">
         <div class="oem-price-row">
           <i class="fa-brands fa-apple" style="color:#1c1c1e"></i>
-          <span>Apple OEM Box Kit</span>
-          <span class="oem-price">${fmt(OEM_PRICES.Apple)}</span>
+          <span>Pear OEM Box Kit</span>
+          <span class="oem-price">${fmt(OEM_PRICES.Pear)}</span>
         </div>
         <div class="oem-price-row">
           <i class="fa-solid fa-mobile-screen" style="color:#1428a0"></i>
-          <span>Samsung OEM Box Kit</span>
-          <span class="oem-price">${fmt(OEM_PRICES.Samsung)}</span>
+          <span>Sumsang OEM Box Kit</span>
+          <span class="oem-price">${fmt(OEM_PRICES.Sumsang)}</span>
         </div>
         <div class="oem-price-row">
           <i class="fa-solid fa-mobile-screen-button" style="color:#6b7280"></i>
