@@ -359,6 +359,16 @@
             <i class="sidebar-icon fa-solid fa-handshake text-purple-600"></i>
             <span>Partnership Hub</span>
           </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="premium">
+            <i class="sidebar-icon fa-solid fa-gem text-amber-500"></i>
+            <span>Premium Unlocks</span>
+          </button>
+
+          <button class="sidebar-link sidebar-nav" data-page="editor" style="display:none">
+            <i class="sidebar-icon fa-solid fa-pen-to-square text-amber-600"></i>
+            <span>In-Game Editor</span>
+          </button>
         </div>
 
         <hr class="my-3 border-gray-300" />
@@ -534,6 +544,12 @@
         </button>
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="partnerships" type="button">
           <i class="sidebar-icon fa-solid fa-handshake text-purple-600"></i><span>Partnership Hub</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="premium" type="button">
+          <i class="sidebar-icon fa-solid fa-gem text-amber-500"></i><span>Premium Unlocks</span>
+        </button>
+        <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="editor" type="button" style="display:none">
+          <i class="sidebar-icon fa-solid fa-pen-to-square text-amber-600"></i><span>In-Game Editor</span>
         </button>
       </div>
       <footer class="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
@@ -1014,6 +1030,35 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       IN-GAME EDITOR MODAL (Part 34) — custom rename brand parodies
+  ============================================================= -->
+  <div id="editor-modal" class="hidden fixed inset-0 z-[140] bg-black/60 items-center justify-center p-4">
+    <div class="modal-box max-w-xl w-full" style="max-height: 90vh; overflow-y: auto;">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">In-Game Editor</h3>
+          <p class="text-xs text-gray-500">Kustom nama brand parody &middot; permanent unlock</p>
+        </div>
+      </div>
+      <div id="editor-body"></div>
+      <div class="modal-actions">
+        <button id="editor-cancel" class="modal-btn modal-btn-ghost" type="button">
+          <i class="fa-solid fa-xmark"></i> Cancel
+        </button>
+        <button id="editor-reset" class="modal-btn modal-btn-ghost" type="button">
+          <i class="fa-solid fa-rotate-left"></i> Reset Default
+        </button>
+        <button id="editor-apply" class="modal-btn modal-btn-primary" type="button">
+          <i class="fa-solid fa-check"></i> Terapkan Perubahan
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="gadgets.js"></script>
   <script src="market.js"></script>
   <script src="banking.js"></script>
@@ -1039,6 +1084,7 @@
   <script src="messenger.js"></script>
   <script src="chat.js"></script>
   <script src="logistics.js"></script>
+  <script src="editor.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
