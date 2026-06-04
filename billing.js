@@ -34,7 +34,7 @@ function beliInGameEditor() {
             if (window.FlippingTycoon) {
                 window.FlippingTycoon.State.data.isEditorUnlocked = true;
                 window.FlippingTycoon.saveGame();
-                alert("Terima kasih! Fitur In-Game Editor telah terbuka selamanya.");
+                window.FlippingTycoon.showToast("Terima kasih! Fitur In-Game Editor terbuka selamanya.", "success");
                 window.FlippingTycoon.renderAll();
             }
             
@@ -52,7 +52,7 @@ function simulasiBeliEditorWeb() {
         if (window.FlippingTycoon) {
             window.FlippingTycoon.State.data.isEditorUnlocked = true;
             window.FlippingTycoon.saveGame();
-            alert("✅ [Simulasi] In-Game Editor berhasil dibuka!");
+            window.FlippingTycoon.showToast("✅ [Simulasi] In-Game Editor berhasil dibuka!", "success");
             window.FlippingTycoon.renderAll();
         }
     }

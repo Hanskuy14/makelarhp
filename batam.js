@@ -568,16 +568,23 @@
         const ready = ships.filter(window.Logistics.isReady).length;
         const logiCard = document.createElement("div");
         logiCard.className = "fb-card batam-logi-tile";
+        // Bug #1 fix: proper responsive flex layout. The text block uses
+        // flex-1 + min-w-0 so it never collapses/squishes, and the button
+        // wraps full-width below the text on phones (inline on wider screens)
+        // instead of overlapping the text.
         logiCard.innerHTML = `
-          <div class="flex items-center gap-3">
-            <div class="upgrade-icon" style="background:#ecfeff;color:#0e7490;font-size:20px">
+          <div class="batam-logi-inner">
+            <div class="batam-logi-icon">
               <i class="fa-solid fa-truck-fast"></i>
             </div>
-            <div class="flex-1 min-w-0">
-              <h3>${ships.length} kargo Batam dalam perjalanan${ready > 0 ? ` &middot; <span class="text-emerald-600 font-bold">${ready} siap diklaim</span>` : ""}</h3>
-              <p class="text-sm text-gray-600">Pantau timer, tonton ad, atau klaim barang di tab Kargo / Logistik.</p>
+            <div class="batam-logi-text">
+              <h3 class="batam-logi-title">
+                ${ships.length} kargo Batam dalam perjalanan
+                ${ready > 0 ? `<span class="batam-logi-ready">${ready} siap diklaim</span>` : ""}
+              </h3>
+              <p class="batam-logi-sub">Pantau timer, tonton ad, atau klaim barang di tab Kargo / Logistik.</p>
             </div>
-            <button id="batam-logi-go" class="batam-order-btn" style="background:#0e7490">
+            <button id="batam-logi-go" class="batam-logi-btn" type="button">
               <i class="fa-solid fa-arrow-right"></i> Lihat Logistik
             </button>
           </div>

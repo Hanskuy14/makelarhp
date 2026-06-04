@@ -33,6 +33,52 @@
   function fmt(n) { return window.Market.formatRupiah(n); }
   function S() { return window.FlippingTycoon.State.data; }
 
+  /* Escape user-entered text before putting it in innerHTML. */
+  function esc(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  /* =========================================================
+   * Bug #3 — central bank-name state + live binding
+   *
+   * The bank account-holder name lives in ONE place
+   * (State.player.bankName). getBankName() resolves it (falling
+   * back to the player name), setBankName() mutates + persists +
+   * re-syncs, and syncBankNameUI() pushes the value into every
+   * bound DOM node (header pill + any [data-bind="bankName"]
+   * element such as the debit-card holder) WITHOUT a page reload.
+   * ========================================================= */
+  function getBankName() {
+    const p = S().player || {};
+    return (p.bankName && String(p.bankName).trim()) || p.name || "Player Broker";
+  }
+
+  function setBankName(raw) {
+    const s = S();
+    if (!s.player) s.player = {};
+    const clean = String(raw || "").trim().slice(0, 32);
+    s.player.bankName = clean || (s.player.name || "Player Broker");
+    window.FlippingTycoon.saveGame();
+    syncBankNameUI();
+    return s.player.bankName;
+  }
+
+  function syncBankNameUI() {
+    const name = getBankName();
+    // Header pill
+    const tb = document.querySelector("#topbar-bank-name");
+    if (tb) {
+      const v = tb.querySelector(".tb-bank-value");
+      if (v) v.textContent = name; else tb.textContent = name;
+    }
+    // Every element that opts into the binding (e.g. the debit card holder).
+    document.querySelectorAll('[data-bind="bankName"]').forEach((el) => {
+      el.textContent = name;
+    });
+  }
+
   /* ---------- Tier resolver ---------- */
   function tierOf(balance) {
     if (balance > 500_000_000) return "priority";
@@ -61,6 +107,15 @@
         </div>
         <button id="open-transfer" class="message-seller-btn" style="margin-top:0">
           <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer
+        </button>
+      </div>
+      <!-- Bug #3: edit the central bank name; syncs to header + cards live -->
+      <label class="text-xs font-semibold text-gray-500 mt-3 block">Nama Rekening / Bank</label>
+      <div class="bankname-editor">
+        <input id="bankname-input" class="bankname-input" type="text" maxlength="32"
+               value="${esc(getBankName())}" placeholder="Nama pemilik rekening" />
+        <button id="bankname-save" class="bankname-save-btn" type="button">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan
         </button>
       </div>
     `;
@@ -93,6 +148,23 @@
     setTimeout(() => {
       const btn = document.querySelector("#open-transfer");
       if (btn) btn.addEventListener("click", () => openTransferModal(activeKey));
+
+      // Bug #3 — wire the bank-name editor (Enter or Simpan both save).
+      const input = document.querySelector("#bankname-input");
+      const saveBtn = document.querySelector("#bankname-save");
+      if (input && saveBtn) {
+        const commit = () => {
+          const saved = setBankName(input.value);
+          input.value = saved;
+          if (window.FlippingTycoon && window.FlippingTycoon.showToast) {
+            window.FlippingTycoon.showToast("Nama bank diperbarui & disinkronkan.", "success");
+          }
+        };
+        saveBtn.addEventListener("click", commit);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+        });
+      }
     }, 0);
 
     return wrap;
@@ -209,7 +281,7 @@
       <div class="dc-row dc-bottom">
         <div>
           <p class="dc-label">Card Holder</p>
-          <p class="dc-holder">${S().player.name.toUpperCase()}</p>
+          <p class="dc-holder" data-bind="bankName">${esc(getBankName())}</p>
         </div>
         <div class="text-right">
           <p class="dc-label">Balance</p>
@@ -325,5 +397,8 @@
     tierLabel,
     BANK_META,
     TRANSFER_FEE,
+    getBankName,
+    setBankName,
+    syncBankNameUI,
   };
 })();

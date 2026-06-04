@@ -300,5 +300,15 @@
     toggle,
     refreshBadge,
     attachBellHandler,
+    // Bug #4 — shim so the long-standing Notifications.toast(...) calls
+    // (fjb.js, partnerships.js, selling.js, ...) resolve to the single
+    // global toast instead of throwing "toast is not a function".
+    toast(msg, type) {
+      if (window.FlippingTycoon && typeof window.FlippingTycoon.showToast === "function") {
+        window.FlippingTycoon.showToast(msg, type);
+      } else if (typeof window.showToast === "function") {
+        window.showToast(msg, type);
+      }
+    },
   };
 })();

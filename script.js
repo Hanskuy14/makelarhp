@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 15,
+      version: 16,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -23,6 +23,7 @@ function createDefaultState() {
     player: {
       name: "Player Broker",
       storeName: "Player Counter",
+      bankName: "Player Broker",   // Bug #3: central bank account-holder name
       cash: 0,
       followers: 0,
       reputation: 5.0,
@@ -333,6 +334,21 @@ const State = {
       }
       this.data.meta.version = 15;
     }
+
+    /* ------------------------------------------------------------------
+     * v16 — Bug #3: central bank account-holder name.
+     *
+     * Backfills player.bankName (defaults to the player's name) so the
+     * Banking tab can edit it and the header / debit cards can bind to
+     * a single source of truth.
+     * ------------------------------------------------------------------ */
+    if (version < 16) {
+      if (!this.data.player) this.data.player = { name: "Player Broker", cash: 0 };
+      if (typeof this.data.player.bankName !== "string" || !this.data.player.bankName.trim()) {
+        this.data.player.bankName = this.data.player.name || "Player Broker";
+      }
+      this.data.meta.version = 16;
+    }
   },
 };
 
@@ -508,6 +524,39 @@ function formatRupiah(n) {
 }
 
 function delay(ms) { return new Promise((res) => setTimeout(res, ms)); }
+
+/* =========================================================
+ * Bug #4 — Global Toast Notification System
+ *
+ * Single, app-wide replacement for native alert(). The toast
+ * slides up from the bottom of the screen and auto-dismisses.
+ * Exposed as window.FlippingTycoon.showToast(msg, type) and as
+ * a bare window.showToast(...) so every module (and the
+ * Notifications.toast shim) can share one implementation.
+ *
+ *   type: "success" | "error" | "info" (default "info")
+ * ========================================================= */
+function showToast(message, type) {
+  let toast = document.querySelector("#ft-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "ft-toast";
+    document.body.appendChild(toast);
+  }
+  const kind = ["success", "error", "info"].includes(type) ? type : "info";
+  toast.className = "ft-toast " + kind;     // reset modifiers each time
+  toast.textContent = String(message == null ? "" : message);
+
+  // Force a reflow so re-triggering the same toast replays the slide-up.
+  // eslint-disable-next-line no-unused-expressions
+  void toast.offsetWidth;
+  toast.classList.add("show");
+
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+// Bare global alias for modules that don't go through FlippingTycoon.
+window.showToast = showToast;
 
 /* =========================================================
  * Part 22 — Global Loading Overlay
@@ -818,6 +867,12 @@ function enterApp() {
   $("#home-screen").classList.add("hidden");
   $("#app").classList.remove("hidden");
   if (window.Market) window.Market.ensureDailyListings();
+  // Bug #2 — deliver any cargo that finished while the app was closed,
+  // then keep the real-time ticker running.
+  if (window.Logistics) {
+    if (window.Logistics.sweepDeliveries) window.Logistics.sweepDeliveries();
+    if (window.Logistics.startGlobalTicker) window.Logistics.startGlobalTicker();
+  }
   renderAll();
 }
 
@@ -850,6 +905,19 @@ function renderTopbar() {
   }
   const sbName = document.querySelector("#sidebar-profile-name");
   if (sbName) sbName.textContent = p.name || "Player Broker";
+
+  // Bug #3 — bind the central bank name to the header pill + any element
+  // that opts in with data-bind="bankName" (e.g. the debit-card holder).
+  const bankName = (p.bankName || p.name || "Player Broker");
+  const tbBank = document.querySelector("#topbar-bank-name");
+  if (tbBank) {
+    const valEl = tbBank.querySelector(".tb-bank-value");
+    if (valEl) valEl.textContent = bankName;
+    else tbBank.textContent = bankName;
+  }
+  document.querySelectorAll('[data-bind="bankName"]').forEach((el) => {
+    el.textContent = bankName;
+  });
 
   // Part 20 — Reputation badge in topbar
   const repMount = document.querySelector("#topbar-rep-mount");
@@ -1298,13 +1366,15 @@ function openMobileMenu() {
   overlay.classList.remove("hidden");
   panel.classList.add("is-open");
   document.body.style.overflow = "hidden";
-  // Sync header avatar/name with current profile
-  const p = (State.data && State.data.profile) || {};
+  // Sync header avatar/name with current profile.
+  // Bug fix: the player lives at State.data.player (not .profile), so the
+  // old code always fell back to the "Player Broker" placeholder and never
+  // reflected a renamed player.
+  const p = (State.data && State.data.player) || {};
   const avEl = document.querySelector("#mobile-menu-avatar");
   const nmEl = document.querySelector("#mobile-menu-name");
   if (avEl) {
-    const initial = (p.name || "P").charAt(0).toUpperCase();
-    avEl.textContent = initial;
+    avEl.textContent = p.avatar || (p.name || "P").charAt(0).toUpperCase();
   }
   if (nmEl) nmEl.textContent = p.name || "Player Broker";
 }
@@ -1422,4 +1492,6 @@ window.FlippingTycoon = {
   hideLoadingOverlay,
   isLoading,
   advanceToNextDay,
+  // Bug #4 — app-wide toast (replaces native alert)
+  showToast,
 };

@@ -6564,3 +6564,370 @@ body.dark .premium-tip {
 }
 body.dark .editor-row-label { color: #f3f4f6; }
 body.dark .editor-row-hint  { color: #9ca3af; }
+
+
+
+/* =========================================================
+   PART 33/FIX — Mobile polish, real-time logistics cards,
+   rewarded-ad overlay, toast system & bank-name sync.
+   (Appended fixes — kept at the end so they win cascade order.)
+========================================================= */
+
+/* ---------- Global native-app feel ---------- */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Hidden scrollbars for the scrollable page/main content (the fixed
+   header + fixed bottom nav stay put, the middle scrolls cleanly). */
+html, body { scrollbar-width: none; }
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+main::-webkit-scrollbar,
+#page-container::-webkit-scrollbar { display: none; }
+
+/* Physical touch feedback for primary action buttons. */
+.batam-logi-btn:active,
+.batam-order-btn:active,
+.ship-claim-btn:active,
+.ship-ad-btn:active,
+.cargo-pay-btn:active,
+.bankname-save-btn:active,
+.bankname-edit-btn:active { transform: scale(0.95); }
+
+/* ---------- Bug #1: Batam "active cargo" summary tile ---------- */
+.batam-logi-tile { border: 1px solid #a5f3fc; }
+.batam-logi-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;          /* lets the button drop below on phones */
+  gap: 12px;
+}
+.batam-logi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ecfeff;
+  color: #0e7490;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;           /* icon never squishes */
+}
+.batam-logi-text {
+  flex: 1 1 0%;             /* take the remaining space ... */
+  min-width: 0;             /* ... but allow text to wrap (no squish) */
+}
+.batam-logi-title {
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--fb-text);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.batam-logi-ready {
+  font-size: 11px;
+  font-weight: 800;
+  color: #047857;
+  background: #d1fae5;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+.batam-logi-sub {
+  font-size: 13px;
+  color: var(--fb-text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.batam-logi-btn {
+  flex: 1 1 100%;           /* full-width below text on phones */
+  justify-content: center;
+  background: linear-gradient(135deg, #0e7490 0%, #06b6d4 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  min-height: 44px;         /* comfortable touch target */
+}
+.batam-logi-btn:hover { opacity: 0.92; }
+@media (min-width: 480px) {
+  .batam-logi-btn { flex: 0 0 auto; }   /* sits beside text on wider screens */
+}
+
+/* ---------- Bug #1: Logistics page shipment cards ---------- */
+.shipment-card { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+.shipment-card-ready {
+  border: 1px solid #6ee7b7;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.18);
+}
+.shipment-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ship-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;           /* icon fixed width */
+}
+.ship-info {
+  flex: 1 1 0%;             /* THE fix: grow + ... */
+  min-width: 0;             /* ... allow wrapping instead of squishing */
+}
+.ship-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ship-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--fb-text);
+  line-height: 1.3;
+  word-break: break-word;
+}
+.ship-meta {
+  font-size: 12.5px;
+  color: var(--fb-text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.ship-source-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.ship-timer-box {
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 78px;
+}
+.ship-timer-label { font-size: 11px; color: var(--fb-text-muted); }
+.ship-timer {
+  font-weight: 800;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums; /* digits don't jitter as they tick */
+  letter-spacing: 0.02em;
+}
+
+.ship-progress-track {
+  margin-top: 12px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+.ship-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.6s linear;
+}
+
+.ship-actions {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ship-claim-btn,
+.ship-ad-btn {
+  width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease;
+}
+.ship-claim-btn {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+}
+.ship-claim-btn:hover { opacity: 0.92; }
+.ship-ad-btn {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.ship-ad-btn:hover { background: #dbeafe; }
+.ship-ad-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.ship-ad-btn[disabled]:active { transform: none; }
+
+.ship-ad-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
+.ship-ad-note.ok { color: #047857; }
+
+/* ---------- Rewarded-ad full-screen overlay ---------- */
+.ad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.ad-overlay.hidden { display: none; }
+.ad-overlay.flex { display: flex; }
+.ad-overlay-card {
+  width: 100%;
+  max-width: 340px;
+  background: #0b1220;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 24px 22px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.ad-overlay-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  margin-bottom: 14px;
+}
+.ad-overlay-art {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  color: #fff;
+  animation: adPulse 1s ease-in-out infinite;
+}
+@keyframes adPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+  50%      { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); }
+}
+.ad-overlay-title { font-size: 16px; font-weight: 700; }
+.ad-overlay-sub { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+.ad-overlay-track {
+  margin-top: 16px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.ad-overlay-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  transition: width 0.08s linear;
+}
+
+/* ---------- Toast system (bug #4) — slides up from bottom ---------- */
+.ft-toast {
+  max-width: min(86vw, 420px);
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
+}
+.ft-toast.success { background: #047857; }
+.ft-toast.error   { background: #b91c1c; }
+.ft-toast.info    { background: #1f2937; }
+
+/* ---------- Bug #3: bank-name header pill + edit field ---------- */
+#topbar-bank-name {
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 200px;
+}
+#topbar-bank-name .tb-bank-label { opacity: 0.8; }
+#topbar-bank-name .tb-bank-value {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bankname-editor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.bankname-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  border: 1px solid var(--fb-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--fb-text);
+}
+.bankname-input:focus {
+  outline: none;
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+.bankname-save-btn {
+  flex-shrink: 0;
+  background: var(--fb-blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.bankname-save-btn:hover { background: var(--fb-blue-dark); }
+
+/* ---------- Dark-mode touch-ups for the new components ---------- */
+body.dark .ship-progress-track { background: #334155; }
+body.dark .ship-ad-btn { background: #1e293b; color: #93c5fd; border-color: #334155; }
+body.dark .ship-ad-btn:hover { background: #273449; }
+body.dark .bankname-input { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+body.dark .batam-logi-icon { background: #0e2a33; }
+
+
+
+/* Keep the debit-card holder uppercase now that the name is bound live
+   (was previously .toUpperCase()'d in JS). */
+.debit-card .dc-holder { text-transform: uppercase; }
