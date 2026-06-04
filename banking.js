@@ -8,22 +8,22 @@
 
   const BANK_META = {
     Mandiri: {
-      name: "Bank Mandiri",
-      short: "Mandiri",
+      name: "Bank Mandari",
+      short: "Mandari",
       number: "1370 0099 8842 11",
       logo: "M",
       themeClass: "bank-mandiri",   // navy + yellow
     },
     BCA: {
-      name: "Bank Central Asia",
-      short: "BCA",
+      name: "Bank Cuan Asia",
+      short: "BKA",
       number: "8451 7220 9135",
       logo: "B",
       themeClass: "bank-bca",       // blue + white
     },
     BNI: {
-      name: "Bank Negara Indonesia",
-      short: "BNI",
+      name: "Bank Neo Indo",
+      short: "BNO",
       number: "0312 4567 8900",
       logo: "N",
       themeClass: "bank-bni",       // teal + orange
@@ -217,7 +217,7 @@
         </div>
       </div>
       <div class="dc-network">
-        <i class="fa-brands fa-cc-visa"></i>
+        <span class="font-bold italic text-xl tracking-wider" style="font-family: sans-serif;">VASA</span>
       </div>
     `;
     return card;

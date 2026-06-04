@@ -408,8 +408,18 @@
 
     const claimBtn = card.querySelector(".ship-claim-btn");
     if (claimBtn) claimBtn.addEventListener("click", () => claimShipment(ship.id));
-    const adBtn = card.querySelector(".ship-ad-btn");
-    if (adBtn) adBtn.addEventListener("click", () => showRewardedAd(ship.id));
+const adBtn = card.querySelector(".ship-ad-btn");
+if (adBtn) {
+    adBtn.addEventListener("click", () => {
+        if (window.AdsEngine) {
+            // Panggil Iklan Asli AdMob
+            window.AdsEngine.playRewardedAd(ship.id);
+        } else {
+            // Fallback ke fungsi lama
+            showRewardedAd(ship.id);
+        }
+    });
+}
 
     return card;
   }

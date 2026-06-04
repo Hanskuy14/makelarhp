@@ -1,17 +1,17 @@
 /* =========================================================
  * Flipping Tycoon: Gadget Broker
- * Part 21 — Grup WA Reseller VIP
+ * Part 21 — Grup Chat Reseller VIP
  *
  * A late-game bulk-selling QoL feature. Once the player is
  * Suhu (rep > 70) AND has net worth >= Rp 100.000.000, a new
  * "Grup Reseller VIP" menu unlocks.
  *
  * From Inventory the player tick-selects 5..10 items, hits
- * "Share ke Grup VIP", and a WhatsApp/Telegram-style group-chat
+ * "Share ke Grup VIP", and a messenger-style group-chat
  * modal opens. AI members ("Toko Budi", "Andi Cell", ...) race
  * to reply. The first reply wins the borongan — all selected
  * items vanish from inventory, cash hits the chosen bank, and
- * the broadcast lands in the WA Group history.
+ * the broadcast lands in the Chat Group history.
  *
  * State stored on:
  *   data.waGroup = { history: [{...}], lastBank: "Mandiri" }
@@ -146,17 +146,6 @@
 
   /* =========================================================
    * Part 26 — "Pilih Max (Auto-Select)" Quality of Life
-   *
-   * Auto-select the first X eligible inventory items where
-   *   X = Math.min(MAX_SELECT, inventory.length)
-   *
-   * Examples (per spec):
-   *   - 500 inventory → selects 100 (capped at MAX_SELECT)
-   *   - 45 inventory  → selects 45  (all of them)
-   *   - 0 inventory   → selects 0   (no-op, returns 0)
-   *
-   * Replaces any prior selection so the player gets a clean
-   * "auto-fill the broadcast" one-click experience.
    * ========================================================= */
   function selectMax() {
     ensureState();
@@ -202,7 +191,7 @@
     header.innerHTML = `
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <h3 class="flex items-center gap-2"><i class="fa-brands fa-whatsapp text-[#25D366]"></i> Grup Reseller VIP</h3>
+          <h3 class="flex items-center gap-2"><i class="fa-solid fa-comments text-emerald-500"></i> Grup Chat Reseller VIP</h3>
           <p class="text-sm text-gray-500">Borongan ke "Grup Mafia HP Pusat" — sell out 5–10 unit dalam satu klik.</p>
         </div>
         <div class="text-right">
@@ -244,17 +233,17 @@
     if (unlocked) {
       const sel = getSelectedItems();
       ctaCard.innerHTML = `
-        <h3 class="mb-2"><i class="fa-brands fa-whatsapp text-[#25D366]"></i> Mulai Borongan</h3>
+        <h3 class="mb-2"><i class="fa-solid fa-comments text-emerald-500"></i> Mulai Borongan</h3>
         <p class="text-sm text-gray-600 mb-3">
           Buka tab <b>Inventory</b>, centang ${MIN_SELECT}–${MAX_SELECT} unit yang mau dijual borongan,
-          lalu klik <b>Share ke Grup VIP</b>. Modal chat WA akan muncul dan AI reseller akan langsung respon.
+          lalu klik <b>Share ke Grup VIP</b>. Modal chat akan muncul dan AI reseller akan langsung respon.
         </p>
         <p class="text-sm text-gray-500 mb-3">Currently selected: <b class="${sel.length > 0 ? "text-emerald-700" : "text-gray-500"}">${sel.length} items</b></p>
         <div class="flex gap-2 flex-wrap">
           <button id="wa-goto-inv" class="modal-btn modal-btn-primary"><i class="fa-solid fa-boxes-stacked"></i> Pergi ke Inventory</button>
           ${sel.length >= MIN_SELECT
-            ? `<button id="wa-broadcast-now" class="modal-btn" style="background:#25D366;color:#fff"><i class="fa-brands fa-whatsapp"></i> Broadcast ${sel.length} item</button>`
-            : `<button class="modal-btn modal-btn-ghost" disabled><i class="fa-brands fa-whatsapp"></i> Pilih min ${MIN_SELECT} item dulu</button>`}
+            ? `<button id="wa-broadcast-now" class="modal-btn" style="background:#10b981;color:#fff"><i class="fa-solid fa-paper-plane"></i> Broadcast ${sel.length} item</button>`
+            : `<button class="modal-btn modal-btn-ghost" disabled><i class="fa-solid fa-paper-plane"></i> Pilih min ${MIN_SELECT} item dulu</button>`}
         </div>
       `;
     } else {
@@ -306,7 +295,7 @@
 
 
   /* =========================================================
-   * The WA group-chat broadcast modal (mini-game)
+   * The Chat group broadcast modal (mini-game)
    * ========================================================= */
 
   let modalState = null;  // { items, askingPrice, claimedBy, timers, msgs }
@@ -484,7 +473,7 @@
       type: "CREDIT",
       amount: cash,
       balanceAfter: s.bankBalances[bankKey],
-      description: `WA Group VIP borongan: ${items.length} unit ke ${buyer.name}`,
+      description: `Chat Group VIP borongan: ${items.length} unit ke ${buyer.name}`,
       category: "wa-vip-bulk",
       day: s.currentDay,
       ts: Date.now(),
@@ -545,16 +534,16 @@
         message: `${items.length} unit terjual ke Grup Mafia HP Pusat → ${fmt(cash)} masuk ${bankKey}.`,
         actionPage: "wa-vip",
         actor: buyer.name,
-        icon: "whatsapp",
+        icon: "comments",
       });
     }
 
-    // Part 43 — Reputation: +3 once per borongan (chat-driven sale via WA
+    // Part 43 — Reputation: +3 once per borongan (chat-driven sale via Chat
     // group). The bulk discount already trades cash for QoL — players
     // still earn rep for using the channel actively.
     if (window.Reputation && window.Reputation.onMarketplaceSale) {
       window.Reputation.onMarketplaceSale({
-        reason: `WA Group borongan: ${items.length} unit ke ${buyer.name}`,
+        reason: `Chat Group borongan: ${items.length} unit ke ${buyer.name}`,
       });
     }
 

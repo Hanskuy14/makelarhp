@@ -49,12 +49,12 @@
    * `placeholder` shown in the input when the player hasn't customized
    * ------------------------------------------- */
   const BRAND_PARODIES = [
-    { id: "pear",    canonical: "Pear",    label: "Pear / PearPhone", placeholder: "Pear",    hint: "Contoh: Apple" },
-    { id: "sumsang", canonical: "Sumsang", label: "Sumsang",          placeholder: "Sumsang", hint: "Contoh: Samsung" },
-    { id: "siaomi",  canonical: "Siaomi",  label: "Siaomi",           placeholder: "Siaomi",  hint: "Contoh: Xiaomi" },
-    { id: "pipo",    canonical: "Pipo",    label: "Pipo",             placeholder: "Pipo",    hint: "Contoh: Vivo" },
-    { id: "ope",     canonical: "Ope",     label: "Ope",              placeholder: "Ope",     hint: "Contoh: Oppo" },
-    { id: "netbook", canonical: "NetBook", label: "NetBook",          placeholder: "NetBook", hint: "Contoh: Facebook" },
+    { id: "pear",    canonical: "Pear",    label: "Pear / PearPhone", placeholder: "Pear",    hint: "Contoh: " },
+    { id: "sumsang", canonical: "Sumsang", label: "Sumsang",          placeholder: "Sumsang", hint: "Contoh: " },
+    { id: "siaomi",  canonical: "Siaomi",  label: "Siaomi",           placeholder: "Siaomi",  hint: "Contoh: " },
+    { id: "pipo",    canonical: "Pipo",    label: "Pipo",             placeholder: "Pipo",    hint: "Contoh: " },
+    { id: "ope",     canonical: "Ope",     label: "Ope",              placeholder: "Ope",     hint: "Contoh: " },
+    { id: "netbook", canonical: "NetBook", label: "NetBook",          placeholder: "NetBook", hint: "Contoh: " },
   ];
 
   // Longest canonical first so "Sumsang" wins over a (hypothetical) "Sum"
@@ -276,8 +276,7 @@
         <div class="flex-1 min-w-0">
           <h3 class="premium-card-title">In-Game Editor Pack</h3>
           <p class="text-sm text-gray-600 mt-1">
-            Custom-rename semua brand parody di game. Ganti "Pear" jadi "Apple",
-            "Sumsang" jadi "Samsung", "Siaomi" jadi "Xiaomi", dan seterusnya.
+            Custom-rename semua brand parody di game.
             Update real-time tanpa restart, tersimpan permanent.
           </p>
           <ul class="premium-perks">
@@ -379,8 +378,8 @@
       <p class="text-xs text-cyan-700 mb-4">
         <i class="fa-solid fa-circle-info"></i>
         Custom name juga dipakai sebagai prefix model
-        (mis. ketik <b>Apple</b> &rarr; "PearPhone X" jadi "ApplePhone X").
-        Kalau mau hasil natural, ketik <b>"Apple "</b> dengan spasi di belakang.
+        (mis. ketik <b>Cherry</b> &rarr; "PearPhone X" jadi "CherryPhone X").
+        Kalau mau hasil natural, ketik <b>"Cherry "</b> dengan spasi di belakang.
       </p>
       <div class="editor-grid">
         ${BRAND_PARODIES.map((p) => {
