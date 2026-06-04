@@ -192,7 +192,12 @@
     const B = window.Branches;
     if (!B) return;
     const modal = document.querySelector("#transfer-branch-modal");
-    if (!modal) { alert("Transfer modal not loaded."); return; }
+    if (!modal) {
+      if (window.FlippingTycoon && window.FlippingTycoon.showToast) {
+        window.FlippingTycoon.showToast("Transfer modal belum termuat.", "error");
+      }
+      return;
+    }
     const body = modal.querySelector("#transfer-branch-body");
     const cancelBtn = modal.querySelector("#transfer-branch-cancel");
     const titleEl = modal.querySelector("#transfer-branch-title");

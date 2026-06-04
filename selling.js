@@ -106,8 +106,8 @@
       const used = window.RealEstate.displayUsed();
       if (window.Notifications && window.Notifications.toast) {
         window.Notifications.toast(`Etalase penuh (${used}/${cap}). Upgrade Ruko atau jual barang dulu.`);
-      } else {
-        alert(`Etalase penuh (${used}/${cap}).`);
+      } else if (window.FlippingTycoon && window.FlippingTycoon.showToast) {
+        window.FlippingTycoon.showToast(`Etalase penuh (${used}/${cap}).`, "error");
       }
       return null;
     }

@@ -775,10 +775,12 @@
   }
 
   function showToast(msg) {
-    if (window.Notifications && window.Notifications.toast) {
+    if (window.FlippingTycoon && window.FlippingTycoon.showToast) {
+      window.FlippingTycoon.showToast(msg);
+    } else if (window.Notifications && window.Notifications.toast) {
       window.Notifications.toast(msg);
-    } else {
-      alert(msg);
+    } else if (typeof window.showToast === "function") {
+      window.showToast(msg);
     }
   }
 

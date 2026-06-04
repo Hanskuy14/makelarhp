@@ -216,6 +216,11 @@
 
       <!-- Right: day pill + icons -->
       <div class="flex items-center gap-2 flex-1 justify-end">
+        <!-- Bug #3: central bank name, synced live via renderTopbar() -->
+        <div id="topbar-bank-name" class="hidden sm:flex" title="Nama rekening (ubah di tab Banking)">
+          <i class="fa-solid fa-building-columns"></i>
+          <span class="tb-bank-value">Player Broker</span>
+        </div>
         <div class="hidden sm:flex items-center bg-white/15 rounded-full px-3 py-1.5 text-sm font-semibold">
           <i class="fa-regular fa-calendar mr-2"></i>
           <span>Day </span>
