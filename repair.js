@@ -15,6 +15,62 @@
     "Layar Retak":            1_500_000,
   };
 
+  /* =========================================================
+   * UPDATE: "Foldable Phones & Extreme Repair Risks"
+   * Part C — Punishing repair economics + COD warning
+   * ========================================================= */
+
+  /* Extreme foldable repair fees (Rp 3jt – 7jt), keyed by defect.type. */
+  const FOLDABLE_REPAIR_COSTS = {
+    "Engsel Longgar":     3_000_000,
+    "Dead Pixel Lipatan": 4_500_000,
+    "Layar Lipat Bocor":  7_000_000,
+  };
+
+  /* Foldable repairs are complex => fixed 2 in-game days.
+   * Premium Tools does NOT make these instant (special parts must ship). */
+  const FOLDABLE_REPAIR_DAYS = 2;
+
+  /** Resolve the repair fee for an item (extreme foldable OR standard). */
+  function getRepairCost(item) {
+    if (!item || !item.defect) return 0;
+    const GD = window.GadgetData;
+    if (GD && GD.isFoldableDefect(item.defect)) {
+      return FOLDABLE_REPAIR_COSTS[item.defect.type] || 0;
+    }
+    return REPAIR_COSTS[item.defect.type] || 0;
+  }
+
+  /** Resolve repair duration in days. Foldable bombs override Premium Tools. */
+  function getRepairDurationDays(item) {
+    const GD = window.GadgetData;
+    if (GD && item && GD.isFoldableDefect(item.defect)) {
+      return FOLDABLE_REPAIR_DAYS;            // always 2 days, never instant
+    }
+    const instant = !!(S().upgrades && S().upgrades.premiumTools);
+    return instant ? 0 : 1;
+  }
+
+  /**
+   * Fire a loud warning when an extreme foldable defect is discovered
+   * during COD inspection. Called from the chat.js COD hook.
+   */
+  function warnFoldableDefect(defect) {
+    if (!defect) return;
+    const cost = FOLDABLE_REPAIR_COSTS[defect.type] || 0;
+    showToast(`⚠️ WARNING: ${defect.type} terdeteksi! Biaya servis diprediksi ${fmt(cost)} (${FOLDABLE_REPAIR_DAYS} hari)!`);
+    if (window.Notifications) {
+      window.Notifications.add({
+        type: "alert",
+        title: "Extreme Foldable Defect!",
+        message: `${defect.type} — ${defect.desc} Estimasi servis ${fmt(cost)}, makan ${FOLDABLE_REPAIR_DAYS} hari kerja.`,
+        actionPage: "repair",
+        actor: "COD Inspection",
+        icon: "triangle-exclamation",
+      });
+    }
+  }
+
   /* ---------- IMEI tembak service constants (Part 6) ---------- */
   const IMEI_TEMBAK_COST = 2_000_000;
   const IMEI_TEMBAK_DAYS = 2;
@@ -249,7 +305,7 @@
 
   function renderRepairRow(item, locked) {
     const s = S();
-    const cost = REPAIR_COSTS[item.defect.type] || 0;
+    const cost = getRepairCost(item); // UPDATE: extreme foldable OR standard fee
     const accent = item.accent || "#1c1c1e";
     const iconName = item.icon === "tablet" ? "tablet-screen-button" : "mobile-screen-button";
     const row = document.createElement("div");
@@ -311,7 +367,14 @@
         </button>`;
     }).join("");
 
-    const instant = !!(S().upgrades && S().upgrades.premiumTools);
+    const days       = getRepairDurationDays(item); // 0 instant | 1 std | 2 foldable
+    const instant    = days === 0;
+    const isFoldable  = !!(window.GadgetData && window.GadgetData.isFoldableDefect(item.defect));
+    const timeNote   = isFoldable
+      ? `Servis foldable kompleks — butuh ${FOLDABLE_REPAIR_DAYS} hari (tidak bisa instan walau punya Premium Tools).`
+      : instant
+        ? "Premium Tools aktif - selesai INSTAN."
+        : "Servis selesai 1 hari kerja (selesai setelah Next Day).";
     body.innerHTML = `
       <div class="relist-summary">
         <p class="text-xs text-gray-500">Item</p>
@@ -320,9 +383,9 @@
         <p class="font-semibold text-rose-700">${item.defect.type}</p>
         <p class="text-xs text-gray-500 mt-2">Biaya servis</p>
         <p class="text-xl font-bold">${fmt(cost)}</p>
-        <p class="text-xs ${instant ? "text-emerald-700" : "text-gray-500"} mt-1">
+        <p class="text-xs ${instant ? "text-emerald-700" : isFoldable ? "text-rose-700" : "text-gray-500"} mt-1">
           <i class="fa-solid fa-clock"></i>
-          ${instant ? "Premium Tools aktif - selesai INSTAN." : "Servis selesai 1 hari kerja (selesai setelah Next Day)."}
+          ${timeNote}
         </p>
       </div>
       <p class="text-sm font-semibold mb-2">Bayar dari rekening mana?</p>
@@ -358,10 +421,11 @@
       ts: Date.now(),
     });
 
-    const instant = !!(s.upgrades && s.upgrades.premiumTools);
+    const days    = getRepairDurationDays(item); // 0 instant | 1 std | 2 foldable
+    const instant = days === 0;
     item.repair = {
       startDay: s.currentDay,
-      completesOnDay: instant ? s.currentDay : s.currentDay + 1,
+      completesOnDay: s.currentDay + days,
       paidFee: cost,
       sourceBank,
       status: instant ? "completed" : "in-progress",
@@ -724,5 +788,10 @@
     IMEI_TEMBAK_COST,
     IMEI_TEMBAK_DAYS,
     IMEI_BLOCK_CHANCE,
+    getRepairCost,          // NEW
+    getRepairDurationDays,  // NEW
+    warnFoldableDefect,     // NEW
+    FOLDABLE_REPAIR_COSTS,  // NEW
+    FOLDABLE_REPAIR_DAYS,   // NEW
   };
 })();

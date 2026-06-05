@@ -95,7 +95,7 @@
     const finalPrice = computeFinalPrice(gadget.basePrice, completeness, defect, gadget.brand, isExInter);
     const avatarColor = AVATAR_COLORS[randInt(0, AVATAR_COLORS.length - 1)];
 
-    return {
+    const listing = {
       listingId: uid(),
       gadgetId: gadget.id,
       name: gadget.model,
@@ -119,6 +119,9 @@
       haggleState: null,      // null | "accepted" | "rejected"
       currentPrice: finalPrice, // may drop after a successful haggle
     };
+
+    // UPDATE ("Foldable…"): roll the extreme-defect trap before returning.
+    return applyFoldableRisk(listing, gadget);
   }
 
   function makeDescription(gadget, completeness, defect, isExInter) {
@@ -133,6 +136,70 @@
     }
     lines.push(`Serius minat boleh PM langsung, no afgan no php ya bro/sis 🙏`);
     return lines.join("\n");
+  }
+
+  /* =========================================================
+   * UPDATE: "Foldable Phones & Extreme Repair Risks"
+   * Part B — Marketplace risk engine for foldables
+   * ========================================================= */
+
+  const FOLDABLE_EXTREME_CHANCE = 0.40; // % chance a risky foldable carries a bomb
+  const FOLDABLE_HIDDEN_CHANCE  = 0.50; // of those, % that stay HIDDEN until COD
+
+  /**
+   * Rolls the extreme-defect trap for a freshly-built foldable listing.
+   *
+   * Trigger: gadget is a foldable AND it spawned either "Batangan" (HP Only)
+   *          OR with any minus (defect.severity > 0).
+   *
+   *  - VISIBLE bomb => overwrite listing.defect + re-price DOWN, so the danger
+   *                    is on full display (cheap, but obviously broken).
+   *  - HIDDEN bomb  => price stays attractive; the bomb is stashed on
+   *                    listing.foldableHiddenDefect and only surfaces during
+   *                    the COD inspection phase (see chat.js wiring).
+   *
+   * Mutates `listing` in place. Safe to call on every listing.
+   */
+  function applyFoldableRisk(listing, gadget) {
+    const GD = window.GadgetData;
+    if (!GD.isFoldableGadget(gadget)) return listing;
+
+    const isBatangan = listing.completeness && listing.completeness.short === "Batangan";
+    const isMinus    = listing.defect && listing.defect.severity > 0;
+    if (!isBatangan && !isMinus) return listing;               // clean unit, no trap
+    if (Math.random() >= FOLDABLE_EXTREME_CHANCE) return listing; // dodged the bullet
+
+    // Pick one exclusive extreme defect.
+    const pool    = GD.FOLDABLE_DEFECT_OPTIONS;
+    const extreme = pool[Math.floor(Math.random() * pool.length)];
+    const hidden  = Math.random() < FOLDABLE_HIDDEN_CHANCE;
+
+    if (hidden) {
+      // Looks like a normal/clean deal; the bomb only detonates at COD.
+      listing.foldableHiddenDefect = extreme;
+    } else {
+      // Danger shown up-front: swap defect + re-price the listing down.
+      listing.defect       = extreme;
+      listing.finalPrice   = computeFinalPrice(
+        gadget.basePrice, listing.completeness, extreme, gadget.brand, listing.isExInter
+      );
+      listing.currentPrice = listing.finalPrice;
+      listing.description  += `\n⚠️ CATATAN: Unit foldable ini ada minus berat "${extreme.type}". ${extreme.desc}`;
+    }
+    return listing;
+  }
+
+  /**
+   * Promotes a stashed hidden foldable defect onto the listing.
+   * Called from the COD inspection hook in chat.js. Returns the defect or null.
+   */
+  function revealFoldableDefect(listing) {
+    if (!listing || !listing.foldableHiddenDefect) return null;
+    const def = listing.foldableHiddenDefect;
+    listing.defect             = def;        // becomes the real condition
+    listing.hiddenDefect       = def.type;   // string flag reused by inventory UI
+    listing.foldableHiddenDefect = null;     // consumed
+    return def;
   }
 
   /* ---------- Daily listings (5-8 per day) ---------- */
@@ -402,5 +469,7 @@
     removeListing,
     formatRupiah,
     computeCurrentMarketPrice,
+    applyFoldableRisk,    // NEW
+    revealFoldableDefect, // NEW
   };
 })();

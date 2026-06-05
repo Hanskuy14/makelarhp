@@ -106,11 +106,57 @@ const AVATAR_COLORS = [
   "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#ec4899",
 ];
 
+/* =========================================================
+ * UPDATE: "Foldable Phones & Extreme Repair Risks"
+ * Part A — Premium Foldable tier + exclusive extreme defects
+ * ========================================================= */
+
+/* New PREMIUM foldable units (parody). Extreme base prices
+ * (Rp 15jt–25jt) => massive margins, but a brutal repair downside.
+ * `tier: "foldable"` flags them for the risk engine in market.js. */
+const FOLDABLE_GADGETS = [
+  { id: "z-fold-6", brand: "Sumsang", model: "Universe Z Fold 6", tier: "foldable", specs: { ram: "12GB", rom: "512GB", color: "Silver Shadow" }, basePrice: 24_000_000, year: 2024, icon: "phone", accent: "#1428a0" },
+  { id: "z-flip-6", brand: "Sumsang", model: "Universe Z Flip 6", tier: "foldable", specs: { ram: "12GB", rom: "256GB", color: "Peach Crush"   }, basePrice: 16_000_000, year: 2024, icon: "phone", accent: "#1428a0" },
+];
+
+/* Merge premium foldables into the master catalog. */
+GADGET_DATABASE.push(...FOLDABLE_GADGETS);
+
+/* Exclusive "extreme" defects — ONLY foldables can ever roll these.
+ * Same object shape as DEFECT_OPTIONS, so the Market / Repair / Inventory
+ * UIs render them with NO extra changes. severity:4 => angry red badge.
+ * `foldable: true` is the robust flag the Repair engine keys on. */
+const FOLDABLE_DEFECT_OPTIONS = [
+  { type: "Engsel Longgar",     short: "Engsel Longgar", multiplier: 0.72, severity: 4, haggleAcceptRate: 0.80, foldable: true,
+    desc: "Engsel (hinge) sudah oblak/longgar, layar tidak menutup rapat. Wajib ganti modul engsel." },
+  { type: "Layar Lipat Bocor",  short: "Inner Bocor",    multiplier: 0.60, severity: 4, haggleAcceptRate: 0.90, foldable: true,
+    desc: "Inner screen (layar lipat dalam) bocor — blob tinta hitam di garis lipatan. Ganti panel super mahal." },
+  { type: "Dead Pixel Lipatan", short: "Dead Pixel",     multiplier: 0.68, severity: 4, haggleAcceptRate: 0.85, foldable: true,
+    desc: "Garis dead pixel tepat di lipatan layar. Tidak bisa diperbaiki parsial, harus ganti layar utuh." },
+];
+
+/* Is this gadget a foldable? Covers BOTH the new premium tier
+ * (tier:"foldable") AND the existing Z Fold/Flip catalog entries. */
+function isFoldableGadget(gadget) {
+  if (!gadget) return false;
+  if (gadget.tier === "foldable") return true;
+  return /^z-(fold|flip)/.test(String(gadget.id || ""));
+}
+
+/* Is this defect one of the extreme foldable-only defects? */
+function isFoldableDefect(defect) {
+  return !!(defect && (defect.foldable === true ||
+    FOLDABLE_DEFECT_OPTIONS.some((d) => d.type === defect.type)));
+}
+
 /* Expose for other modules (we are not using ES modules) */
 window.GadgetData = {
   GADGET_DATABASE,
   COMPLETENESS_OPTIONS,
   DEFECT_OPTIONS,
+  FOLDABLE_DEFECT_OPTIONS, // NEW: extreme foldable-only defects
   SELLER_NAMES,
   AVATAR_COLORS,
+  isFoldableGadget,        // NEW
+  isFoldableDefect,        // NEW
 };
