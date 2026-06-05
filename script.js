@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 16,
+      version: 17,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -87,6 +87,8 @@ function createDefaultState() {
     /* Part 34 — Premium IAP unlocks */
     isEditorUnlocked: false,            // Part 34: non-consumable IAP flag (item_editor_unlock)
     brandMapping: {},                   // Part 34: { pear: "Apple", sumsang: "Samsung", ... }
+    /* Audio update — persisted player audio preferences */
+    settings: { bgmMuted: false, sfxMuted: false },
   };
 }
 
@@ -349,6 +351,23 @@ const State = {
       }
       this.data.meta.version = 16;
     }
+
+    /* ------------------------------------------------------------------
+     * v17 — Audio update: persisted BGM/SFX mute preferences.
+     *
+     * Backfills State.data.settings so AudioManager can read/write the
+     * player's audio choice through the normal save pipeline without
+     * tripping on `undefined` for legacy saves.
+     * ------------------------------------------------------------------ */
+    if (version < 17) {
+      if (!this.data.settings || typeof this.data.settings !== "object") {
+        this.data.settings = { bgmMuted: false, sfxMuted: false };
+      } else {
+        if (typeof this.data.settings.bgmMuted !== "boolean") this.data.settings.bgmMuted = false;
+        if (typeof this.data.settings.sfxMuted !== "boolean") this.data.settings.sfxMuted = false;
+      }
+      this.data.meta.version = 17;
+    }
   },
 };
 
@@ -546,6 +565,10 @@ function showToast(message, type) {
   const kind = ["success", "error", "info"].includes(type) ? type : "info";
   toast.className = "ft-toast " + kind;     // reset modifiers each time
   toast.textContent = String(message == null ? "" : message);
+
+  // Audio update — every error toast is one chokepoint, so wire the
+  // "invalid action" buzz here instead of at dozens of call sites.
+  if (kind === "error" && window.AudioManager) window.AudioManager.playErrorBuzz();
 
   // Force a reflow so re-triggering the same toast replays the slide-up.
   // eslint-disable-next-line no-unused-expressions
@@ -866,6 +889,9 @@ function showOnboardingModal() {
 function enterApp() {
   $("#home-screen").classList.add("hidden");
   $("#app").classList.remove("hidden");
+  // Audio update — player is now in-game (and arrived via a Start/Continue
+  // click, i.e. a real user gesture), so it's safe to kick off the BGM.
+  if (window.AudioManager) window.AudioManager.onEnterApp();
   if (window.Market) window.Market.ensureDailyListings();
   // Bug #2 — deliver any cargo that finished while the app was closed,
   // then keep the real-time ticker running.
@@ -1458,6 +1484,10 @@ document.addEventListener("DOMContentLoaded", () => {
   registerServiceWorker();
   // Part 14: Dark mode init + wire toggles
   initDarkMode();
+  // Audio update — preload audio, arm the autoplay-unlock gesture, wire
+  // the topbar Music/Sounds toggles. Nothing actually plays until the
+  // player's first interaction (browser autoplay policy).
+  if (window.AudioManager) window.AudioManager.init();
 
   wireUpEvents();
   if (window.Notifications) window.Notifications.attachBellHandler();

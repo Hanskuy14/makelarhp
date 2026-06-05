@@ -121,6 +121,8 @@
     listing.chatLog.push(msg);
     renderBubble(msg);
     scrollToBottom();
+    // Audio update — pop when the AI reseller replies (COD negotiation chat).
+    if (from === "seller" && window.AudioManager) window.AudioManager.playChatPop();
     window.FlippingTycoon.saveGame();
   }
 

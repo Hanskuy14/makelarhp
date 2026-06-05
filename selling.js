@@ -639,6 +639,8 @@
     listing.chatLog.push(msg);
     renderBubble(msg);
     scrollToBottom();
+    // Audio update — pop when a buyer/AI reseller replies in the deal chat.
+    if (from === "buyer" && window.AudioManager) window.AudioManager.playChatPop();
     window.FlippingTycoon.saveGame();
   }
 
@@ -874,6 +876,11 @@
 
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     listing.negotiationState = "sold";
+
+    // Audio update — the "dopamine hit": cash just landed in the bank
+    // from a successful gadget sale. (See also realestate walk-ins and
+    // wholesale fulfillment for the same one-liner pattern.)
+    if (window.AudioManager) window.AudioManager.playCashRegister();
 
     // Part 43 — Reputation: +3 for completing a Marketplace / Chat sale
     // ("Kirim Barang / Deal" pressed). Fires a "Barang Terjual!" toast.
