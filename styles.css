@@ -79,6 +79,13 @@ body {
 .fb-icon-btn:active {
   transform: scale(0.95);
 }
+/* Audio update — dim the Music/Sounds topbar buttons when muted. */
+.fb-icon-btn.audio-off {
+  opacity: 0.45;
+}
+.fb-icon-btn.audio-off:hover {
+  opacity: 0.7;
+}
 
 /* ---------- Sidebars ---------- */
 .fb-sidebar {

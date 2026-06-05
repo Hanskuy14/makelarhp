@@ -234,6 +234,14 @@
         <button id="topbar-darkmode-btn" class="fb-icon-btn" title="Toggle Dark Mode" type="button">
           <i id="topbar-darkmode-icon" class="fa-solid fa-moon"></i>
         </button>
+        <!-- Audio toggles (wired by window.AudioManager). data-no-sfx stops
+             the generic UI click sound from firing on the audio buttons. -->
+        <button id="topbar-bgm-btn" class="fb-icon-btn" title="Music: ON" type="button" data-no-sfx>
+          <i id="topbar-bgm-icon" class="fa-solid fa-music"></i>
+        </button>
+        <button id="topbar-sfx-btn" class="fb-icon-btn" title="Sounds: ON" type="button" data-no-sfx>
+          <i id="topbar-sfx-icon" class="fa-solid fa-volume-high"></i>
+        </button>
         <button class="fb-icon-btn relative" title="Messenger" id="messenger-btn">
           <i class="fa-brands fa-facebook-messenger"></i>
           <span id="messenger-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
@@ -1065,6 +1073,7 @@
   </div>
 
   <script src="gadgets.js"></script>
+  <script src="audio.js"></script>
   <script src="market.js"></script>
   <script src="banking.js"></script>
   <script src="repair.js"></script>
