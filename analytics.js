@@ -58,6 +58,11 @@
     };
     s.salesHistory.unshift(sale);
     if (s.salesHistory.length > MAX_HISTORY) s.salesHistory.length = MAX_HISTORY;
+    // Seller Dashboard hook: grant customer ratings + accumulate the
+    // day's gross revenue / platform fees for the Daily Financial Recap.
+    if (window.Dashboard && window.Dashboard.onSaleRecorded) {
+      window.Dashboard.onSaleRecorded(sale);
+    }
     window.FlippingTycoon.saveGame();
     return sale;
   }

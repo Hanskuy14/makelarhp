@@ -250,7 +250,12 @@
     const MAX_NEW_OFFERS    = 50;
     const ARRIVAL_RATE_LO   = 0.06;
     const ARRIVAL_RATE_HI   = 0.18;
-    const arrivalRate       = ARRIVAL_RATE_LO + Math.random() * (ARRIVAL_RATE_HI - ARRIVAL_RATE_LO);
+    // Seller Dashboard: an active Ads Optimization tier raises the online
+    // buyer arrival rate (more offers/day => the online store sells faster
+    // even when no physical ruko is rented).
+    const adArrivalBoost    = (window.Dashboard && window.Dashboard.getAdSaleRateBonus)
+      ? window.Dashboard.getAdSaleRateBonus() : 0;
+    const arrivalRate       = (ARRIVAL_RATE_LO + Math.random() * (ARRIVAL_RATE_HI - ARRIVAL_RATE_LO)) * (1 + adArrivalBoost);
     const offersToGenerate  = Math.min(MAX_NEW_OFFERS, Math.floor(eligibleIdx.length * arrivalRate));
     if (offersToGenerate <= 0) {
       window.FlippingTycoon.saveGame();
@@ -277,7 +282,14 @@
       if (Math.random() >= chance) return;
 
       const buyer = makeBuyer();
-      const offered = generateBuyerOffer(listing.askingPrice, listing.suggestedPrice);
+      let offered = generateBuyerOffer(listing.askingPrice, listing.suggestedPrice);
+      // Seller Dashboard: a share of buyers become "non-hagglers" under an
+      // active ad campaign — they offer at/near asking instead of lowballing.
+      const haggleResist = (window.Dashboard && window.Dashboard.getHaggleResistanceBonus)
+        ? window.Dashboard.getHaggleResistanceBonus() : 0;
+      if (haggleResist > 0 && Math.random() < haggleResist) {
+        offered = Math.max(offered, Math.round(listing.askingPrice * (0.95 + Math.random() * 0.05)));
+      }
       const suspicious = (offered / listing.suggestedPrice) < 0.55;
       listing.currentOffer = {
         buyer,
