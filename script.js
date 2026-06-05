@@ -15,7 +15,7 @@ const STARTING_BALANCES = {
 function createDefaultState() {
   return {
     meta: {
-      version: 17,
+      version: 18,
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -89,6 +89,39 @@ function createDefaultState() {
     brandMapping: {},                   // Part 34: { pear: "Apple", sumsang: "Samsung", ... }
     /* Audio update — persisted player audio preferences */
     settings: { bgmMuted: false, sfxMuted: false },
+
+    /* Seller Dashboard — e-commerce "Seller Center" + daily financial recap.
+     * shopName        : the player's online store name ("Toko FDS" default)
+     * ratings         : cumulative positive ratings (milestone unlocks VIP)
+     * ratingTarget    : Star Seller / VIP threshold
+     * starSeller      : true once ratingTarget is crossed
+     * activeAdBudget  : Rp/day debited from Mandiri each Next Day
+     * adTier          : 0=off, 1=Basic, 2=Growth, 3=Flagship
+     * dailyRevenue    : gross sales accumulated during the current day
+     * dailyExpenses   : last-known daily burn (info only)
+     * dailyFees       : platform admin fees accumulated during the current day
+     * salesToday      : sale count for the current day
+     * profileViewsToday / conversionRate : mock traffic metrics
+     * totalAdSpend    : lifetime ad spend
+     * lastRecap       : the most recent recap object (for the Next Day modal)
+     */
+    ecommerce: {
+      shopName: "Toko FDS",
+      ratings: 0,
+      ratingTarget: 1500,
+      starSeller: false,
+      activeAdBudget: 0,
+      adTier: 0,
+      dailyRevenue: 0,
+      dailyExpenses: 0,
+      dailyFees: 0,
+      salesToday: 0,
+      profileViewsToday: 0,
+      conversionRate: 0,
+      totalAdSpend: 0,
+      lastRecapDay: 0,
+      lastRecap: null,
+    },
   };
 }
 
@@ -367,6 +400,54 @@ const State = {
         if (typeof this.data.settings.sfxMuted !== "boolean") this.data.settings.sfxMuted = false;
       }
       this.data.meta.version = 17;
+    }
+
+    /* ------------------------------------------------------------------
+     * v18 — Seller Dashboard & Daily Financial Recap.
+     *
+     * Backfills the `ecommerce` state block so the Seller Center, the
+     * Ads Optimization budget, the ratings progress, and the Daily
+     * Financial Recap modal can rely on it without `undefined` checks
+     * on legacy saves.
+     * ------------------------------------------------------------------ */
+    if (version < 18) {
+      if (!this.data.ecommerce || typeof this.data.ecommerce !== "object") {
+        this.data.ecommerce = {
+          shopName: "Toko FDS",
+          ratings: 0,
+          ratingTarget: 1500,
+          starSeller: false,
+          activeAdBudget: 0,
+          adTier: 0,
+          dailyRevenue: 0,
+          dailyExpenses: 0,
+          dailyFees: 0,
+          salesToday: 0,
+          profileViewsToday: 0,
+          conversionRate: 0,
+          totalAdSpend: 0,
+          lastRecapDay: 0,
+          lastRecap: null,
+        };
+      } else {
+        const e = this.data.ecommerce;
+        if (typeof e.shopName !== "string" || !e.shopName.trim()) e.shopName = "Toko FDS";
+        if (typeof e.ratings !== "number") e.ratings = 0;
+        if (typeof e.ratingTarget !== "number") e.ratingTarget = 1500;
+        if (typeof e.starSeller !== "boolean") e.starSeller = false;
+        if (typeof e.activeAdBudget !== "number") e.activeAdBudget = 0;
+        if (typeof e.adTier !== "number") e.adTier = 0;
+        if (typeof e.dailyRevenue !== "number") e.dailyRevenue = 0;
+        if (typeof e.dailyExpenses !== "number") e.dailyExpenses = 0;
+        if (typeof e.dailyFees !== "number") e.dailyFees = 0;
+        if (typeof e.salesToday !== "number") e.salesToday = 0;
+        if (typeof e.profileViewsToday !== "number") e.profileViewsToday = 0;
+        if (typeof e.conversionRate !== "number") e.conversionRate = 0;
+        if (typeof e.totalAdSpend !== "number") e.totalAdSpend = 0;
+        if (typeof e.lastRecapDay !== "number") e.lastRecapDay = 0;
+        if (typeof e.lastRecap === "undefined") e.lastRecap = null;
+      }
+      this.data.meta.version = 18;
     }
   },
 };
@@ -1234,6 +1315,12 @@ function estimateNextDayMandiriDebits() {
       }
     });
   }
+  // Seller Dashboard — daily marketing / ads budget (charged from Mandiri)
+  if (s.ecommerce && (s.ecommerce.activeAdBudget || 0) > 0) {
+    const adBudget = s.ecommerce.activeAdBudget;
+    total += adBudget;
+    items.push({ label: "Biaya iklan harian (Ads Optimization)", amount: adBudget });
+  }
   // Customs fines that hit deadline next day
   (s.batamCargo || []).forEach((cargo) => {
     if (cargo.status === "customs-hold" && cargo.customs && !cargo.customs.paid) {
@@ -1333,6 +1420,10 @@ async function advanceToNextDay() {
   // feed isn't already scrolled deep when fresh stock arrives.
   if (State.data.marketView)    State.data.marketView.visibleCount    = 50;
   if (State.data.inventoryView) State.data.inventoryView.visibleCount = 50;
+  // Seller Dashboard: build the closing day's financial recap (gross
+  // revenue now includes the Next-Day walk-in/auto-accept batch), charge
+  // the active ad budget from Mandiri, and reset the daily counters.
+  if (window.Dashboard) window.Dashboard.processDailyFinances();
   // Single state commit at the end of the heavy block (Part 23).
   flushSaves();
   saveGame();
@@ -1342,6 +1433,9 @@ async function advanceToNextDay() {
 
   renderAll();
   hideLoadingOverlay();
+  // Seller Dashboard: show the receipt-style Daily Financial Recap modal
+  // for the day that just ended, with an "Acknowledge / Start Day X" button.
+  if (window.Dashboard) window.Dashboard.showRecapModal();
 }
 
 /* =========================================================

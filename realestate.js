@@ -357,7 +357,12 @@
     const spgBoost = spgCount() * 0.20;          // +20% per SPG hired
     const baseRate = tierBase + Math.random() * 0.20 + spgBoost;
     const repBoost = (window.Reputation && window.Reputation.isSuhu && window.Reputation.isSuhu()) ? 0.05 : 0;
-    const saleRate = Math.min(0.80, baseRate + repBoost);
+    // Seller Dashboard: active Ads Optimization tier boosts walk-in sale
+    // rate (higher budget => inventory sells faster).
+    const adBoost = (window.Dashboard && window.Dashboard.getAdSaleRateBonus)
+      ? window.Dashboard.getAdSaleRateBonus()
+      : 0;
+    const saleRate = Math.min(0.90, baseRate + repBoost + adBoost);
     let itemsSold = Math.floor(eligible.length * saleRate);
     // Always sell at least 1 if there's any eligible stock — keeps the
     // toko alive on slow days.
@@ -615,6 +620,14 @@
       </div>
     `;
     wrap.appendChild(header);
+
+    // Seller Dashboard — e-commerce "Seller Center" (ratings, ads
+    // optimization, traffic & conversion). Shown at the top of the
+    // Ruko/Store tab because the online store (Toko FDS) is always live,
+    // independent of whether a physical ruko is rented.
+    if (window.Dashboard && window.Dashboard.renderSellerDashboard) {
+      wrap.appendChild(window.Dashboard.renderSellerDashboard());
+    }
 
     // Eviction banner
     if (re.evictedOnDay && !re.rented) {
