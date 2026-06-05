@@ -437,6 +437,16 @@
       overlay.classList.add("hidden");
       overlay.classList.remove("flex");
 
+      // UPDATE ("Foldable…"): an extreme foldable bomb takes priority at COD.
+      if (listing.foldableHiddenDefect) {
+        const def = window.Market.revealFoldableDefect(listing);
+        if (window.Repair && window.Repair.warnFoldableDefect) {
+          window.Repair.warnFoldableDefect(def); // toast + notification
+        }
+        showFoldableDefectModal(listing, def);
+        return;
+      }
+
       if (hasHidden) {
         showHiddenDefect(listing);
       } else {
@@ -538,6 +548,64 @@
   }
 
 
+  /* ---------- Extreme Foldable Defect popup (UPDATE) ----------
+   * COD reveal for an extreme foldable defect. Reuses the same
+   * #defect-modal, but applies a steeper -25% discount because the
+   * repair bill (Rp 3jt–7jt, 2 days) is far nastier than a normal minus.
+   */
+  function showFoldableDefectModal(listing, def) {
+    pushMessage(listing, "system", `⚠️ Inspeksi COD: ${def.type} ditemukan! ${def.desc}`);
+
+    const modal = document.querySelector("#defect-modal");
+    modal.querySelector("#defect-text").textContent =
+      `${def.type} — ${def.desc} Servis foldable ini SANGAT mahal.`;
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    const cancelBtn = modal.querySelector("#defect-cancel");
+    const negotiateBtn = modal.querySelector("#defect-negotiate");
+    const closeModal = () => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    };
+
+    cancelBtn.onclick = () => {
+      closeModal();
+      pushMessage(listing, "player", `Wah ${def.type} bro, servisnya bisa jutaan. Batal dulu deh 🙏`);
+      pushMessage(listing, "seller", `Yah... ya udah, no problem 🙏`);
+      if (window.Reputation) {
+        window.Reputation.onDealCancel({ reason: `COD cancel: foldable defect ${def.type}` });
+      }
+      listing.purchaseFlow = "idle";
+      renderActions(listing);
+    };
+
+    negotiateBtn.onclick = () => {
+      closeModal();
+      const previousPrice = Number(listing.currentPrice) || Number(listing.finalPrice) || 0;
+      let newPrice = Math.floor((previousPrice * 0.75) / 50_000) * 50_000; // -25%, rounded DOWN
+      if (newPrice >= previousPrice) {
+        newPrice = Math.max(50_000, previousPrice - 50_000);
+      }
+      if (newPrice < 50_000) newPrice = 50_000;
+      listing.currentPrice = newPrice;
+      listing.haggleState = "accepted";
+      if (window.Reputation) {
+        window.Reputation.onForceSaleWithDefect({ reason: `Force-buy foldable defect ${def.type}` });
+      }
+      pushMessage(listing, "player",
+        `Ada ${def.type} nih, servisnya mahal banget. Minta turun ke ${fmt(newPrice)} ya bro.`);
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        pushMessage(listing, "seller",
+          `Aduh... yaudah deh ${fmt(newPrice)} fix. Bayar pakai bank apa?`);
+        showBankPickerActions(listing);
+      }, 700);
+    };
+  }
+
+
   /* ---------- Bank picker (used by both Transfer and COD paths) ---------- */
   function showBankPickerActions(listing) {
     // Part 17 — always use the live currentPrice (kept up-to-date by the
@@ -608,8 +676,14 @@
         brand: listing.brand,
         specs: listing.specs,
         completeness: listing.completeness,
-        defect: listing.defect,
-        hiddenDefect: listing.hiddenDefect || null,
+        // UPDATE ("Foldable…"): if a hidden foldable bomb was NEVER inspected
+        // (player paid by blind Transfer), bake it into the item anyway so
+        // they discover the damage later at repair/sell time. A COD reveal
+        // has already moved it into listing.defect and cleared the stash.
+        defect: listing.foldableHiddenDefect || listing.defect,
+        hiddenDefect: listing.foldableHiddenDefect
+          ? listing.foldableHiddenDefect.type
+          : (listing.hiddenDefect || null),
         buyPrice: price,
         buyDay: s.currentDay,
         paymentMethod: listing.paymentMethod || "Transfer",
