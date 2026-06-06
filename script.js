@@ -45,6 +45,9 @@ function createDefaultState() {
     activePage: "news-feed",
     todayNews: null,
     newsHistory: [],
+    socialFeed: [],                     // Part 39: dynamic social feed items
+    feedListings: [],                   // Part 39: interactive friend-listing registry
+    lastFeedDay: 0,
     bankingView: { activeBank: "Mandiri" },
     upgrades: { premiumTools: false, fbPaidAds: false },
     repairView: { activeTab: "repairs" },
@@ -1259,12 +1262,15 @@ function renderNewsFeedPage() {
   `;
   wrap.appendChild(summary);
 
-  // Today's news (impactful)
-  if (s.todayNews) {
-    wrap.appendChild(renderNewsPost(s.todayNews, true));
+  // Part 39: render the dynamic Social Feed (news + milestones + chatter
+  // + interactive friend listings). Falls back to legacy news-only posts
+  // if the Feed module hasn't loaded for any reason.
+  if (window.Feed && typeof window.Feed.renderFeed === "function") {
+    wrap.appendChild(window.Feed.renderFeed());
+  } else {
+    if (s.todayNews) wrap.appendChild(renderNewsPost(s.todayNews, true));
+    s.newsHistory.slice(1, 4).forEach((n) => wrap.appendChild(renderNewsPost(n, false)));
   }
-  // Older news from history (read-only flavor)
-  s.newsHistory.slice(1, 4).forEach((n) => wrap.appendChild(renderNewsPost(n, false)));
 
   return wrap;
 }
@@ -1436,6 +1442,7 @@ async function advanceToNextDay() {
   deferSaves();
   State.data.currentDay = nextDay;
   generateDailyNews();                                          // new news first so listings can apply its multiplier
+  if (window.Feed) window.Feed.generateDailyFeed();             // Part 39: refresh the social feed (news + friends + chatter)
   if (window.Repair) window.Repair.applyDayTickToRepairs();     // finish in-progress repairs
   if (window.Repair) window.Repair.applyDayTickToImeiUnlocks(); // finish IMEI tembak unlocks
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory

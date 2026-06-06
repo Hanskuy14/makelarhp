@@ -56,7 +56,12 @@
 
   function getListing() {
     const s = window.FlippingTycoon.State.data;
-    return (s.dailyListings || []).find((l) => l.listingId === currentListingId);
+    // Part 39: a listing can come from the daily marketplace OR from an
+    // interactive "friend listing" in the Social Feed (feed.js registers
+    // those in s.feedListings). Search both pools so the SAME negotiation
+    // flow works no matter where the player tapped "Negotiate".
+    return (s.dailyListings || []).find((l) => l.listingId === currentListingId)
+        || (s.feedListings || []).find((l) => l.listingId === currentListingId);
   }
 
   /* ---------- Header ---------- */

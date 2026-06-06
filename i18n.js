@@ -306,6 +306,51 @@
         market_stable:    { headline: "Gadget market is calm, no price swings.",
           blurb: "A stable day. Time to scout deals in the Marketplace." },
       },
+
+      /* --- Part 39: dynamic Social Feed posts --- */
+      feed: {
+        sectionTitle: "Activity Feed",
+        // NPC milestones ({name} = the friend's name)
+        milestone: {
+          source: "Milestones",
+          priority_tier:  "{name} just hit Priority Tier at the bank! 💳",
+          kiosk:          "{name} just rented a Kiosk to start flipping! 🏪",
+          ruko:           "{name} leveled up to a full Ruko storefront! 🏢",
+          first_million:  "{name} booked their first Rp 1,000,000 profit! 🤑",
+          hired_staff:    "{name} hired their first SPG for the store. 🧑‍💼",
+          branch:         "{name} opened a second branch in another city! 🌆",
+          star_seller:    "{name} unlocked the Star Seller badge ⭐",
+          big_flip:       "{name} flipped a foldable for a fat margin today. 📈",
+        },
+        // Immersive community chatter (no params)
+        chatter: {
+          source: "Community Group",
+          scam_cod:    "Just got scammed at a COD meetup... always check the IMEI first, guys. 😡",
+          imei_check:  "PSA: a 'mulus' unit means nothing if the IMEI is blocked. Always verify!",
+          harga_naik:  "Anyone else notice second-hand prices creeping up this week? 📈",
+          nostalgia:   "Found my old PearPhone in a drawer, still boots up. Memories. 🥲",
+          batangan:    "Batangan (unit-only) deals are the best margin if you can resell the box separately.",
+          afgan:       "Buyer offered me 50% off a fresh fullset. The audacity. 💀",
+          flipper_tip: "Pro tip: buy on a price-crash news day, sell when the hype returns. 🧠",
+          coffee:      "Counting today's profit over kopi. The grind never stops. ☕",
+        },
+        // Friend-listing card (a friend selling a gadget)
+        listing: {
+          source: "Marketplace · Friends",
+          reason_bu:    "{name} is selling (BU — need cash fast):",
+          reason_cash:  "{name} needs quick cash, letting this go cheap:",
+          reason_move:  "{name} is moving and clearing out gadgets:",
+          reason_upgrade:"{name} is upgrading and flipping the old one:",
+          askingLabel:  "Asking",
+          negotiate:    "Negotiate / Tawar",
+          sold:         "Already Sold",
+          postedBy:     "Posted by {name}",
+        },
+        // Generic feed actions
+        like: "Like",
+        comment: "Comment",
+        share: "Share",
+      },
     },
 
     /* ------------------------------------------------------ */
@@ -556,6 +601,47 @@
           blurb: "Y Series second tertekan diskon promo, harga drop {pct}%." },
         market_stable:    { headline: "Pasar gadget tenang, tidak ada gejolak harga.",
           blurb: "Hari yang stabil. Saatnya scout deal di Marketplace." },
+      },
+
+      /* --- Part 39: post Social Feed dinamis --- */
+      feed: {
+        sectionTitle: "Beranda Aktivitas",
+        milestone: {
+          source: "Pencapaian",
+          priority_tier:  "{name} baru naik ke Priority Tier di bank! 💳",
+          kiosk:          "{name} baru sewa Kios buat mulai jualan! 🏪",
+          ruko:           "{name} naik kelas ke Ruko beneran! 🏢",
+          first_million:  "{name} cuan pertama Rp 1.000.000! 🤑",
+          hired_staff:    "{name} merekrut SPG pertama buat tokonya. 🧑‍💼",
+          branch:         "{name} buka cabang kedua di kota lain! 🌆",
+          star_seller:    "{name} unlock badge Star Seller ⭐",
+          big_flip:       "{name} flipping foldable dengan margin tebal hari ini. 📈",
+        },
+        chatter: {
+          source: "Grup Komunitas",
+          scam_cod:    "Baru aja kena tipu pas COD... cek IMEI dulu ya gengs sebelum bayar. 😡",
+          imei_check:  "Inget: unit 'mulus' percuma kalau IMEI keblokir. Wajib cek dulu!",
+          harga_naik:  "Ada yang ngerasa harga second naik terus minggu ini? 📈",
+          nostalgia:   "Nemu PearPhone lama di laci, masih nyala. Kenangan. 🥲",
+          batangan:    "Deal batangan (HP only) margin paling cuan kalau dusnya bisa dijual terpisah.",
+          afgan:       "Ada buyer nawar fullset baru setengah harga. Sadis bener. 💀",
+          flipper_tip: "Tips: beli pas hari berita harga anjlok, jual pas hype balik. 🧠",
+          coffee:      "Ngitung cuan hari ini sambil ngopi. Grind terus. ☕",
+        },
+        listing: {
+          source: "Marketplace · Teman",
+          reason_bu:    "{name} lagi jual (BU — butuh dana cepet):",
+          reason_cash:  "{name} butuh duit cepet, dilepas murah:",
+          reason_move:  "{name} mau pindahan, bersih-bersih gadget:",
+          reason_upgrade:"{name} mau upgrade, lepas yang lama:",
+          askingLabel:  "Nego dari",
+          negotiate:    "Tawar Barang",
+          sold:         "Sudah Laku",
+          postedBy:     "Diposting oleh {name}",
+        },
+        like: "Suka",
+        comment: "Komentar",
+        share: "Bagikan",
       },
     },
   };
