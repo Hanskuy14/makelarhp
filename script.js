@@ -720,29 +720,47 @@ function hideLoadingOverlay() {
  * 5. News pulse (Part 3)
  * ========================================================= */
 
+/* Part 36 (i18n overhaul) — News templates now store a stable
+ * `translationKey` instead of hardcoded `headline`/`blurb` strings.
+ * The headline/blurb live in the dictionary (news.<key>.headline /
+ * .blurb) and are resolved at RENDER time, so flipping language
+ * re-translates every post in the feed instantly — including older
+ * posts already saved in newsHistory.
+ *
+ *   brand      : which brand the price multiplier applies to (null = none)
+ *   multiplier : market price multiplier for that brand today
+ *   key        : dictionary key under `news.*`
+ *
+ * The blurb templates accept a {pct} param (absolute % move) so a single
+ * string serves both up and down swings without duplicating text. */
 const NEWS_TEMPLATES = [
-  { headline: "PearPhone 17 dirumorkan rilis bulan depan!",                  brand: "Pear",   multiplier: 1.10, blurb: "Pasar second PearPhone ramai diserbu, harga melambung 10%." },
-  { headline: "Bug iOS terbaru bikin baterai PearPhone boros parah.",        brand: "Pear",   multiplier: 0.92, blurb: "Banyak yang lepas PearPhone-nya, harga anjlok 8% hari ini." },
-  { headline: "Pear umumkan Trade-in besar untuk PearPad.",                 brand: "Pear",   multiplier: 0.94, blurb: "PearPad bekas membanjir Marketplace, harga turun 6%." },
-  { headline: "Sumsang One UI 7 menyala mulus di seri lama!",             brand: "Sumsang", multiplier: 1.08, blurb: "Demand Universe second naik 8% setelah update memukau." },
-  { headline: "Universe S Series ditemukan masalah panas berlebih.",        brand: "Sumsang", multiplier: 0.90, blurb: "Banyak user trade-in, harga second turun 10%." },
-  { headline: "Z Fold/Flip viral di TikTok, demand foldable meledak.",    brand: "Sumsang", multiplier: 1.07, blurb: "Foldable Sumsang jadi rebutan, naik 7%." },
-  { headline: "Siaomi 14 raih juara DxOMark, kolektor berburu.",          brand: "Siaomi",  multiplier: 1.09, blurb: "Siaomi second naik 9% karena hype kamera." },
-  { headline: "Siaomi luncurkan diskon massal seri Note.",               brand: "Siaomi",  multiplier: 0.93, blurb: "Stok membanjir pasar, harga turun 7%." },
-  { headline: "Ope Reno 12 leak: desain mirip seri lama.",               brand: "Ope",    multiplier: 1.06, blurb: "Pengguna lama enggan upgrade, second Ope naik 6%." },
-  { headline: "Ope Find X ditarik karena cacat layar.",                  brand: "Ope",    multiplier: 0.88, blurb: "Kepercayaan brand turun, harga second jatuh 12%." },
-  { headline: "Pipo X100 Pro terpilih HP kamera terbaik tahun ini.",      brand: "Pipo",    multiplier: 1.10, blurb: "Pipo flagship melejit 10% di pasar second." },
-  { headline: "Pipo Y Series obral besar-besaran via promo bank.",        brand: "Pipo",    multiplier: 0.92, blurb: "Y Series second tertekan diskon promo, harga drop 8%." },
-  { headline: "Pasar gadget tenang, tidak ada gejolak harga.",            brand: null,      multiplier: 1.00, blurb: "Hari yang stabil. Saatnya scout deal di Marketplace." },
+  { key: "pearphone_rumor",  brand: "Pear",    multiplier: 1.10 },
+  { key: "ios_battery_bug",  brand: "Pear",    multiplier: 0.92 },
+  { key: "pear_tradein",     brand: "Pear",    multiplier: 0.94 },
+  { key: "sumsang_update",   brand: "Sumsang", multiplier: 1.08 },
+  { key: "sumsang_overheat", brand: "Sumsang", multiplier: 0.90 },
+  { key: "foldable_viral",   brand: "Sumsang", multiplier: 1.07 },
+  { key: "siaomi_dxomark",   brand: "Siaomi",  multiplier: 1.09 },
+  { key: "siaomi_discount",  brand: "Siaomi",  multiplier: 0.93 },
+  { key: "ope_leak",         brand: "Ope",     multiplier: 1.06 },
+  { key: "ope_recall",       brand: "Ope",     multiplier: 0.88 },
+  { key: "pipo_camera",      brand: "Pipo",    multiplier: 1.10 },
+  { key: "pipo_sale",        brand: "Pipo",    multiplier: 0.92 },
+  { key: "market_stable",    brand: null,      multiplier: 1.00 },
 ];
 
 function generateDailyNews() {
   const tpl = NEWS_TEMPLATES[Math.floor(Math.random() * NEWS_TEMPLATES.length)];
+  const pct = Math.abs(Math.round((tpl.multiplier - 1) * 100));
   const news = {
     id: "news-" + Math.random().toString(36).slice(2, 8),
     day: State.data.currentDay,
     timestamp: Date.now(),
-    ...tpl,
+    // i18n: store KEY + PARAMS in state, never the rendered string.
+    translationKey: tpl.key,
+    params: { pct: pct },
+    brand: tpl.brand,
+    multiplier: tpl.multiplier,
   };
   State.data.todayNews = news;
   State.data.newsHistory.unshift(news);
@@ -1199,6 +1217,10 @@ function renderActivePage() {
 }
 
 /* ----- News Feed (with dynamic news post) ----- */
+/* i18n: map the active language to a date-format locale. */
+function i18nLocale() {
+  return (window.i18n && window.i18n.getLang() === "en") ? "en-US" : "id-ID";
+}
 function renderNewsFeedPage() {
   const wrap = document.createElement("div");
   const s = State.data;
@@ -1213,7 +1235,7 @@ function renderNewsFeedPage() {
   const safeAvatar = String(composerAvatar).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   composer.innerHTML = `
     <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background:${composerAvatarColor}">${safeAvatar}</div>
-    <input type="text" placeholder="What gadget are you flipping today, ${safeName}?" />
+    <input type="text" placeholder="${t("game.composerPrompt", { name: safeName })}" />
     <button class="text-[#1877F2] text-xl"><i class="fa-regular fa-image"></i></button>
   `;
   wrap.appendChild(composer);
@@ -1224,13 +1246,13 @@ function renderNewsFeedPage() {
   summary.className = "fb-card";
   summary.innerHTML = `
     <div class="flex items-center justify-between mb-2">
-      <h3>Day ${s.currentDay} Briefing</h3>
-      <span class="text-xs text-gray-500">${new Date().toLocaleDateString("en-US", { weekday: "long" })}</span>
+      <h3>${t("game.dayBriefing", { day: s.currentDay })}</h3>
+      <span class="text-xs text-gray-500">${new Date().toLocaleDateString(i18nLocale(), { weekday: "long" })}</span>
     </div>
-    <p class="text-sm text-gray-600 mb-3">Welcome back, Broker. Markets are open. Here is your morning summary.</p>
+    <p class="text-sm text-gray-600 mb-3">${t("game.briefingWelcome")}</p>
     <div class="grid grid-cols-2 gap-3 text-sm">
-      <div class="p-3 bg-blue-50 rounded-lg"><p class="text-gray-500 text-xs">Total Bank</p><p class="font-bold text-[#1877F2]">${formatRupiah(totalBank)}</p></div>
-      <div class="p-3 bg-amber-50 rounded-lg"><p class="text-gray-500 text-xs">Inventory</p><p class="font-bold text-amber-600">${s.inventory.length} items</p></div>
+      <div class="p-3 bg-blue-50 rounded-lg"><p class="text-gray-500 text-xs">${t("game.totalBank")}</p><p class="font-bold text-[#1877F2]">${formatRupiah(totalBank)}</p></div>
+      <div class="p-3 bg-amber-50 rounded-lg"><p class="text-gray-500 text-xs">${t("game.inventoryCount")}</p><p class="font-bold text-amber-600">${s.inventory.length} ${t("common.items")}</p></div>
       <div class="p-3 bg-emerald-50 rounded-lg"><p class="text-gray-500 text-xs">Mandiri</p><p class="font-bold text-emerald-700">${formatRupiah(s.bankBalances.Mandiri)}</p></div>
       <div class="p-3 bg-indigo-50 rounded-lg"><p class="text-gray-500 text-xs">BCA / BNI</p><p class="font-bold text-indigo-700">${formatRupiah(s.bankBalances.BCA + s.bankBalances.BNI)}</p></div>
     </div>
@@ -1253,21 +1275,35 @@ function renderNewsPost(news, isToday) {
   const pct = Math.round((news.multiplier - 1) * 100);
   const trendClass = pct > 0 ? "trend-up" : pct < 0 ? "trend-down" : "trend-flat";
   const trendIcon = pct > 0 ? "fa-arrow-trend-up" : pct < 0 ? "fa-arrow-trend-down" : "fa-minus";
-  const brandTag = news.brand ? `${news.brand} ${pct >= 0 ? "+" : ""}${pct}%` : "Pasar Stabil";
+  const brandTag = news.brand ? `${news.brand} ${pct >= 0 ? "+" : ""}${pct}%` : t("news.stableTag");
+
+  /* i18n: resolve the post text from its translationKey + params at
+   * RENDER time. Legacy saves (pre-overhaul) stored raw headline/blurb
+   * strings — fall back to those so old feeds keep working. */
+  const headline = news.translationKey
+    ? t("news." + news.translationKey + ".headline", news.params)
+    : (news.headline || "");
+  const blurb = news.translationKey
+    ? t("news." + news.translationKey + ".blurb", news.params)
+    : (news.blurb || "");
+  const source = t("news.source");
+  const dayLabel = t("game.day");
+  const todayLabel = isToday ? ` &middot; <b>${t("common.today")}</b>` : "";
+
   post.innerHTML = `
     <div class="fb-post-header">
       <div class="fb-post-avatar">N</div>
       <div>
-        <p class="font-semibold leading-tight">Netbook News</p>
-        <p class="text-xs text-gray-500">Day ${news.day} ${isToday ? "&middot; <b>Today</b>" : ""} &middot; <i class="fa-solid fa-earth-asia"></i></p>
+        <p class="font-semibold leading-tight">${source}</p>
+        <p class="text-xs text-gray-500">${dayLabel} ${news.day}${todayLabel} &middot; <i class="fa-solid fa-earth-asia"></i></p>
       </div>
       <div class="ml-auto">
         <span class="news-trend ${trendClass}"><i class="fa-solid ${trendIcon}"></i> ${brandTag}</span>
       </div>
     </div>
     <div class="fb-post-body">
-      <p class="font-semibold">${news.headline}</p>
-      <p class="text-sm text-gray-600 mt-1">${news.blurb}</p>
+      <p class="font-semibold">${headline}</p>
+      <p class="text-sm text-gray-600 mt-1">${blurb}</p>
     </div>
     <div class="fb-post-actions">
       <button><i class="fa-regular fa-thumbs-up"></i> Like</button>

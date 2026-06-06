@@ -38,11 +38,7 @@
 
     // Replay or initialize conversation.
     if (!Array.isArray(listing.chatLog) || listing.chatLog.length === 0) {
-      const opener = openerMessage(listing);
-      pushMessage(listing, "seller", opener);
-      if (listing.isExInter) {
-        pushMessage(listing, "system", `⚠️ Listing ini Ex-Inter / No Pajak. Murah, tapi IMEI bisa kena blokir signal.`);
-      }
+      sendOpener(listing);
     } else {
       listing.chatLog.forEach((m) => renderBubble(m));
     }
@@ -75,7 +71,7 @@
       <div class="flex-1 min-w-0">
         <p class="font-semibold truncate">${listing.seller.name}</p>
         <p class="text-xs text-emerald-500">
-          <i class="fa-solid fa-circle text-[7px]"></i> Active now
+          <i class="fa-solid fa-circle text-[7px]"></i> ${t("chat.activeNow")}
         </p>
       </div>
       <button class="chat-icon-btn" title="Call"><i class="fa-solid fa-phone"></i></button>
@@ -87,18 +83,41 @@
 
 
   /* ---------- Bubble rendering ---------- */
+
+  /* i18n (Part 36): a chat message can be stored two ways —
+   *   { from, text }            -> raw, untranslatable (legacy saves)
+   *   { from, key, params }     -> translation key + params (re-translates)
+   * resolveMsg() turns either into the final display string in the
+   * ACTIVE language. Params whose value is a {k:"dict.key"} marker are
+   * themselves translated at render time (used for condition/defect
+   * labels embedded in a sentence), so everything flips on switch. */
+  function resolveMsg(message) {
+    if (!message) return "";
+    if (message.key) {
+      const params = {};
+      const p = message.params || {};
+      Object.keys(p).forEach((name) => {
+        const v = p[name];
+        params[name] = (v && typeof v === "object" && v.k) ? t(v.k) : v;
+      });
+      return t(message.key, params);
+    }
+    return message.text != null ? message.text : "";
+  }
+
   function renderBubble(message) {
     const div = document.createElement("div");
     div.className = "chat-row " + (message.from === "player" ? "from-player" : "from-seller");
     if (message.from === "system") div.className = "chat-row from-system";
 
+    const text = resolveMsg(message);
     if (message.from === "system") {
-      div.innerHTML = `<div class="chat-system">${message.text}</div>`;
+      div.innerHTML = `<div class="chat-system">${escapeHtml(text).replace(/\n/g, "<br>")}</div>`;
     } else {
       const avatar = message.from === "seller"
         ? `<div class="chat-bubble-avatar" style="background:${message.color || "#999"}">${message.avatar || "S"}</div>`
         : "";
-      const bubble = `<div class="chat-bubble">${escapeHtml(message.text).replace(/\n/g, "<br>")}</div>`;
+      const bubble = `<div class="chat-bubble">${escapeHtml(text).replace(/\n/g, "<br>")}</div>`;
       div.innerHTML = avatar + bubble;
     }
     messagesEl.appendChild(div);
@@ -111,19 +130,35 @@
       .replace(/>/g, "&gt;");
   }
 
-  function pushMessage(listing, from, text) {
+  /** Low-level: append an already-built message object to the log + DOM. */
+  function appendMessage(listing, msg) {
     if (!Array.isArray(listing.chatLog)) listing.chatLog = [];
-    const msg = { from, text };
-    if (from === "seller") {
+    if (msg.from === "seller") {
       msg.avatar = listing.seller.avatar;
       msg.color = listing.seller.color;
     }
     listing.chatLog.push(msg);
     renderBubble(msg);
     scrollToBottom();
-    // Audio update — pop when the AI reseller replies (COD negotiation chat).
-    if (from === "seller" && window.AudioManager) window.AudioManager.playChatPop();
+    if (msg.from === "seller" && window.AudioManager) window.AudioManager.playChatPop();
     window.FlippingTycoon.saveGame();
+  }
+
+  /** Push a RAW (untranslatable) message — kept for edge cases. */
+  function pushMessage(listing, from, text) {
+    appendMessage(listing, { from, text });
+  }
+
+  /** Push a TRANSLATABLE message (key + params). Use this everywhere so
+   * the conversation re-renders in the active language on switch. */
+  function pushKey(listing, from, key, params) {
+    appendMessage(listing, { from, key, params: params || null });
+  }
+
+  /** Pick a random dictionary key from "prefix1".."prefixN" (variety
+   * while staying translatable — we store the chosen key, not the text). */
+  function pickKey(prefix, count) {
+    return prefix + (1 + Math.floor(Math.random() * count));
   }
 
   function scrollToBottom() {
@@ -133,21 +168,35 @@
   }
 
 
-  /* ---------- AI dialogue ---------- */
-  function openerMessage(listing) {
-    const lines = [
-      `Halo bro/sis! 👋 Saya jual ${listing.name} ${listing.specs.ram}/${listing.specs.rom} warna ${listing.specs.color}.`,
-      `Kelengkapan ${listing.completeness.type}, kondisi ${listing.defect.type}.`,
-    ];
+  /* ---------- AI dialogue (Part 36: fully translatable) ----------
+   * Instead of returning hardcoded strings, the generators now push
+   * TRANSLATION KEYS + PARAMS. Params that are themselves translatable
+   * (the completeness / defect labels) are stored as {k:"dict.key"}
+   * markers and resolved at render time, so the whole opener flips
+   * language live. Prices are passed pre-formatted (Rp is locale-neutral). */
+  function sendOpener(listing) {
+    const I = window.i18n;
+    const cKey = I.conditionKey(listing.completeness);
+    const dKey = I.defectKey(listing.defect);
+
+    pushKey(listing, "seller", "chat.opener_intro", {
+      name: listing.name, ram: listing.specs.ram, rom: listing.specs.rom, color: listing.specs.color,
+    });
+    pushKey(listing, "seller", "chat.opener_condition", {
+      completeness: { k: "conditions." + cKey + ".label" },
+      defect: { k: "defects." + dKey + ".label" },
+    });
     if (listing.isExInter) {
-      lines.push(`Ini barang Ex-Inter ya bro, no pajak — makanya harga miring banget. Tau resikonya kan? 😏`);
+      pushKey(listing, "seller", "chat.opener_exinter");
     }
-    lines.push(`Harga net ${fmt(listing.finalPrice)} ya. Serius minat? 🙏`);
-    return lines.join("\n");
+    pushKey(listing, "seller", "chat.opener_price", { price: fmt(listing.finalPrice) });
+    if (listing.isExInter) {
+      pushKey(listing, "system", "chat.exinter_system");
+    }
   }
 
-  function dealLine(listing) {
-    return `Sip mantap! Transfer ke rekening saya ya, barang langsung dikirim/COD. Makasih bro 📦✨`;
+  function sendDealLine(listing) {
+    pushKey(listing, "seller", "chat.deal");
   }
 
 
@@ -204,33 +253,11 @@
     return Math.round(((a + b) / 2) / 50_000) * 50_000;
   }
 
-  function counterLine(midPrice) {
-    const lines = [
-      `Belum dapet gan. Kalau ${fmt(midPrice)} langsung bungkus deh 🤝`,
-      `Hmm masih ketinggian buat saya. Gimana kalo ${fmt(midPrice)}? Fix ya kalau mau.`,
-      `Saya turunin lagi nih ke ${fmt(midPrice)}. Lebih murah lagi gak bisa bro 😅`,
-      `Oke nego tipis, ${fmt(midPrice)} aja. Kalau cocok langsung COD/transfer.`,
-    ];
-    return lines[Math.floor(Math.random() * lines.length)];
-  }
-
-  function acceptCounterLine(price) {
-    const lines = [
-      `Wah oke deh kakak, ${fmt(price)} saya iyain! Deal 🤝`,
-      `Yaudah ${fmt(price)} fix ya, mantap nego nya 😅`,
-      `Sip ${fmt(price)} sah ya, langsung diproses bro.`,
-    ];
-    return lines[Math.floor(Math.random() * lines.length)];
-  }
-
-  function rageQuitLine() {
-    const lines = [
-      `Males ah, nego afgan! 😤 Cari yang lain aja gan.`,
-      `Udah cape nego nya bro, kasih harga gak masuk akal terus. Cabut! 👋`,
-      `Males lah, nego afgan banget. Saya tutup ya chatnya 🙏`,
-    ];
-    return lines[Math.floor(Math.random() * lines.length)];
-  }
+  /* Part 36: the seller's counter / accept / rage-quit lines are now
+   * keyed in the dictionary (chat.counter_1..4, chat.accept_1..3,
+   * chat.ragequit_1..3). onSendOffer() picks one key at random via
+   * pickKey() and pushes it with pushKey(), so the stored chat log
+   * re-translates on a language switch. */
 
   /* ---------- Action button rendering (Part 35) ---------- */
   function renderActions(listing) {
@@ -240,10 +267,10 @@
     if (listing.chatLocked) {
       actionsEl.innerHTML = `
         <p class="chat-locked-note">
-          <i class="fa-solid fa-lock"></i> Seller udah males nego — chat dikunci.
+          <i class="fa-solid fa-lock"></i> ${t("chat.locked")}
         </p>
         <button id="chat-leave" class="chat-action leave w-full">
-          <i class="fa-solid fa-arrow-left"></i> Leave Chat
+          <i class="fa-solid fa-arrow-left"></i> ${t("chat.leave")}
         </button>`;
       actionsEl.querySelector("#chat-leave").addEventListener("click", closeChat);
       return;
@@ -257,20 +284,20 @@
       <div class="chat-actions-row chat-actions-row-grid">
         <button id="chat-accept" class="chat-action accept">
           <i class="fa-solid fa-check"></i>
-          <span class="chat-action-label">Accept ${fmt(listing.currentPrice)}</span>
+          <span class="chat-action-label">${t("chat.accept_label", { price: fmt(listing.currentPrice) })}</span>
         </button>
         <button id="chat-leave" class="chat-action leave">
           <i class="fa-solid fa-xmark"></i>
-          <span class="chat-action-label">Leave Chat</span>
+          <span class="chat-action-label">${t("chat.leave")}</span>
         </button>
       </div>
       <div class="chat-actions-row chat-haggle-row">
         <input id="chat-offer-input" type="text" inputmode="numeric" pattern="[0-9]*"
                class="chat-offer-input" autocomplete="off"
-               placeholder="Tawar berapa? (IDR)" />
+               placeholder="${t("chat.offerPlaceholder")}" />
         <button id="chat-offer-send" class="chat-action haggle chat-action-send">
           <i class="fa-solid fa-paper-plane"></i>
-          <span class="chat-action-label">Kirim</span>
+          <span class="chat-action-label">${t("chat.sendOffer")}</span>
         </button>
       </div>
       <p id="chat-offer-error" class="chat-offer-error"></p>
@@ -297,7 +324,7 @@
       const errEl = actionsEl.querySelector("#chat-offer-error");
       const raw = Number(input.value);
       if (!isFinite(raw) || raw < 50_000) {
-        errEl.textContent = "Tawaran minimal Rp 50.000.";
+        errEl.textContent = t("chat.offer_min_error");
         return;
       }
       errEl.textContent = "";
@@ -310,7 +337,7 @@
   /* ---------- Action handlers ---------- */
   function onSendOffer(listing, amount) {
     ensureNegotiationState(listing);
-    pushMessage(listing, "player", `Saya tawar ${fmt(amount)} ya bro. Dikasih gak? 🙏`);
+    pushKey(listing, "player", "chat.player_offer", { price: fmt(amount) });
 
     showTyping();
     setTimeout(() => {
@@ -320,7 +347,7 @@
       //    player's amount (they've already conceded above the live price).
       if (amount >= listing.currentPrice) {
         listing.currentPrice = amount;
-        pushMessage(listing, "seller", acceptCounterLine(amount));
+        pushKey(listing, "seller", pickKey("chat.accept_", 3), { price: fmt(amount) });
         window.FlippingTycoon.saveGame();
         renderActions(listing);
         return;
@@ -329,7 +356,7 @@
       // 2. Player offered AT or ABOVE seller's hidden floor → seller accepts.
       if (amount >= listing.minAcceptablePrice) {
         listing.currentPrice = amount;
-        pushMessage(listing, "seller", acceptCounterLine(amount));
+        pushKey(listing, "seller", pickKey("chat.accept_", 3), { price: fmt(amount) });
         window.FlippingTycoon.saveGame();
         renderActions(listing);
         return;
@@ -340,7 +367,7 @@
 
       if (listing.patience <= 0) {
         listing.chatLocked = true;
-        pushMessage(listing, "seller", rageQuitLine());
+        pushKey(listing, "seller", pickKey("chat.ragequit_", 3));
         window.FlippingTycoon.saveGame();
         renderActions(listing);
         return;
@@ -351,7 +378,7 @@
       // Don't let the midpoint slip below the floor — clamp up.
       const safeMid = Math.max(mid, listing.minAcceptablePrice);
       listing.currentPrice = safeMid;
-      pushMessage(listing, "seller", counterLine(safeMid));
+      pushKey(listing, "seller", pickKey("chat.counter_", 4), { price: fmt(safeMid) });
       window.FlippingTycoon.saveGame();
       renderActions(listing);
     }, 900);
@@ -379,11 +406,11 @@
   function onAccept(listing) {
     if (listing.purchaseFlow && listing.purchaseFlow !== "idle") return;
     listing.purchaseFlow = "method";
-    pushMessage(listing, "player", `Oke, saya minat ambil bro. Pakai metode apa enaknya?`);
+    pushKey(listing, "player", "chat.player_interested");
     showTyping();
     setTimeout(() => {
       hideTyping();
-      pushMessage(listing, "seller", `Bisa Bank Transfer atau COD ketemuan langsung. Pilih mana?`);
+      pushKey(listing, "seller", "chat.seller_method");
       renderPaymentMethodActions(listing);
     }, 600);
   }
@@ -392,16 +419,16 @@
     actionsEl.innerHTML = `
       <button id="method-transfer" class="chat-action accept">
         <i class="fa-solid fa-building-columns"></i>
-        Bank Transfer
-        <span class="text-xs opacity-80">Cepat & langsung</span>
+        ${t("chat.method_transfer")}
+        <span class="text-xs opacity-80">${t("chat.method_transfer_hint")}</span>
       </button>
       <button id="method-cod" class="chat-action haggle">
         <i class="fa-solid fa-handshake"></i>
-        COD (Meetup)
-        <span class="text-xs opacity-80">Bisa cek barang dulu</span>
+        ${t("chat.method_cod")}
+        <span class="text-xs opacity-80">${t("chat.method_cod_hint")}</span>
       </button>
       <button id="method-cancel" class="chat-action leave">
-        <i class="fa-solid fa-xmark"></i> Cancel
+        <i class="fa-solid fa-xmark"></i> ${t("chat.cancel")}
       </button>
     `;
     actionsEl.querySelector("#method-transfer").addEventListener("click", () => onPickTransfer(listing));
@@ -416,7 +443,7 @@
   function onPickTransfer(listing) {
     listing.purchaseFlow = "pick-bank";
     listing.paymentMethod = "Transfer";
-    pushMessage(listing, "player", `Saya transfer aja ya, biar cepat 💸`);
+    pushKey(listing, "player", "chat.player_pick_transfer");
     showBankPickerActions(listing);
   }
 
@@ -424,7 +451,7 @@
   function onPickCOD(listing) {
     listing.purchaseFlow = "inspecting";
     listing.paymentMethod = "COD";
-    pushMessage(listing, "player", `COD aja deh, mau cek dulu kondisinya 🔍`);
+    pushKey(listing, "player", "chat.player_pick_cod");
     runInspection(listing);
   }
 
@@ -452,31 +479,32 @@
       if (hasHidden) {
         showHiddenDefect(listing);
       } else {
-        pushMessage(listing, "system", `🔍 Hasil inspeksi: Barang sesuai deskripsi.`);
-        pushMessage(listing, "seller", `Tuh kan, bersih semua. Bayar pakai bank apa?`);
+        pushKey(listing, "system", "chat.inspect_clean");
+        pushKey(listing, "seller", "chat.seller_clean");
         showBankPickerActions(listing);
       }
     }, 2000);
   }
 
   /* ---------- Hidden Defect popup ---------- */
-  const HIDDEN_DEFECTS = [
-    "Found a hidden scratch on the back glass.",
-    "True Tone is off / sensor warna error.",
-    "Speaker bawah pecah saat volume tinggi.",
-    "Konektor charging goyang, perlu service.",
-    "Battery cycle ternyata lewat 800 (sangat tinggi).",
-    "Ada bekas servis di mainboard.",
-    "Kamera ultrawide ngeblur, sensor bermasalah.",
+  /* Part 36: store stable KEYS, not raw strings. The chat log embeds the
+   * key via a {k:...} param marker so the found-defect text re-translates. */
+  const HIDDEN_DEFECT_KEYS = [
+    "back_glass", "true_tone", "speaker", "charging_port",
+    "battery_cycle", "board_repair", "ultrawide",
   ];
 
   function showHiddenDefect(listing) {
-    const found = HIDDEN_DEFECTS[Math.floor(Math.random() * HIDDEN_DEFECTS.length)];
-    listing.hiddenDefect = found;
-    pushMessage(listing, "system", `⚠️ Hidden defect ditemukan: ${found}`);
+    const foundKey = HIDDEN_DEFECT_KEYS[Math.floor(Math.random() * HIDDEN_DEFECT_KEYS.length)];
+    const foundDictKey = "chat.hidden." + foundKey;
+    // Keep a stable key on the listing for inventory/re-translation, plus a
+    // resolved string snapshot for legacy modules that read .hiddenDefect.
+    listing.hiddenDefectKey = foundDictKey;
+    listing.hiddenDefect = t(foundDictKey);
+    pushKey(listing, "system", "chat.hidden_found", { defect: { k: foundDictKey } });
 
     const modal = document.querySelector("#defect-modal");
-    modal.querySelector("#defect-text").textContent = found;
+    modal.querySelector("#defect-text").textContent = t(foundDictKey);
     modal.classList.remove("hidden");
     modal.classList.add("flex");
 
@@ -490,8 +518,8 @@
 
     cancelBtn.onclick = () => {
       closeModal();
-      pushMessage(listing, "player", `Wah ada minus tersembunyi: ${found}. Sorry bro, batal aja.`);
-      pushMessage(listing, "seller", `Ya udah deh. Mungkin lain kali 🙏`);
+      pushKey(listing, "player", "chat.player_cancel_hidden", { defect: { k: foundDictKey } });
+      pushKey(listing, "seller", "chat.seller_cancel");
       // Part 20 — Reputation: -10 for cancelling after the seller agreed on a price.
       if (window.Reputation) {
         window.Reputation.onDealCancel({ reason: "Cancel COD after seller accepted (hidden defect found)" });
@@ -503,47 +531,32 @@
     negotiateBtn.onclick = () => {
       closeModal();
       /* ============================================================
-       * Part 17 fix — Hidden Defect price discount math.
-       *
-       * Bug: The old code did
-       *     basePrice = listing.haggleState === "accepted"
-       *                   ? listing.currentPrice
-       *                   : listing.finalPrice;
-       * but Part 35 removed `haggleState` entirely and now keeps
-       * `listing.currentPrice` live at all times. The fallback to
-       * `listing.finalPrice` was kicking in even after the player
-       * had negotiated way below it, so applying -15% to the original
-       * asking made the price jump UP instead of DOWN.
-       *
-       * Correct behaviour: the -15% is ALWAYS taken off the
-       * currently-agreed price (currentPrice). Math is forced to
-       * round DOWN to Rp 50k so the result is always strictly less
-       * than the price before inspection — never higher.
+       * Part 17 fix — Hidden Defect price discount math (unchanged):
+       * the -15% is ALWAYS taken off the currently-agreed price
+       * (currentPrice), rounded DOWN to Rp 50k so it's never higher.
        * ============================================================ */
       const previousPrice = Number(listing.currentPrice) || Number(listing.finalPrice) || 0;
       let newPrice = Math.floor((previousPrice * 0.85) / 50_000) * 50_000;
-      // Defensive: never let it round up to or past the previous price.
       if (newPrice >= previousPrice) {
         newPrice = Math.max(50_000, previousPrice - 50_000);
       }
       if (newPrice < 50_000) newPrice = 50_000;
       listing.currentPrice = newPrice;
-      // Also stamp legacy state so any code path still reading haggleState behaves.
       listing.haggleState = "accepted";
-      // Part 20 — Reputation: -5 for force-buying a unit with a known
-      // hidden defect (you're knowingly taking damaged stock).
       if (window.Reputation) {
         window.Reputation.onForceSaleWithDefect({
-          reason: `Force-bought unit with hidden defect: ${found}`,
+          reason: `Force-bought unit with hidden defect: ${listing.hiddenDefect}`,
         });
       }
-      pushMessage(listing, "player",
-        `Karena ada minus tersembunyi (${found}), saya tawar -15% dari harga deal kita ya bro. Jadi ${fmt(newPrice)}.`);
+      pushKey(listing, "player", "chat.player_nego_hidden", {
+        defect: { k: foundDictKey }, price: fmt(newPrice),
+      });
       showTyping();
       setTimeout(() => {
         hideTyping();
-        pushMessage(listing, "seller",
-          `Hmm... oke deh, fair lah dari ${fmt(previousPrice)} jadi ${fmt(newPrice)}. Bayar pakai bank apa?`);
+        pushKey(listing, "seller", "chat.seller_nego_hidden", {
+          prev: fmt(previousPrice), price: fmt(newPrice),
+        });
         showBankPickerActions(listing);
       }, 700);
     };
@@ -556,11 +569,17 @@
    * repair bill (Rp 3jt–7jt, 2 days) is far nastier than a normal minus.
    */
   function showFoldableDefectModal(listing, def) {
-    pushMessage(listing, "system", `⚠️ Inspeksi COD: ${def.type} ditemukan! ${def.desc}`);
+    const I = window.i18n;
+    const dKey = I.defectKey(def);
+    const labelKey = "defects." + dKey + ".label";
+    const descKey = "defects." + dKey + ".desc";
+    pushKey(listing, "system", "chat.inspect_foldable", {
+      defect: { k: labelKey }, desc: { k: descKey },
+    });
 
     const modal = document.querySelector("#defect-modal");
     modal.querySelector("#defect-text").textContent =
-      `${def.type} — ${def.desc} Servis foldable ini SANGAT mahal.`;
+      `${t(labelKey)} — ${t(descKey)}`;
     modal.classList.remove("hidden");
     modal.classList.add("flex");
 
@@ -573,8 +592,8 @@
 
     cancelBtn.onclick = () => {
       closeModal();
-      pushMessage(listing, "player", `Wah ${def.type} bro, servisnya bisa jutaan. Batal dulu deh 🙏`);
-      pushMessage(listing, "seller", `Yah... ya udah, no problem 🙏`);
+      pushKey(listing, "player", "chat.player_cancel_foldable", { defect: { k: labelKey } });
+      pushKey(listing, "seller", "chat.seller_cancel_foldable");
       if (window.Reputation) {
         window.Reputation.onDealCancel({ reason: `COD cancel: foldable defect ${def.type}` });
       }
@@ -595,13 +614,13 @@
       if (window.Reputation) {
         window.Reputation.onForceSaleWithDefect({ reason: `Force-buy foldable defect ${def.type}` });
       }
-      pushMessage(listing, "player",
-        `Ada ${def.type} nih, servisnya mahal banget. Minta turun ke ${fmt(newPrice)} ya bro.`);
+      pushKey(listing, "player", "chat.player_nego_foldable", {
+        defect: { k: labelKey }, price: fmt(newPrice),
+      });
       showTyping();
       setTimeout(() => {
         hideTyping();
-        pushMessage(listing, "seller",
-          `Aduh... yaudah deh ${fmt(newPrice)} fix. Bayar pakai bank apa?`);
+        pushKey(listing, "seller", "chat.seller_nego_foldable", { price: fmt(newPrice) });
         showBankPickerActions(listing);
       }, 700);
     };
@@ -623,12 +642,12 @@
         <button class="chat-action bank-pick bank-pick-${b.toLowerCase()}" data-bank="${b}" ${enough ? "" : "disabled"}>
           <i class="fa-solid fa-building-columns"></i>
           ${b}
-          <span class="text-xs opacity-80">${fmt(s.bankBalances[b] || 0)}${enough ? "" : " (kurang)"}</span>
+          <span class="text-xs opacity-80">${fmt(s.bankBalances[b] || 0)}${enough ? "" : " " + t("chat.bank_insufficient_tag")}</span>
         </button>`;
     }).join("");
     actionsEl.innerHTML = buttons + `
       <button id="bank-cancel" class="chat-action leave">
-        <i class="fa-solid fa-xmark"></i> Cancel
+        <i class="fa-solid fa-xmark"></i> ${t("chat.cancel")}
       </button>`;
     actionsEl.querySelectorAll(".bank-pick").forEach((btn) => {
       btn.addEventListener("click", () => completePurchase(listing, btn.dataset.bank));
@@ -647,16 +666,16 @@
     const price = Number(listing.currentPrice) || Number(listing.finalPrice) || 0;
     const s = window.FlippingTycoon.State.data;
     if ((s.bankBalances[sourceBank] || 0) < price) {
-      pushMessage(listing, "system", `Saldo ${sourceBank} tidak cukup.`);
+      pushKey(listing, "system", "chat.bank_insufficient", { bank: sourceBank });
       return;
     }
 
-    pushMessage(listing, "player", `Sip, transfer dari ${sourceBank} ya bro. ${fmt(price)} 💸`);
+    pushKey(listing, "player", "chat.player_pay", { bank: sourceBank, price: fmt(price) });
     showTyping();
 
     setTimeout(() => {
       hideTyping();
-      pushMessage(listing, "seller", dealLine(listing));
+      sendDealLine(listing);
 
       // Deduct from chosen bank.
       s.bankBalances[sourceBank] -= price;
@@ -724,8 +743,9 @@
         });
       }
 
-      pushMessage(listing, "system",
-        `✅ Transaksi sukses. ${fmt(price)} ditarik dari ${sourceBank} via ${listing.paymentMethod || "Transfer"}. Item masuk ke Inventory.`);
+      pushKey(listing, "system", "chat.txn_success", {
+        price: fmt(price), bank: sourceBank, method: listing.paymentMethod || "Transfer",
+      });
       if (window.Notifications) {
         window.Notifications.add({
           type: "success",
@@ -738,7 +758,7 @@
       }
       actionsEl.innerHTML = `
         <button id="chat-done" class="chat-action accept w-full">
-          <i class="fa-solid fa-check-double"></i> Close & Back to Marketplace
+          <i class="fa-solid fa-check-double"></i> ${t("chat.doneClose")}
         </button>`;
       actionsEl.querySelector("#chat-done").addEventListener("click", () => {
         closeChat();
@@ -758,8 +778,24 @@
   }
 
   /* ---------- Public API ---------- */
+
+  /* i18n (Part 36): re-render the currently-open chat in the active
+   * language. Called by i18n.switchLanguage() so an open negotiation —
+   * including its entire history — flips instantly. */
+  function refreshOpen() {
+    if (!overlayEl || overlayEl.classList.contains("hidden")) return;
+    const listing = getListing();
+    if (!listing) return;
+    renderHeader(listing);
+    messagesEl.innerHTML = "";
+    (listing.chatLog || []).forEach((m) => renderBubble(m));
+    renderActions(listing);
+    scrollToBottom();
+  }
+
   window.Chat = {
     openWithListing,
     closeChat,
+    refreshOpen,
   };
 })();
