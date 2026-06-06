@@ -102,20 +102,20 @@
     header.innerHTML = `
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="flex items-center gap-2"><i class="fa-solid fa-building-columns text-indigo-500"></i> Banking</h3>
-          <p class="text-sm text-gray-500">Total saldo: <b>${fmt(total)}</b></p>
+          <h3 class="flex items-center gap-2"><i class="fa-solid fa-building-columns text-indigo-500"></i> ${t("banking.title")}</h3>
+          <p class="text-sm text-gray-500">${t("banking.totalBalance")}: <b>${fmt(total)}</b></p>
         </div>
         <button id="open-transfer" class="message-seller-btn" style="margin-top:0">
-          <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer
+          <i class="fa-solid fa-arrow-right-arrow-left"></i> ${t("banking.transfer")}
         </button>
       </div>
       <!-- Bug #3: edit the central bank name; syncs to header + cards live -->
-      <label class="text-xs font-semibold text-gray-500 mt-3 block">Nama Rekening / Bank</label>
+      <label class="text-xs font-semibold text-gray-500 mt-3 block">${t("banking.accountName")}</label>
       <div class="bankname-editor">
         <input id="bankname-input" class="bankname-input" type="text" maxlength="32"
                value="${esc(getBankName())}" placeholder="Nama pemilik rekening" />
         <button id="bankname-save" class="bankname-save-btn" type="button">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan
+          <i class="fa-solid fa-floppy-disk"></i> ${t("common.save")}
         </button>
       </div>
     `;

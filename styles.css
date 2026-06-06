@@ -7284,3 +7284,30 @@ body.dark .batam-logi-icon { background: #0e2a33; }
   .unbox-title { font-size: 19px; }
   .unbox-foot { flex-direction: column; }
 }
+
+
+/* =========================================================
+ * Part 36 — i18n Language Switcher controls
+ * ========================================================= */
+
+/* Tiny "ID" / "EN" code chip inside the topbar globe button. */
+.topbar-lang-code {
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  margin-left: 3px;
+  letter-spacing: 0.02em;
+}
+
+/* Pill badge on the mobile-menu language row. */
+.lang-pill {
+  min-width: 34px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+body.dark .lang-pill { background: #0c4a6e; color: #bae6fd; }

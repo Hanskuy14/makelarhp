@@ -242,6 +242,12 @@
         <button id="topbar-sfx-btn" class="fb-icon-btn" title="Sounds: ON" type="button" data-no-sfx>
           <i id="topbar-sfx-icon" class="fa-solid fa-volume-high"></i>
         </button>
+        <!-- Part 36: Language switcher (EN <-> ID). i18n.js auto-wires this
+             via [data-i18n-toggle] and keeps [data-i18n-code] in sync. -->
+        <button id="topbar-lang-btn" class="fb-icon-btn" title="Language / Bahasa" type="button" data-no-sfx data-i18n-toggle>
+          <i class="fa-solid fa-globe"></i>
+          <span class="topbar-lang-code" data-i18n-code>ID</span>
+        </button>
         <button class="fb-icon-btn relative" title="Messenger" id="messenger-btn">
           <i class="fa-brands fa-facebook-messenger"></i>
           <span id="messenger-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
@@ -496,6 +502,14 @@
             <span>Dark Mode</span>
           </span>
           <span class="theme-switch" aria-hidden="true"><span class="theme-switch-knob"></span></span>
+        </button>
+        <!-- Part 36: Language switcher row (EN <-> ID), auto-wired by i18n.js -->
+        <button id="mobile-lang-toggle" class="sidebar-link mobile-menu-link justify-between" type="button" data-no-sfx data-i18n-toggle>
+          <span class="flex items-center gap-3">
+            <i class="sidebar-icon fa-solid fa-globe text-cyan-600"></i>
+            <span data-i18n="settings.language">Bahasa</span>
+          </span>
+          <span class="lang-pill" data-i18n-code>ID</span>
         </button>
         <hr class="my-2 border-gray-200 dark:border-gray-700" />
         <button class="sidebar-link sidebar-nav mobile-menu-link" data-page="news-feed" type="button">
@@ -1072,6 +1086,7 @@
     </div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="gadgets.js"></script>
   <script src="audio.js"></script>
   <script src="market.js"></script>
