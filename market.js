@@ -39,7 +39,7 @@
    * so a malformed inventory item (missing multiplier, etc.) never
    * propagates a NaN into the rendered "Rp NaN" label.
    */
-  function computeFinalPrice(basePrice, completeness, defect, brand, isExInter) {
+  function computeFinalPrice(basePrice, completeness, defect, brand, isExInter, bhMul) {
     const variance = 0.95 + Math.random() * 0.10; // 0.95 .. 1.05
     const newsMul = window.FlippingTycoon
       ? window.FlippingTycoon.getNewsMultiplierForBrand(brand)
@@ -49,7 +49,9 @@
     const compMul    = (completeness && Number(completeness.multiplier)) || 1;
     const defMul     = (defect && Number(defect.multiplier)) || 1;
     const safeNews   = Number(newsMul) || 1;
-    const raw = safeBase * compMul * defMul * variance * safeNews * exInterMul;
+    // Part 37 — Battery Health multiplier (Pear only; 1.0 when not supplied).
+    const safeBh     = Number(bhMul) || 1;
+    const raw = safeBase * compMul * defMul * variance * safeNews * exInterMul * safeBh;
     if (!isFinite(raw) || isNaN(raw)) return 0;
     return Math.round(raw / 50_000) * 50_000;
   }
@@ -77,6 +79,11 @@
 
     // Stable resale estimate (no random variance for selling, but apply news + slight scout-buyer bonus)
     let raw = basePrice * compMul * defMul * newsMul * 1.02;
+    // Part 37 — Battery Health multiplier (Pear only). Uses the DISPLAYED bh,
+    // so a bypassed unit (shows 100) prices high — that's the scam upside.
+    if (window.Battery && typeof inventoryItem.batteryHealth === "number") {
+      raw *= window.Battery.healthMultiplier(inventoryItem.batteryHealth);
+    }
     // Part 6: Blocked IMEI (Ex-Inter) tanks resale value by 60%.
     if (inventoryItem.imeiStatus === "blocked") {
       raw *= 0.40;
@@ -92,7 +99,15 @@
     const sellerName = pick(SELLER_NAMES);
     // Part 6: 20% chance the seller is moving Ex-Inter (No Pajak) units.
     const isExInter = Math.random() < 0.20;
-    const finalPrice = computeFinalPrice(gadget.basePrice, completeness, defect, gadget.brand, isExInter);
+    // Part 37 — Battery Health (Pear only). Roll it first so the asking
+    // price can reflect the BH multiplier from the moment it's listed.
+    const batteryHealth = (window.Battery && window.Battery.isPearGadget(gadget))
+      ? window.Battery.rollBatteryHealth()
+      : null;
+    const bhMul = (window.Battery && batteryHealth != null)
+      ? window.Battery.healthMultiplier(batteryHealth)
+      : 1;
+    const finalPrice = computeFinalPrice(gadget.basePrice, completeness, defect, gadget.brand, isExInter, bhMul);
     const avatarColor = AVATAR_COLORS[randInt(0, AVATAR_COLORS.length - 1)];
 
     const listing = {
@@ -118,6 +133,9 @@
       description: makeDescription(gadget, completeness, defect, isExInter),
       haggleState: null,      // null | "accepted" | "rejected"
       currentPrice: finalPrice, // may drop after a successful haggle
+      // Part 37 — Battery Health (Pear only; null for other brands).
+      batteryHealth,
+      isBypassed: false,
     };
 
     // UPDATE ("Foldable…"): roll the extreme-defect trap before returning.
@@ -292,6 +310,7 @@
           <div class="marketplace-badges">
             <span class="market-badge bg-blue-100 text-blue-700">${listing.completeness.short}</span>
             <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${listing.defect.short}</span>
+            ${(window.Battery ? window.Battery.badgeHtml(listing.batteryHealth) : "")}
             ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700">Ex-Inter</span>` : ""}
           </div>
           <p class="marketplace-seller">
@@ -350,6 +369,7 @@
           <div class="product-badges">
             <span class="market-badge bg-blue-100 text-blue-700">${listing.completeness.type}</span>
             <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${listing.defect.type}</span>
+            ${(window.Battery ? window.Battery.badgeHtml(listing.batteryHealth) : "")}
             ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700"><i class="fa-solid fa-triangle-exclamation"></i> Ex-Inter</span>` : ""}
           </div>
 

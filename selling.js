@@ -136,6 +136,12 @@
         imeiBlockedOnDay: inventoryItem.imeiBlockedOnDay || null,
         // Part 9: cumulative repair / repack spend follows the item.
         totalRepairCost: inventoryItem.totalRepairCost || 0,
+        // Part 37 — Battery Health follows the item; the hidden bypass flag
+        // + REAL bh travel along so the Next-Day refund trap can fire.
+        batteryHealth: (typeof inventoryItem.batteryHealth === "number") ? inventoryItem.batteryHealth : null,
+        isBypassed: !!inventoryItem.isBypassed,
+        realBatteryHealth: (typeof inventoryItem.realBatteryHealth === "number") ? inventoryItem.realBatteryHealth : null,
+        originalItemId: inventoryItem.id,
       },
       originalItemId: inventoryItem.id,
       askingPrice,
@@ -182,6 +188,10 @@
       imeiBlockedOnDay: listing.itemSnapshot.imeiBlockedOnDay || null,
       // Part 9: restore accumulated repair / repack spend.
       totalRepairCost: listing.itemSnapshot.totalRepairCost || 0,
+      // Part 37 — restore Battery Health + hidden bypass state.
+      batteryHealth: (typeof listing.itemSnapshot.batteryHealth === "number") ? listing.itemSnapshot.batteryHealth : null,
+      isBypassed: !!listing.itemSnapshot.isBypassed,
+      realBatteryHealth: (typeof listing.itemSnapshot.realBatteryHealth === "number") ? listing.itemSnapshot.realBatteryHealth : null,
     });
     s.activeListings = s.activeListings.filter((l) => l.listingId !== listing.listingId);
     window.FlippingTycoon.saveGame();
@@ -900,6 +910,12 @@
       window.Reputation.onMarketplaceSale({
         reason: `Sold ${itemName} to ${buyerName}`,
       });
+    }
+
+    // Part 37 — Battery Bypass trap: if this was a "Suntik BH" PearPhone,
+    // log it so the Next Day cycle can roll a 25% buyer-discovery refund.
+    if (window.Battery) {
+      window.Battery.recordPotentialReturn(listing, { soldPrice: price, receivingBank });
     }
 
     window.FlippingTycoon.saveGame();

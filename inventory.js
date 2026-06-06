@@ -337,6 +337,15 @@
       `<span class="market-badge bg-blue-100 text-blue-700">${item.completeness.short}</span>`,
       `<span class="market-badge ${item.defect.severity === 0 ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-800"}">${item.defect.short}</span>`,
     ];
+    // Part 37 — Battery Health chip (Pear only). A bypassed unit shows 100%
+    // (green) — the deliberate "scam" look — plus a discreet syringe marker
+    // so the player remembers it's a risky-to-sell unit.
+    if (window.Battery && typeof item.batteryHealth === "number") {
+      condBadges.push(window.Battery.badgeHtml(item.batteryHealth));
+      if (item.isBypassed) {
+        condBadges.push(`<span class="market-badge bg-amber-100 text-amber-800" title="BH di-bypass (Suntik) — beresiko komplain refund saat dijual"><i class="fa-solid fa-syringe"></i> Bypass</span>`);
+      }
+    }
     if (item.isExInter) {
       condBadges.push(`<span class="market-badge bg-rose-100 text-rose-700"><i class="fa-solid fa-skull-crossbones"></i> Ex-Inter</span>`);
     }

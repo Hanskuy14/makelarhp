@@ -270,7 +270,11 @@
       (it) => !isLocked(it) && it.defect && it.defect.severity > 0
     );
 
-    if (inProgress.length === 0 && defective.length === 0) {
+    // Part 37 — Battery Service section (low-BH PearPhones). Built up-front
+    // so the "all clear" empty-state below accounts for it.
+    const batterySection = window.Battery ? window.Battery.renderBatterySection() : null;
+
+    if (inProgress.length === 0 && defective.length === 0 && !batterySection) {
       const empty = document.createElement("div");
       empty.className = "fb-card text-center py-12";
       empty.innerHTML = `
@@ -299,6 +303,9 @@
       defective.forEach((it) => sec.appendChild(renderRepairRow(it, false)));
       wrap.appendChild(sec);
     }
+
+    // Part 37 — append the Battery Service (PearPhone BH) card.
+    if (batterySection) wrap.appendChild(batterySection);
     return wrap;
   }
 
