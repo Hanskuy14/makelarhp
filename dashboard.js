@@ -105,6 +105,12 @@
     if (typeof e.totalAdSpend !== "number") e.totalAdSpend = 0;
     if (typeof e.lastRecapDay !== "number") e.lastRecapDay = 0;
     if (!e.lastRecap || typeof e.lastRecap !== "object") e.lastRecap = null;
+    // Part 38 — online E-commerce auto-sell engine.
+    // dailySalesReport: rows for the day being processed (built by
+    //   processEcommerceSales, surfaced on the recap + dashboard).
+    // lastEcommerceReport: snapshot of the most recent closed day.
+    if (!Array.isArray(e.dailySalesReport)) e.dailySalesReport = [];
+    if (!Array.isArray(e.lastEcommerceReport)) e.lastEcommerceReport = [];
     return e;
   }
 
@@ -278,14 +284,301 @@
   }
 
   /* =========================================================
+   * Part 38 — ONLINE E-COMMERCE ENGINE (the missing sales loop)
+   *
+   * Bridges:  Ad Budget  ->  Daily Traffic  ->  Conversion Rate
+   *           ->  per-listing RNG roll  ->  Auto-Sell at Next Day.
+   *
+   * This is the ONLINE store (always open — no Ruko rental needed,
+   * unlike RealEstate.processWalkInSales which is the PHYSICAL store).
+   * It sells from the same `state.activeListings` pool, so an item can
+   * only ever be sold through ONE channel: whichever pass removes it
+   * first. All money/ratings/analytics flow through the SAME pipeline
+   * the rest of the game uses (bank credit + Analytics.recordSale ->
+   * Dashboard.onSaleRecorded), so there is no double-counting.
+   * ========================================================= */
+
+  /* Reference daily traffic that maps to a "pressure" of 1.0 in the
+   * conversion math below. ~400 views/day = a healthy organic+basic store. */
+  const TRAFFIC_BASELINE = 400;
+
+  /**
+   * calculateDailyTraffic(adBudget)
+   *
+   * Turns the player's daily marketing spend (Rp) into a number of
+   * profile views for the day. Higher tiers buy exponentially more reach.
+   * Ranges are randomized within each band so the dashboard feels alive.
+   *
+   *   No Ads (Rp 0)        ->   50 – 100 views   (organic only)
+   *   Basic  (< Rp 150k)   ->  300 – 500 views
+   *   Growth (< Rp 500k)   ->  700 – 1,200 views
+   *   Flagship (>= Rp 500k)-> 1,000 – 2,000 views
+   *
+   * Store ratings add a small organic tailwind (trusted shops surface
+   * more), capped at +40% so ads remain the dominant lever.
+   */
+  function calculateDailyTraffic(adBudget) {
+    const budget = Math.max(0, Number(adBudget) || 0);
+    let lo, hi;
+    if (budget <= 0)            { lo = 50;   hi = 100;  }   // organic
+    else if (budget < 150_000)  { lo = 300;  hi = 500;  }   // Basic Boost
+    else if (budget < 500_000)  { lo = 700;  hi = 1200; }   // Growth Ads
+    else                        { lo = 1000; hi = 2000; }   // Flagship Campaign
+
+    const e = ensureState();
+    // Trust tailwind: up to +40% organic reach from accumulated ratings.
+    const ratingTailwind = 1 + Math.min(0.40, (e.ratings || 0) / 1500 * 0.40);
+
+    const roll = lo + Math.random() * (hi - lo);
+    return Math.max(1, Math.round(roll * ratingTailwind));
+  }
+
+  /**
+   * calculateConversionRate(storeRating)
+   *
+   * Per-buyer purchase probability, driven by trust (ratings).
+   *   base 1%  ->  scales linearly  ->  5% at >= 1,500 ratings.
+   * Returned as a fraction (0.01 .. 0.05).
+   */
+  function calculateConversionRate(storeRating) {
+    const r = Math.max(0, Number(storeRating) || 0);
+    const progress = Math.min(1, r / RATING_TARGET); // 0..1 at 1500
+    return 0.01 + progress * 0.04;                   // 1% .. 5%
+  }
+
+  /* Listings priced far above today's suggested market price convert
+   * worse. Returns a multiplier applied to the per-item sell chance. */
+  function priceAttractiveness(listing) {
+    const suggested = Number(listing.suggestedPrice) || 0;
+    const asking = Number(listing.askingPrice) || 0;
+    if (suggested <= 0 || asking <= 0) return 1; // unknown -> neutral
+    const ratio = asking / suggested;
+    if (ratio <= 0.95) return 1.25; // underpriced — flies off the shelf
+    if (ratio <= 1.10) return 1.00; // fair
+    if (ratio <= 1.30) return 0.50; // a bit greedy
+    if (ratio <= 1.50) return 0.20; // overpriced
+    return 0.04;                    // way overpriced — basically won't sell
+  }
+
+  /**
+   * processEcommerceSales()
+   *
+   * THE CORE FIX. Called from advanceToNextDay() (see script.js) AFTER
+   * the ad budget is charged for the day. Steps:
+   *   1. Compute the day's traffic from the active ad budget.
+   *   2. Compute the base conversion rate from store ratings.
+   *   3. For every eligible online listing, roll RNG against an
+   *      effective per-item probability (conversion x traffic-pressure
+   *      x price-attractiveness). On success the item is SOLD.
+   *   4. Batch-commit: remove sold listings, credit the net proceeds to
+   *      the bank, and push each sale through Analytics.recordSale so the
+   *      existing pipeline grants ratings + accumulates daily revenue.
+   *
+   * Returns the day's sales report array (also stored on
+   * `ecommerce.dailySalesReport`).
+   */
+  function processEcommerceSales() {
+    const s = S();
+    const e = ensureState();
+    if (!Array.isArray(s.activeListings)) s.activeListings = [];
+
+    // ---- 1. Traffic for the day (REAL number the dashboard will show) ----
+    const traffic = calculateDailyTraffic(e.activeAdBudget);
+    e.profileViewsToday = traffic;
+
+    // ---- 2. Conversion rate from store trust ----
+    const baseConv = calculateConversionRate(e.ratings);
+
+    const report = [];
+    const listings = s.activeListings;
+
+    if (listings.length === 0) {
+      // Nothing listed: show the projected conversion and bail.
+      e.conversionRate = Number((baseConv * 100).toFixed(1));
+      e.dailySalesReport = report;
+      return report;
+    }
+
+    // Busier storefronts give each listing more exposure (more "shots").
+    const trafficPressure = traffic / TRAFFIC_BASELINE;
+
+    // Platform fee model — identical to walk-in sales for consistency.
+    const receivingBank = "Mandari";
+    const isPriority = !!(window.Banking && window.Banking.tierOf &&
+      window.Banking.tierOf(s.bankBalances[receivingBank] || 0) === "priority");
+    const baseFee = (window.Inventory && window.Inventory.platformFeeRate)
+      ? window.Inventory.platformFeeRate()
+      : (window.Repair && window.Repair.platformFeeRate ? window.Repair.platformFeeRate() : 0.05);
+    const feeRate = isPriority ? 0 : baseFee;
+
+    // ---- 3. Per-item conversion roll ----
+    const soldIds = new Set();
+    const soldListings = [];
+    let grossSum = 0, feeSum = 0, netSum = 0;
+
+    for (let i = 0; i < listings.length; i++) {
+      const l = listings[i];
+      // Skip items currently mid-negotiation (a human buyer is on them).
+      if (l.negotiationState === "offer-pending") continue;
+
+      const chance = Math.min(
+        0.90,
+        baseConv * trafficPressure * priceAttractiveness(l)
+      );
+      if (Math.random() < chance) {
+        const price = Math.max(0, Number(l.askingPrice) || 0);
+        const fee = Math.round(price * feeRate);
+        soldIds.add(l.listingId);
+        soldListings.push(l);
+        grossSum += price;
+        feeSum   += fee;
+        netSum   += (price - fee);
+      }
+    }
+
+    if (soldListings.length === 0) {
+      // Had stock + traffic but nothing converted today. Show real (0%)
+      // conversion against the projected baseline so the tile isn't blank.
+      e.conversionRate = 0;
+      e.dailySalesReport = report;
+      return report;
+    }
+
+    // ---- 4a. Single inventory mutation: drop all sold listings at once ----
+    s.activeListings = s.activeListings.filter((l) => !soldIds.has(l.listingId));
+
+    // ---- 4b. ONE batched bank credit + ledger entry ----
+    s.bankBalances[receivingBank] = (s.bankBalances[receivingBank] || 0) + netSum;
+    if (!Array.isArray(s.bankHistories[receivingBank])) s.bankHistories[receivingBank] = [];
+    s.bankHistories[receivingBank].push({
+      type: "CREDIT",
+      amount: netSum,
+      balanceAfter: s.bankBalances[receivingBank],
+      description: `E-commerce batch: ${soldListings.length} unit terjual online` +
+        (isPriority ? " (Priority - 0% fee)" : ` (after ${(baseFee * 100).toFixed(0)}% fee)`),
+      category: "ecommerce-sale-batch",
+      day: s.currentDay,
+      ts: Date.now(),
+    });
+
+    // ---- 4c. Per-item: record sale (ratings + revenue + conversion flow
+    //          through Analytics.recordSale -> Dashboard.onSaleRecorded) ----
+    soldListings.forEach((l) => {
+      const snap = l.itemSnapshot || {};
+      const price = Math.max(0, Number(l.askingPrice) || 0);
+      const fee = Math.round(price * feeRate);
+
+      report.push({
+        listingId: l.listingId,
+        name: snap.name || "Unit",
+        brand: snap.brand || "",
+        salePrice: price,
+        net: price - fee,
+        day: s.currentDay,
+      });
+
+      if (window.Analytics && window.Analytics.recordSale) {
+        window.Analytics.recordSale({
+          saleType: "ecommerce",
+          gadget: {
+            gadgetId: snap.gadgetId, name: snap.name, brand: snap.brand,
+            specs: snap.specs, completeness: snap.completeness, defect: snap.defect,
+            isExInter: !!snap.isExInter, accent: snap.accent, icon: snap.icon,
+          },
+          purchaseCost: snap.buyPrice || 0,
+          repairCost:   snap.totalRepairCost || 0,
+          salePrice:    price,
+          feePaid:      fee,
+          buyer:        "Online Buyer (" + e.shopName + ")",
+          receivingBank,
+        });
+      } else {
+        // Defensive fallback if Analytics is unavailable: keep revenue +
+        // ratings consistent so the dashboard still reflects the sale.
+        e.dailyRevenue += price;
+        e.dailyFees += fee;
+        e.salesToday += 1;
+        grantRatings(1);
+      }
+    });
+
+    // Conversion = sales today / views (kept <= 100%). onSaleRecorded
+    // already recomputes this, but set it explicitly for the no-Analytics path.
+    if (e.profileViewsToday > 0) {
+      e.conversionRate = Number(
+        Math.min(100, (e.salesToday / e.profileViewsToday) * 100).toFixed(1)
+      );
+    }
+
+    e.dailySalesReport = report;
+    return report;
+  }
+
+  /* =========================================================
+   * chargeAdBudget()
+   *
+   * Part 38 — extracted from processDailyFinances so the ad budget is
+   * DEBITED FIRST (at the start of the Next Day transition, before sales
+   * are calculated). If Mandari can't cover it, the campaign auto-pauses
+   * (tier -> 0) so traffic this day reflects the un-funded state. The
+   * computed charge is stashed on `ecommerce._adChargeToday` for the
+   * recap to itemize — guaranteeing the budget is never charged twice.
+   * ========================================================= */
+  function chargeAdBudget() {
+    const s = S();
+    const e = ensureState();
+    const adMeta = tierMeta(e.adTier);
+    let adSpend = Math.round(e.activeAdBudget || 0);
+    let adChargeNote = "";
+
+    if (adSpend > 0) {
+      const mandiri = s.bankBalances.Mandari || 0;
+      if (mandiri >= adSpend) {
+        s.bankBalances.Mandari -= adSpend;
+        if (!Array.isArray(s.bankHistories.Mandari)) s.bankHistories.Mandari = [];
+        s.bankHistories.Mandari.push({
+          type: "DEBIT",
+          amount: adSpend,
+          balanceAfter: s.bankBalances.Mandari,
+          description: `Marketing / Ads — ${adMeta.label} (Day ${s.currentDay})`,
+          category: "ads",
+          day: s.currentDay,
+          ts: Date.now(),
+        });
+        e.totalAdSpend = (e.totalAdSpend || 0) + adSpend;
+      } else {
+        // Can't afford the campaign — auto-pause so the player isn't
+        // silently overdrawn. No traffic boost this day.
+        adChargeNote = "Saldo Mandari kurang — kampanye iklan di-pause.";
+        adSpend = 0;
+        e.adTier = 0;
+        e.activeAdBudget = 0;
+        if (window.Notifications) {
+          window.Notifications.add({
+            type: "warning",
+            title: "Iklan Dipause",
+            message: `Saldo Mandari gak cukup buat biaya iklan harian. Kampanye dimatikan otomatis.`,
+            actionPage: "real-estate",
+            actor: "Marketing",
+            icon: "triangle-exclamation",
+          });
+        }
+      }
+    }
+
+    e._adChargeToday = { adSpend, adChargeNote, label: adMeta.label };
+    return e._adChargeToday;
+  }
+
+  /* =========================================================
    * processDailyFinances()
    *
    * Called from advanceToNextDay() near the END of the heavy block
    * (after all sale ticks ran, so dailyRevenue already includes the
-   * Next-Day walk-in/auto-accept batch). It:
+   * walk-in + e-commerce batch). It:
    *   1. Snapshots the closing day's gross revenue + fees.
    *   2. Mirrors rent + salaries for the receipt.
-   *   3. CHARGES the active ad budget from Mandari (the one real debit).
+   *   3. Reads the ad spend already charged by chargeAdBudget().
    *   4. Computes Net Profit and stores `ecommerce.lastRecap`.
    *   5. Resets the daily counters and simulates the new day's traffic.
    *
@@ -304,47 +597,21 @@
     const adminFees = Math.round(e.dailyFees || 0);
     const storeRent = computeStoreRent();
     const salaries = computeSalaries();
-    const adMeta = tierMeta(e.adTier);
-    let adSpend = Math.round(e.activeAdBudget || 0);
 
-    // ---- Charge ad spend from Mandari (the only NEW money movement) ----
-    let adChargeNote = "";
-    if (adSpend > 0) {
-      const mandiri = s.bankBalances.Mandari || 0;
-      if (mandiri >= adSpend) {
-        s.bankBalances.Mandari -= adSpend;
-        s.bankHistories.Mandari.push({
-          type: "DEBIT",
-          amount: adSpend,
-          balanceAfter: s.bankBalances.Mandari,
-          description: `Marketing / Ads — ${adMeta.label} (Day ${s.currentDay})`,
-          category: "ads",
-          day: s.currentDay,
-          ts: Date.now(),
-        });
-        e.totalAdSpend = (e.totalAdSpend || 0) + adSpend;
-      } else {
-        // Can't afford the campaign — auto-pause it so the player isn't
-        // silently overdrawn. Reflect zero spend on the recap.
-        adChargeNote = "Saldo Mandari kurang — kampanye iklan di-pause.";
-        adSpend = 0;
-        e.adTier = 0;
-        e.activeAdBudget = 0;
-        if (window.Notifications) {
-          window.Notifications.add({
-            type: "warning",
-            title: "Iklan Dipause",
-            message: `Saldo Mandari gak cukup buat biaya iklan harian. Kampanye dimatikan otomatis.`,
-            actionPage: "real-estate",
-            actor: "Marketing",
-            icon: "triangle-exclamation",
-          });
-        }
-      }
-    }
+    // Ad budget was already debited this transition by chargeAdBudget().
+    // Fall back to charging here if (defensively) it wasn't called.
+    const charge = e._adChargeToday || chargeAdBudget();
+    const adSpend = Math.round(charge.adSpend || 0);
+    const adChargeNote = charge.adChargeNote || "";
+    e._adChargeToday = null; // consume so it can't leak into another day
 
     const totalDeductions = adSpend + storeRent + salaries + adminFees;
     const netProfit = grossRevenue - totalDeductions;
+
+    // Snapshot the online sales report for this closed day.
+    const ecommerceReport = Array.isArray(e.dailySalesReport) ? e.dailySalesReport.slice() : [];
+    const ecommerceUnits = ecommerceReport.length;
+    const ecommerceNet = ecommerceReport.reduce((a, r) => a + (Number(r.net) || 0), 0);
 
     const recap = {
       shopName: e.shopName,
@@ -364,16 +631,21 @@
       salesCount: e.salesToday,
       profileViews: e.profileViewsToday,
       conversionRate: e.conversionRate,
+      // Part 38 — online channel breakdown for the receipt.
+      ecommerceUnits,
+      ecommerceNet,
     };
 
     e.lastRecap = recap;
     e.lastRecapDay = closedDay;
+    e.lastEcommerceReport = ecommerceReport;
 
     // ---- Reset daily counters for the new day, then re-simulate traffic ----
     e.dailyRevenue = 0;
     e.dailyFees = 0;
     e.dailyExpenses = totalDeductions; // last-known daily burn (info only)
     e.salesToday = 0;
+    e.dailySalesReport = [];
     updateAdPerformance(true);
 
     saveGame();
@@ -460,6 +732,16 @@
           <p class="text-[10px] text-slate-400 mt-1.5 text-center leading-snug">
             Net = revenue − biaya operasional harian. Belum termasuk modal barang (COGS) — cek tab Analytics buat gross profit.
           </p>
+
+          ${recap.ecommerceUnits > 0 ? `
+          <div class="mt-3 flex items-center justify-between rounded-xl bg-blue-50 dark:bg-blue-900/20 px-4 py-2.5">
+            <span class="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+              <i class="fa-solid fa-cart-shopping"></i> Terjual Online (Ads)
+            </span>
+            <span class="text-sm font-bold text-blue-700 dark:text-blue-300 tabular-nums">
+              ${recap.ecommerceUnits} unit &middot; ${fmt(recap.ecommerceNet)}
+            </span>
+          </div>` : ""}
 
           <!-- Mini KPIs -->
           <div class="grid grid-cols-3 gap-2 mt-4 text-center">
@@ -615,6 +897,10 @@
               <p class="text-[11px] text-slate-400">Sales Today</p>
             </div>
           </div>
+          <p class="text-[11px] text-slate-400 mt-3 leading-snug">
+            <i class="fa-solid fa-circle-info"></i>
+            Trafik & konversi dihitung dari budget iklan + rating toko tiap <b>Next Day</b>. Makin tinggi keduanya, makin banyak listing kejual otomatis secara online.
+          </p>
         </div>
       </div>
     `;
@@ -653,9 +939,13 @@
     // hooks
     onSaleRecorded,
     processDailyFinances,
+    chargeAdBudget,            // Part 38 — debit ad budget before sales
+    processEcommerceSales,     // Part 38 — online auto-sell loop
     // ads / metrics
     setAdBudget,
     updateAdPerformance,
+    calculateDailyTraffic,     // Part 38 — ads -> traffic math
+    calculateConversionRate,   // Part 38 — ratings -> conversion math
     grantRatings,
     getAdSaleRateBonus,
     getHaggleResistanceBonus,
