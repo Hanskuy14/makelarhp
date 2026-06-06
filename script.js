@@ -6,16 +6,172 @@
 /* ---------- 1. Constants ---------- */
 const STORAGE_KEY = "flippingTycoon.save.v1";
 const STARTING_BALANCES = {
-  Mandiri: 10_000_000, // updated in Part 3
-  BCA: 0,
-  BNI: 5_000_000,      // updated in Part 3
+  Mandari: 10_000_000, // updated in Part 3
+  BKA: 0,
+  BNO: 5_000_000,      // updated in Part 3
 };
+
+/* =========================================================
+ * Part 40 — Parody bank-name save-file patch
+ *
+ * Old saves stored the real-world bank names ("Mandari", "BKA", "BNO")
+ * as BOTH object keys (bankBalances / bankHistories) AND string values
+ * (bankingView.activeBank, each item/listing/log `sourceBank` /
+ * `receivingBank`, plus free-text inside history `description`s and chat
+ * params). This deep, idempotent transform rewrites every one of them to
+ * the parody names so a returning player's balances, mutations and logs
+ * are instantly corrected — without breaking anything.
+ *
+ *   "Mandari" -> "Mandari"   "BKA" -> "BKA"   "BNO" -> "BNO"
+ *
+ * Safe by design:
+ *   - Word-boundary matching means "BNIB" (Brand New In Box) is NEVER
+ *     touched, and no real bank token survives.
+ *   - Renaming a key only moves it when the parody key doesn't already
+ *     exist, so running twice is a no-op (idempotent).
+ * ========================================================= */
+const BANK_NAME_MAP = { Mandiri: "Mandari", BCA: "BKA", BNI: "BNO" };
+const BANK_NAME_RE = /\b(Mandiri|BCA|BNI)\b/g;
+
+function patchBankNames(state) {
+  if (!state || typeof state !== "object") return state;
+
+  const seen = new WeakSet(); // guard against cyclic refs
+  function walk(node) {
+    if (!node || typeof node !== "object") return;
+    if (seen.has(node)) return;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        const v = node[i];
+        if (typeof v === "string") {
+          node[i] = v.replace(BANK_NAME_RE, (m) => BANK_NAME_MAP[m]);
+        } else {
+          walk(v);
+        }
+      }
+      return;
+    }
+
+    // 1) Rename any object KEY that is exactly a real bank name.
+    Object.keys(node).forEach((k) => {
+      const nk = BANK_NAME_MAP[k];
+      if (nk && nk !== k) {
+        if (!(nk in node)) node[nk] = node[k]; // move (prefer existing parody key)
+        delete node[k];
+      }
+    });
+
+    // 2) Rewrite string VALUES + recurse into nested objects/arrays.
+    Object.keys(node).forEach((k) => {
+      const v = node[k];
+      if (typeof v === "string") {
+        node[k] = v.replace(BANK_NAME_RE, (m) => BANK_NAME_MAP[m]);
+      } else if (v && typeof v === "object") {
+        walk(v);
+      }
+    });
+  }
+
+  walk(state);
+  return state;
+}
+
+/* =========================================================
+ * Part 42 — Save Data Versioning & Deep-Merge Migration
+ *
+ * THE BUG: when the APK updates, loadGame() used a SHALLOW
+ * Object.assign(createDefaultState(), parsed). New TOP-LEVEL keys
+ * survived, but any field added INSIDE an existing object (e.g. a new
+ * sub-field on `ecommerce`, or `settings.language`) was silently
+ * dropped because the saved object replaced the default wholesale —
+ * so new features didn't appear until the player cleared app data.
+ *
+ * THE FIX: a recursive deep merge that injects every default field the
+ * save is missing, WITHOUT touching the player's existing progress, plus
+ * an app-version gate so a future breaking (major) release can force a
+ * clean reset instead of loading an incompatible structure.
+ *
+ * Two version numbers, by design:
+ *   APP_VERSION (float)      — the SAVE SCHEMA version. Bump the MINOR
+ *                              (1.1 -> 1.2) for additive changes (handled
+ *                              automatically by the deep merge). Bump the
+ *                              MAJOR (1.x -> 2.0) ONLY for incompatible
+ *                              structure changes -> triggers a guarded reset.
+ *   meta.version (int, =18)  — the legacy fine-grained TRANSFORM chain in
+ *                              _migrate() (value fixes / renames). Left
+ *                              intact; it complements the deep merge.
+ * ========================================================= */
+const APP_VERSION = 1.1;
+
+function isPlainObject(v) {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+/* Structured deep clone (state is plain JSON, so this is safe + cheap). */
+function cloneDeep(v) {
+  return v == null ? v : JSON.parse(JSON.stringify(v));
+}
+
+/**
+ * deepMergeDefaults(saved, defaults) — recursively fill in keys that exist
+ * in `defaults` but are MISSING from `saved`, without overwriting any value
+ * the player already has.
+ *
+ * Rules:
+ *   - missing in save        -> adopt a deep CLONE of the default
+ *   - both plain objects     -> recurse key-by-key
+ *   - arrays / primitives    -> KEEP the saved value (player data is atomic;
+ *                               we never element-merge inventory, histories…)
+ * Mutates + returns `saved`.
+ */
+function deepMergeDefaults(saved, defaults) {
+  if (saved === undefined) return cloneDeep(defaults);
+  if (isPlainObject(saved) && isPlainObject(defaults)) {
+    Object.keys(defaults).forEach((key) => {
+      saved[key] = deepMergeDefaults(saved[key], defaults[key]);
+    });
+  }
+  return saved; // arrays + primitives + null: preserve the player's value
+}
+
+/**
+ * migrateData(savedData, defaultData) — the core migration entry point.
+ *   1. Read the save's schema version (0 = pre-versioning legacy save).
+ *   2. If the MAJOR version is behind -> breaking change, signal a reset.
+ *   3. Otherwise deep-merge new defaults into the save (additive, safe).
+ *   4. Stamp meta.appVersion = APP_VERSION.
+ * Returns { breaking, data, migrated, fromVersion }.
+ */
+function migrateData(savedData, defaultData) {
+  if (!isPlainObject(savedData)) {
+    // Corrupt / non-object payload — treat as unrecoverable.
+    return { breaking: true, data: savedData, fromVersion: 0 };
+  }
+  const savedV = (savedData.meta && typeof savedData.meta.appVersion === "number")
+    ? savedData.meta.appVersion
+    : 0; // 0 = save predates this versioning system
+
+  // Breaking change: a newer MAJOR version means the structure is no longer
+  // compatible. (savedV >= 1 so pre-versioning legacy saves still migrate.)
+  if (savedV >= 1 && Math.floor(savedV) < Math.floor(APP_VERSION)) {
+    return { breaking: true, data: savedData, fromVersion: savedV };
+  }
+
+  const merged = deepMergeDefaults(savedData, defaultData);
+  if (!isPlainObject(merged.meta)) merged.meta = {};
+  const migrated = savedV < APP_VERSION;
+  merged.meta.appVersion = APP_VERSION;
+  return { breaking: false, data: merged, migrated, fromVersion: savedV };
+}
 
 /* ---------- 2. Default State factory ---------- */
 function createDefaultState() {
   return {
     meta: {
       version: 18,
+      appVersion: APP_VERSION,   // Part 42: save-schema version for deep-merge migration
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -35,7 +191,7 @@ function createDefaultState() {
       avatarColor: "#1877f2",
     },
     bankBalances: { ...STARTING_BALANCES },
-    bankHistories: { Mandiri: [], BCA: [], BNI: [] },
+    bankHistories: { Mandari: [], BKA: [], BNO: [] },
     inventory: [],
     pendingReturns: [],                 // Part 37: bypassed-BH sales awaiting the Next-Day refund roll
     marketPrices: {},
@@ -45,7 +201,10 @@ function createDefaultState() {
     activePage: "news-feed",
     todayNews: null,
     newsHistory: [],
-    bankingView: { activeBank: "Mandiri" },
+    socialFeed: [],                     // Part 39: dynamic social feed items
+    feedListings: [],                   // Part 39: interactive friend-listing registry
+    lastFeedDay: 0,
+    bankingView: { activeBank: "Mandari" },
     upgrades: { premiumTools: false, fbPaidAds: false },
     repairView: { activeTab: "repairs" },
     activeListings: [],                 // Part 5: items the player put up for sale
@@ -97,7 +256,7 @@ function createDefaultState() {
      * ratings         : cumulative positive ratings (milestone unlocks VIP)
      * ratingTarget    : Star Seller / VIP threshold
      * starSeller      : true once ratingTarget is crossed
-     * activeAdBudget  : Rp/day debited from Mandiri each Next Day
+     * activeAdBudget  : Rp/day debited from Mandari each Next Day
      * adTier          : 0=off, 1=Basic, 2=Growth, 3=Flagship
      * dailyRevenue    : gross sales accumulated during the current day
      * dailyExpenses   : last-known daily burn (info only)
@@ -156,19 +315,53 @@ const State = {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      this.data = Object.assign(createDefaultState(), parsed);
-      // Part 36 — older saves may carry a `settings` object without the
-      // i18n `language` field (Object.assign is shallow). Heal it so the
-      // engine always has a valid, persisted language preference.
+
+      /* Part 42 — versioned deep-merge migration.
+       * Replaces the old shallow Object.assign so newly-added NESTED
+       * default fields are injected into legacy saves without wiping
+       * the player's progress. */
+      const result = migrateData(parsed, createDefaultState());
+
+      if (result.breaking) {
+        // Major (incompatible) update detected — alert + reset to a fresh
+        // save. Returning false lets continueGame() run its reset/onboarding
+        // fallback, effectively starting a new game.
+        this._handleBreakingUpdate(result.fromVersion);
+        return false;
+      }
+
+      this.data = result.data;
+
+      // Heal settings.language for very old saves (defensive; deep merge
+      // already injects `settings`, but a save may carry settings:{} ).
       if (!this.data.settings) this.data.settings = {};
       if (!this.data.settings.language) this.data.settings.language = "id";
+
+      // Part 40 — rewrite legacy real bank names (keys + values + log text)
+      // to parody BEFORE the transform migrations run.
+      patchBankNames(this.data);
+
+      // Legacy fine-grained TRANSFORM migrations (value fixes / renames),
+      // gated on meta.version. Complements the structural deep merge above.
       this._migrate(parsed);
-      // Persist any migration repairs immediately so a refresh doesn't
-      // re-run the same fixups (and so future bug-reports show clean data).
-      try {
-        this.data.meta.lastSavedAt = Date.now();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-      } catch (e) { /* non-fatal */ }
+
+      // Persist the migrated state immediately so a refresh doesn't re-run
+      // the same fixups (and so future bug-reports show clean data).
+      this.save();
+
+      if (result.migrated) {
+        console.log(
+          "[FlippingTycoon] Save migrated " +
+          (result.fromVersion ? "v" + result.fromVersion : "(legacy)") +
+          " \u2192 v" + APP_VERSION
+        );
+        // Friendly, non-blocking confirmation once the UI is ready.
+        try {
+          setTimeout(function () {
+            if (window.showToast) window.showToast("Game data updated to v" + APP_VERSION + " \u2705", "success");
+          }, 1400);
+        } catch (e) { /* non-fatal */ }
+      }
       return true;
     } catch (err) {
       console.error("[FlippingTycoon] loadGame failed:", err);
@@ -177,14 +370,32 @@ const State = {
     }
   },
 
+  /* Part 42 — breaking (major) update handler: warn the player, wipe the
+   * incompatible save, and fall back to a fresh state (onboarding follows). */
+  _handleBreakingUpdate(fromVersion) {
+    console.warn(
+      "[FlippingTycoon] Breaking update v" + (fromVersion || "?") +
+      " \u2192 v" + APP_VERSION + " — resetting save."
+    );
+    try {
+      alert(
+        "Major update detected (v" + (fromVersion || "?") + " \u2192 v" + APP_VERSION + ").\n\n" +
+        "The save format changed and isn't compatible, so your save must be reset. " +
+        "Starting a fresh game."
+      );
+    } catch (e) { /* headless / non-fatal */ }
+    this.data = createDefaultState();
+    this.save(); // overwrite the incompatible save with a clean, versioned one
+  },
+
   _migrate(parsed) {
     const version = (parsed.meta && parsed.meta.version) || 1;
     if (version < 3) {
-      if ((this.data.bankBalances.Mandiri || 0) < STARTING_BALANCES.Mandiri) {
-        this.data.bankBalances.Mandiri = STARTING_BALANCES.Mandiri;
+      if ((this.data.bankBalances.Mandari || 0) < STARTING_BALANCES.Mandari) {
+        this.data.bankBalances.Mandari = STARTING_BALANCES.Mandari;
       }
-      if ((this.data.bankBalances.BNI || 0) < STARTING_BALANCES.BNI) {
-        this.data.bankBalances.BNI = STARTING_BALANCES.BNI;
+      if ((this.data.bankBalances.BNO || 0) < STARTING_BALANCES.BNO) {
+        this.data.bankBalances.BNO = STARTING_BALANCES.BNO;
       }
       this.data.meta.version = 3;
     }
@@ -828,9 +1039,9 @@ function readSavePreview() {
     const player = data.player || {};
     const banks  = data.bankBalances || {};
     const totalBank =
-      (Number(banks.Mandiri) || 0) +
-      (Number(banks.BCA)     || 0) +
-      (Number(banks.BNI)     || 0);
+      (Number(banks.Mandari) || 0) +
+      (Number(banks.BKA)     || 0) +
+      (Number(banks.BNO)     || 0);
     const invValue = (data.inventory  || []).reduce((s, it) => s + (Number(it.buyPrice) || 0), 0);
     const whValue  = (data.warehouse  || []).reduce((s, it) => s + (Number(it.buyPrice) || 0), 0);
     const netWorth = totalBank + invValue + whValue;
@@ -1241,7 +1452,7 @@ function renderNewsFeedPage() {
   wrap.appendChild(composer);
 
   // Day briefing
-  const totalBank = s.bankBalances.Mandiri + s.bankBalances.BCA + s.bankBalances.BNI;
+  const totalBank = s.bankBalances.Mandari + s.bankBalances.BKA + s.bankBalances.BNO;
   const summary = document.createElement("div");
   summary.className = "fb-card";
   summary.innerHTML = `
@@ -1253,18 +1464,21 @@ function renderNewsFeedPage() {
     <div class="grid grid-cols-2 gap-3 text-sm">
       <div class="p-3 bg-blue-50 rounded-lg"><p class="text-gray-500 text-xs">${t("game.totalBank")}</p><p class="font-bold text-[#1877F2]">${formatRupiah(totalBank)}</p></div>
       <div class="p-3 bg-amber-50 rounded-lg"><p class="text-gray-500 text-xs">${t("game.inventoryCount")}</p><p class="font-bold text-amber-600">${s.inventory.length} ${t("common.items")}</p></div>
-      <div class="p-3 bg-emerald-50 rounded-lg"><p class="text-gray-500 text-xs">Mandiri</p><p class="font-bold text-emerald-700">${formatRupiah(s.bankBalances.Mandiri)}</p></div>
-      <div class="p-3 bg-indigo-50 rounded-lg"><p class="text-gray-500 text-xs">BCA / BNI</p><p class="font-bold text-indigo-700">${formatRupiah(s.bankBalances.BCA + s.bankBalances.BNI)}</p></div>
+      <div class="p-3 bg-emerald-50 rounded-lg"><p class="text-gray-500 text-xs">Mandari</p><p class="font-bold text-emerald-700">${formatRupiah(s.bankBalances.Mandari)}</p></div>
+      <div class="p-3 bg-indigo-50 rounded-lg"><p class="text-gray-500 text-xs">BKA / BNO</p><p class="font-bold text-indigo-700">${formatRupiah(s.bankBalances.BKA + s.bankBalances.BNO)}</p></div>
     </div>
   `;
   wrap.appendChild(summary);
 
-  // Today's news (impactful)
-  if (s.todayNews) {
-    wrap.appendChild(renderNewsPost(s.todayNews, true));
+  // Part 39: render the dynamic Social Feed (news + milestones + chatter
+  // + interactive friend listings). Falls back to legacy news-only posts
+  // if the Feed module hasn't loaded for any reason.
+  if (window.Feed && typeof window.Feed.renderFeed === "function") {
+    wrap.appendChild(window.Feed.renderFeed());
+  } else {
+    if (s.todayNews) wrap.appendChild(renderNewsPost(s.todayNews, true));
+    s.newsHistory.slice(1, 4).forEach((n) => wrap.appendChild(renderNewsPost(n, false)));
   }
-  // Older news from history (read-only flavor)
-  s.newsHistory.slice(1, 4).forEach((n) => wrap.appendChild(renderNewsPost(n, false)));
 
   return wrap;
 }
@@ -1334,7 +1548,7 @@ function renderPlaceholder(title, icon, subtitle) {
 /**
  * Part 9 — Tax/Admin Alert
  *
- * Estimate Mandiri-only debits that the next Next-Day will deduct
+ * Estimate Mandari-only debits that the next Next-Day will deduct
  * (rent + staff salaries). Returns null if no warning needed, otherwise
  * an object describing the shortfall.
  */
@@ -1358,7 +1572,7 @@ function estimateNextDayMandiriDebits() {
       }
     });
   }
-  // Seller Dashboard — daily marketing / ads budget (charged from Mandiri)
+  // Seller Dashboard — daily marketing / ads budget (charged from Mandari)
   if (s.ecommerce && (s.ecommerce.activeAdBudget || 0) > 0) {
     const adBudget = s.ecommerce.activeAdBudget;
     total += adBudget;
@@ -1375,7 +1589,7 @@ function estimateNextDayMandiriDebits() {
     }
   });
 
-  const mandiri = s.bankBalances.Mandiri || 0;
+  const mandiri = s.bankBalances.Mandari || 0;
   const projected = mandiri - total;
   if (projected < 0 && total > 0) {
     return { mandiri, total, projected, items };
@@ -1389,8 +1603,8 @@ function showSolvencyAlert(report) {
   const breakdown = report.items.map((i) => `${i.label}: ${fmt(i.amount)}`).join(" + ");
   window.Notifications.add({
     type: "warning",
-    title: "Solvency Warning: Mandiri Bisa Minus!",
-    message: `Estimasi debit Next Day ${fmt(report.total)} (${breakdown}) melebihi saldo Mandiri ${fmt(report.mandiri)}. Risiko: gaji staf walkout, sewa eviction, atau debt collector. Top-up dulu sebelum lanjut.`,
+    title: "Solvency Warning: Mandari Bisa Minus!",
+    message: `Estimasi debit Next Day ${fmt(report.total)} (${breakdown}) melebihi saldo Mandari ${fmt(report.mandiri)}. Risiko: gaji staf walkout, sewa eviction, atau debt collector. Top-up dulu sebelum lanjut.`,
     actionPage: "banking",
     actor: "Treasury",
     icon: "triangle-exclamation",
@@ -1401,7 +1615,7 @@ async function advanceToNextDay() {
   // Block re-entry if a heavy op is already running.
   if (_isLoading) return;
 
-  // Tax/Admin Alert pre-flight: warn if Mandiri can't cover the day's debits.
+  // Tax/Admin Alert pre-flight: warn if Mandari can't cover the day's debits.
   const report = estimateNextDayMandiriDebits();
   if (report && State.data.lastSolvencyWarnDay !== State.data.currentDay) {
     showSolvencyAlert(report);
@@ -1409,9 +1623,9 @@ async function advanceToNextDay() {
     saveGame();
     const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
     const proceed = confirm(
-      "⚠️ Mandiri akan minus Next Day!\n\n" +
+      "⚠️ Mandari akan minus Next Day!\n\n" +
       "Estimasi debit: " + fmt(report.total) + "\n" +
-      "Saldo Mandiri:  " + fmt(report.mandiri) + "\n" +
+      "Saldo Mandari:  " + fmt(report.mandiri) + "\n" +
       "Proyeksi:       " + fmt(report.projected) + "\n\n" +
       "Risiko: staff walkout, eviction toko, debt collector.\n" +
       "Tetap lanjut Next Day?"
@@ -1436,6 +1650,7 @@ async function advanceToNextDay() {
   deferSaves();
   State.data.currentDay = nextDay;
   generateDailyNews();                                          // new news first so listings can apply its multiplier
+  if (window.Feed) window.Feed.generateDailyFeed();             // Part 39: refresh the social feed (news + friends + chatter)
   if (window.Repair) window.Repair.applyDayTickToRepairs();     // finish in-progress repairs
   if (window.Repair) window.Repair.applyDayTickToImeiUnlocks(); // finish IMEI tembak unlocks
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
@@ -1471,6 +1686,7 @@ async function advanceToNextDay() {
   // feed isn't already scrolled deep when fresh stock arrives.
   if (State.data.marketView)    State.data.marketView.visibleCount    = 50;
   if (State.data.inventoryView) State.data.inventoryView.visibleCount = 50;
+  // Seller Dashboard: build the closing day's financial recap (gross
   // Seller Dashboard: build the closing day's financial recap (gross
   // revenue now includes the walk-in + e-commerce batch). The ad budget
   // was already debited earlier this transition by chargeAdBudget(); this
@@ -1656,6 +1872,9 @@ window.FlippingTycoon = {
   loadGame,
   renderActivePage,
   renderAll,
+  patchBankNames,
+  migrateData,            // Part 42: deep-merge save migration
+  APP_VERSION,
   // Part 36 — i18n calls this for a full UI re-render on language switch.
   renderAllPages: renderAll,
   setActivePage,

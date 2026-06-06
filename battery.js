@@ -146,7 +146,7 @@
       // Deep-ish copy of the snapshot so we can rebuild the item later.
       itemSnapshot: JSON.parse(JSON.stringify(snap)),
       soldPrice: Number(meta && meta.soldPrice) || listing.askingPrice || 0,
-      receivingBank: (meta && meta.receivingBank) || "Mandiri",
+      receivingBank: (meta && meta.receivingBank) || "Mandari",
       buyer: listing.currentOffer ? {
         name: listing.currentOffer.buyer.name,
         color: listing.currentOffer.buyer.color,
@@ -198,7 +198,7 @@
   function executeRefund(entry) {
     const s = S();
     const snap = entry.itemSnapshot || {};
-    const bank = entry.receivingBank in (s.bankBalances || {}) ? entry.receivingBank : "Mandiri";
+    const bank = entry.receivingBank in (s.bankBalances || {}) ? entry.receivingBank : "Mandari";
     const refund = Number(entry.soldPrice) || 0;
 
     // 1) Force the money back out of the player's bank (can go negative —
@@ -437,7 +437,7 @@
       : `Hasil: UI nampak <b>100%</b>, tapi BH asli (${item.batteryHealth}%) disembunyikan. ` +
         `<span class="text-rose-600">Ada resiko ${Math.round(REFUND_DISCOVERY_RATE * 100)}% komplain refund tiap hari setelah laku.</span>`;
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const rows = banks.map((b) => {
       const balance = S().bankBalances[b] || 0;
       const enough = balance >= cost;

@@ -97,7 +97,7 @@
     titleEl.textContent = "Order Kargo Container";
     subEl.innerHTML   = `${size} unit &middot; 50% off basePrice &middot; ETA 2 jam real-time`;
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const totalCost = manifest.totalCost;
     const top3 = [...manifest.items].sort((a, b) => b.buyPrice - a.buyPrice).slice(0, 3);
     const rows = banks.map((b) => {
@@ -433,7 +433,7 @@
     titleEl.textContent = "Bayar Denda Bea Cukai";
     subEl.textContent   = `Kargo ${cargo.id.slice(-4)} kena Red Line - bayar atau disita.`;
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const fine = cargo.customs.fineAmount;
     const remaining = cargo.customs.deadlineDay - s.currentDay;
     const rows = banks.map((b) => {

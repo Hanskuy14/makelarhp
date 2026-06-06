@@ -134,7 +134,7 @@
    *   destination: "inventory" | "warehouse",
    *   items:  array of inventory-shaped items,
    *   totalCost:   number (already debited, for display only),
-   *   paymentBank: string ("Mandiri" | "BCA" | "BNI" | null),
+   *   paymentBank: string ("Mandari" | "BKA" | "BNO" | null),
    *   meta:   object,
    * }
    */

@@ -1114,9 +1114,11 @@ body {
    BANK PICKER & TOAST (chat purchase flow + sale feedback)
 ========================================================= */
 .chat-action.bank-pick { padding-top: 6px; padding-bottom: 6px; }
-.chat-action.bank-pick-mandiri { background: #001a4d; color: #ffd34a; }
-.chat-action.bank-pick-bca     { background: #0060af; color: #fff; }
-.chat-action.bank-pick-bni     { background: #0d7377; color: #ff9a3c; }
+/* Part 40: bank-pick classes follow the (now parody) bank keys lowercased
+   in chat.js → bank-pick-${key.toLowerCase()} = mandari / bka / bno. */
+.chat-action.bank-pick-mandari { background: #001a4d; color: #ffd34a; }
+.chat-action.bank-pick-bka     { background: #0060af; color: #fff; }
+.chat-action.bank-pick-bno     { background: #0d7377; color: #ff9a3c; }
 .chat-action.bank-pick[disabled] { opacity: 0.4; cursor: not-allowed; }
 
 .ft-toast {
@@ -7435,3 +7437,223 @@ body.dark .rage-receipt { background: #422006; border-color: #b45309; }
 }
 .rage-btn:hover  { filter: brightness(1.08); }
 .rage-btn:active { transform: scale(0.97); }
+
+
+
+/* =========================================================
+ * Part 41 — DARK MODE AUDIT FIX
+ *
+ * The base dark theme (body.dark { ... } above) overrides the CSS
+ * variables + the common Tailwind utility classes (bg-white, bg-gray-*,
+ * text-gray-*). These rules close the GAPS: per-page custom component
+ * classes that hardcode #fff / #f9fafb surfaces and near-black text,
+ * which the utility catch-all can't reach. Grouped by role so it stays
+ * maintainable. Interactive .hover/.selected/.active states are given
+ * their own dark highlight rather than being flattened to a card color.
+ * ========================================================= */
+
+/* ---- 1. Card SURFACES that hardcoded #fff → themed card color ---- */
+body.dark .marketplace-card,
+body.dark .product-info,
+body.dark .inventory-card,
+body.dark .upgrade-card,
+body.dark .subtabs,
+body.dark .bank-tab,
+body.dark .relist-bank-row,
+body.dark .active-listing-card,
+body.dark .broker-card,
+body.dark .channel-tile,
+body.dark .corp-hist-row,
+body.dark .fjb-post,
+body.dark .fjb-comment-body,
+body.dark .fjb-comments,
+body.dark .logistics-card,
+body.dark .logistics-partner-pick,
+body.dark .partnership-brand-card,
+body.dark .partnership-tier-item,
+body.dark .profile-card,
+body.dark .rage-shell,
+body.dark .rented-store-card,
+body.dark .rep-hist-row,
+body.dark .rep-tier-row,
+body.dark .ruko-service-hist-row,
+body.dark .ruko-staff-row,
+body.dark .staff-card,
+body.dark .store-card,
+body.dark .transfer-branch-opt,
+body.dark .partnership-bank-opt,
+body.dark .ob-capital-option,
+body.dark .oem-price-row,
+body.dark .batam-manifest-preview,
+body.dark .wa-bank-btn,
+body.dark .wa-modal-footer,
+body.dark .wholesale-bank-row,
+body.dark .wholesale-gadget,
+body.dark .premium-card,
+body.dark .analytics-card {
+  background: var(--fb-card) !important;
+  color: var(--fb-text);
+  border-color: var(--fb-border) !important;
+}
+
+/* ---- 2. Subtle INSET panels (#f9fafb / #f3f4f6) → dark inset ---- */
+body.dark .inv-prices,
+body.dark .relist-summary,
+body.dark .al-prices,
+body.dark .branch-stats > div,
+body.dark .corp-partner-stats > div,
+body.dark .logistics-stats > div,
+body.dark .partnership-package-stats > div,
+body.dark .partnership-package-mix,
+body.dark .profile-stat,
+body.dark .fjb-price-block,
+body.dark .repack-uplift,
+body.dark .warehouse-bulkbar,
+body.dark .wholesale-stats > div,
+body.dark .ruko-hire-cta,
+body.dark .wa-hist-row {
+  background: #111827 !important;
+  color: var(--fb-text);
+}
+
+/* ---- 3. Primary TEXT that hardcoded near-black → readable on dark ---- */
+body.dark .marketplace-price,
+body.dark .marketplace-title,
+body.dark .fjb-author,
+body.dark .fjb-comment-author,
+body.dark .fjb-comment-text,
+body.dark .fjb-post-body,
+body.dark .fjb-price-value,
+body.dark .broker-bio,
+body.dark .profile-bio,
+body.dark .premium-card-title,
+body.dark .ship-title,
+body.dark .store-blurb,
+body.dark .staff-desc,
+body.dark .ob-capital-amount,
+body.dark .ob-capital-tier,
+body.dark .rep-history-title,
+body.dark .rep-hist-reason,
+body.dark .rep-lead-author,
+body.dark .rep-lead-text,
+body.dark .messenger-row-price,
+body.dark .corp-cons-revenue,
+body.dark .ruko-hire-salary,
+body.dark .ruko-service-complaint,
+body.dark .editor-row-label,
+body.dark .premium-perks {
+  color: var(--fb-text) !important;
+}
+
+/* ---- 4. BORDERS that hardcoded light greys ---- */
+body.dark .fb-post-actions,
+body.dark .condition-row,
+body.dark .spec-grid > div,
+body.dark .history-row,
+body.dark .repair-row { border-color: var(--fb-border) !important; }
+
+/* ---- 5. THUMBNAIL / hero gradients → neutral dark ---- */
+body.dark .marketplace-thumb,
+body.dark .inv-thumb,
+body.dark .product-hero,
+body.dark .repair-icon { background: linear-gradient(135deg, #374151, #1f2937) !important; }
+
+/* ---- 6. Seller chat bubble + typing dots ---- */
+body.dark .from-seller .chat-bubble,
+body.dark .chat-bubble.typing { background: #374151; color: var(--fb-text); }
+
+/* ---- 7. Ghost / secondary buttons (hardcoded light greys) ---- */
+body.dark .wholesale-decline,
+body.dark .fjb-btn-ghost,
+body.dark .warehouse-bulk-btn.ghost,
+body.dark .partnership-refresh-btn,
+body.dark .ruko-hire-btn,
+body.dark .ft-load-more-btn,
+body.dark .broker-btn.unfollow,
+body.dark .list-quickset button {
+  background: #374151 !important;
+  color: #e5e7eb !important;
+  border-color: var(--fb-border) !important;
+}
+
+/* ---- 8. Disabled buttons ---- */
+body.dark .relist-btn[disabled],
+body.dark .fjb-btn-disabled { background: #374151 !important; color: #6b7280 !important; }
+
+/* ---- 9. Capacity track bars ---- */
+body.dark .branch-cap-track,
+body.dark .ruko-cap-track,
+body.dark .warehouse-cap-bar { background: #374151 !important; }
+
+/* ---- 10. Selected / active state highlights → dark blue tint
+ *         (kept distinct from plain card surfaces above) ---- */
+body.dark .subtab.active,
+body.dark .partnership-tier-item.active,
+body.dark .partnership-tier-pip.current,
+body.dark .logistics-partner-pick.selected,
+body.dark .logistics-card.selected,
+body.dark .ob-capital-option.selected,
+body.dark .wholesale-bank-row:has(input:checked) {
+  background: #1e3a5f !important;
+  color: #93c5fd !important;
+  border-color: #3b82f6 !important;
+}
+
+/* ---- 11. Pills + WhatsApp incoming bubble + misc insets ---- */
+body.dark .tier-pill { background: #374151; color: #cbd5e1; }
+body.dark .wa-bubble-in { background: #374151 !important; color: var(--fb-text) !important; }
+body.dark .bankname-input { background: #111827 !important; color: var(--fb-text) !important; border-color: var(--fb-border) !important; }
+
+
+
+/* =========================================================
+ * Part 41b — Pastel utility catch-all (dynamic JS templates)
+ *
+ * Many JS template literals build "stat tiles" with light pastel
+ * backgrounds (bg-blue-50, bg-emerald-50, …) + a dark colored text
+ * (text-blue-700, …). The base catch-all only handled bg-white /
+ * bg-gray-*, so these tiles stayed bright in dark mode. Mapping each
+ * pastel to a translucent same-hue tint keeps the colour-coding while
+ * working on a dark surface — and applies to EVERY JS template at once,
+ * so no render function needs editing.
+ * ========================================================= */
+body.dark .bg-blue-50              { background-color: rgba(59,130,246,0.16) !important; }
+body.dark .bg-indigo-50            { background-color: rgba(99,102,241,0.16) !important; }
+body.dark .bg-emerald-50,
+body.dark .bg-green-50             { background-color: rgba(16,185,129,0.16) !important; }
+body.dark .bg-amber-50,
+body.dark .bg-yellow-50            { background-color: rgba(245,158,11,0.16) !important; }
+body.dark .bg-rose-50,
+body.dark .bg-red-50               { background-color: rgba(244,63,94,0.16) !important; }
+body.dark .bg-purple-50,
+body.dark .bg-fuchsia-50           { background-color: rgba(168,85,247,0.16) !important; }
+body.dark .bg-cyan-50,
+body.dark .bg-sky-50               { background-color: rgba(6,182,212,0.16) !important; }
+body.dark .bg-pink-50              { background-color: rgba(236,72,153,0.16) !important; }
+body.dark .bg-orange-50            { background-color: rgba(249,115,22,0.16) !important; }
+body.dark .bg-teal-50              { background-color: rgba(20,184,166,0.16) !important; }
+body.dark .bg-slate-50,
+body.dark .bg-slate-100            { background-color: #1f2937 !important; }
+body.dark .bg-blue-100             { background-color: rgba(59,130,246,0.22) !important; }
+body.dark .bg-emerald-100,
+body.dark .bg-green-100            { background-color: rgba(16,185,129,0.22) !important; }
+body.dark .bg-amber-100,
+body.dark .bg-yellow-100           { background-color: rgba(245,158,11,0.22) !important; }
+body.dark .bg-rose-100,
+body.dark .bg-red-100              { background-color: rgba(244,63,94,0.22) !important; }
+
+/* Lighten the dark colored TEXT that pairs with those tiles so it stays
+ * legible on the translucent dark tints. */
+body.dark .text-blue-600,   body.dark .text-blue-700,   body.dark .text-blue-800,   body.dark .text-blue-900   { color: #93c5fd !important; }
+body.dark .text-indigo-600, body.dark .text-indigo-700, body.dark .text-indigo-800, body.dark .text-indigo-900 { color: #a5b4fc !important; }
+body.dark .text-emerald-600,body.dark .text-emerald-700,body.dark .text-emerald-800,body.dark .text-emerald-900,
+body.dark .text-green-600,  body.dark .text-green-700,  body.dark .text-green-800   { color: #6ee7b7 !important; }
+body.dark .text-amber-600,  body.dark .text-amber-700,  body.dark .text-amber-800,
+body.dark .text-yellow-600, body.dark .text-yellow-700, body.dark .text-yellow-800  { color: #fcd34d !important; }
+body.dark .text-rose-600,   body.dark .text-rose-700,   body.dark .text-rose-800,
+body.dark .text-red-600,    body.dark .text-red-700,    body.dark .text-red-800     { color: #fca5a5 !important; }
+body.dark .text-purple-600, body.dark .text-purple-700, body.dark .text-purple-800,
+body.dark .text-fuchsia-600,body.dark .text-fuchsia-700                            { color: #d8b4fe !important; }
+body.dark .text-cyan-600,   body.dark .text-cyan-700,   body.dark .text-cyan-800,
+body.dark .text-sky-600,    body.dark .text-sky-700                                { color: #67e8f9 !important; }
+body.dark .text-orange-600, body.dark .text-orange-700, body.dark .text-orange-800 { color: #fdba74 !important; }

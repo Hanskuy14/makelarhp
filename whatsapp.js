@@ -14,7 +14,7 @@
  * the broadcast lands in the Chat Group history.
  *
  * State stored on:
- *   data.waGroup = { history: [{...}], lastBank: "Mandiri" }
+ *   data.waGroup = { history: [{...}], lastBank: "Mandari" }
  *   data.inventoryView.selectedIds = [itemId, ...]
  * ========================================================= */
 
@@ -64,10 +64,10 @@
   function ensureState() {
     const s = S();
     if (!s.waGroup) {
-      s.waGroup = { history: [], lastBank: "Mandiri" };
+      s.waGroup = { history: [], lastBank: "Mandari" };
     }
     if (!Array.isArray(s.waGroup.history)) s.waGroup.history = [];
-    if (!s.waGroup.lastBank) s.waGroup.lastBank = "Mandiri";
+    if (!s.waGroup.lastBank) s.waGroup.lastBank = "Mandari";
     if (!s.inventoryView) s.inventoryView = {};
     if (!Array.isArray(s.inventoryView.selectedIds)) s.inventoryView.selectedIds = [];
   }
@@ -412,7 +412,7 @@
     body.scrollTop = body.scrollHeight;
 
     if (modalState.claimedBy) {
-      const banks = ["Mandiri", "BCA", "BNI"];
+      const banks = ["Mandari", "BKA", "BNO"];
       footer.innerHTML = `
         <p class="wa-deal-prompt"><b>Deal sama ${escapeHtml(modalState.claimedBy.name)}?</b><br>
         Total cash masuk: <b class="text-emerald-700">${fmt(modalState.askingPrice)}</b></p>

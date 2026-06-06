@@ -237,7 +237,7 @@
     order.consumedItemIds = consumedIds;
     order.cogsTotal      = cogsTotal;
     order.acceptedBy     = (opts && opts.acceptedBy) || "player";
-    order.receivingBank  = (opts && opts.receivingBank) || "Mandiri";
+    order.receivingBank  = (opts && opts.receivingBank) || "Mandari";
     window.FlippingTycoon.saveGame();
 
     showToast(`🚚 Accepted! ${order.qty} unit ${order.gadget.name} via ${partner.name}, tiba Day ${order.deliversOnDay}.`);
@@ -302,7 +302,7 @@
       const commission = Math.round(grossRevenue * commissionRate);
 
       const netPayout = Math.max(0, grossRevenue - logisticsFee - commission);
-      const bank = order.receivingBank || "Mandiri";
+      const bank = order.receivingBank || "Mandari";
       s.bankBalances[bank] = (s.bankBalances[bank] || 0) + netPayout;
       s.bankHistories[bank].push({
         type: "CREDIT",
@@ -688,10 +688,10 @@
       `;
     }).join("");
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const bankRows = banks.map((b) => `
       <label class="wholesale-bank-row">
-        <input type="radio" name="ws-bank" value="${b}" ${b === "Mandiri" ? "checked" : ""}>
+        <input type="radio" name="ws-bank" value="${b}" ${b === "Mandari" ? "checked" : ""}>
         <span>${b}</span>
       </label>
     `).join("");
@@ -722,7 +722,7 @@
         body.querySelectorAll(".logistics-card").forEach((b) => b.classList.remove("selected"));
         btn.classList.add("selected");
         const partnerId = btn.dataset.partner;
-        const bank = (body.querySelector('input[name="ws-bank"]:checked') || {}).value || "Mandiri";
+        const bank = (body.querySelector('input[name="ws-bank"]:checked') || {}).value || "Mandari";
         if (acceptOrder(order.id, partnerId, { receivingBank: bank })) {
           close();
           window.FlippingTycoon.renderActivePage();

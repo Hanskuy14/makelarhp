@@ -690,7 +690,7 @@
 
     titleEl.textContent = `Order: ${brandGroup.shortLabel} ${tierPkg.label}`;
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     body.innerHTML = `
       <div class="mb-3">
         <p class="text-sm text-gray-600">Package: <b>${brandGroup.shortLabel} ${tierPkg.label}</b> (${picks.length} unit)</p>

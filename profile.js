@@ -67,21 +67,21 @@
     s.player.reputation    = 5.0;
     s.player.totalGadgetsSold = 0;
 
-    // Distribute capital across Mandiri / BNI for that classic multi-bank feel.
+    // Distribute capital across Mandari / BNO for that classic multi-bank feel.
     if (cap === 10_000_000) {
-      s.bankBalances.Mandiri = 7_000_000;
-      s.bankBalances.BNI     = 3_000_000;
+      s.bankBalances.Mandari = 7_000_000;
+      s.bankBalances.BNO     = 3_000_000;
     } else if (cap === 25_000_000) {
-      s.bankBalances.Mandiri = 17_000_000;
-      s.bankBalances.BNI     =  8_000_000;
+      s.bankBalances.Mandari = 17_000_000;
+      s.bankBalances.BNO     =  8_000_000;
     } else if (cap === 50_000_000) {
-      s.bankBalances.Mandiri = 35_000_000;
-      s.bankBalances.BNI     = 15_000_000;
+      s.bankBalances.Mandari = 35_000_000;
+      s.bankBalances.BNO     = 15_000_000;
     }
-    s.bankBalances.BCA = 0;
-    s.bankHistories.Mandiri = [];
-    s.bankHistories.BCA     = [];
-    s.bankHistories.BNI     = [];
+    s.bankBalances.BKA = 0;
+    s.bankHistories.Mandari = [];
+    s.bankHistories.BKA     = [];
+    s.bankHistories.BNO     = [];
 
     // Seed onboarding "Welcome" post so the profile feed isn't empty.
     s.profilePosts = [{

@@ -13,7 +13,7 @@
  * clients pick up the new app shell on next launch.
  * ========================================================= */
 
-const CACHE_VERSION = "ft-cache-v19";
+const CACHE_VERSION = "ft-cache-v20";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -21,11 +21,14 @@ const APP_SHELL = [
   "./manifest.json",
   "./icon.svg",
   "./icon-maskable.svg",
+  "./i18n.js",
   "./script.js",
   "./gadgets.js",
+  "./audio.js",
   "./market.js",
   "./banking.js",
   "./repair.js",
+  "./battery.js",
   "./selling.js",
   "./inventory.js",
   "./realestate.js",
@@ -46,6 +49,13 @@ const APP_SHELL = [
   "./profile.js",
   "./messenger.js",
   "./chat.js",
+  "./ads.js",
+  "./billing.js",
+  "./logistics.js",
+  "./unboxing.js",
+  "./editor.js",
+  "./dashboard.js",
+  "./feed.js",
 ];
 
 self.addEventListener("install", (event) => {
