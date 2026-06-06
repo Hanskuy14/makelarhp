@@ -238,10 +238,39 @@
       toast("Belum bisa klaim — kargo masih dalam perjalanan.", "error");
       return false;
     }
+
+    /* Part 35 — Mystery Pallet Unboxing (Gacha).
+     * Batam cargo no longer dumps straight into Inventory. Instead we
+     * hand the ready shipment to the unboxing mini-game, which rolls a
+     * weighted loot table and pushes each unit only as its box is
+     * revealed (and removes the shipment itself once fully opened). */
+    if (ship.source === "batam" && window.Unboxing &&
+        typeof window.Unboxing.isEnabled === "function" && window.Unboxing.isEnabled()) {
+      const launched = window.Unboxing.open(ship);
+      if (launched) return true; // unboxing owns delivery + shipment removal
+      // If it failed to launch, fall through to the legacy instant claim.
+    }
+
     deliverShipment(ship, { auto: false });
     s.activeShipments.splice(idx, 1);
     persist();
     rerenderActivePage();
+    return true;
+  }
+
+  /**
+   * removeShipment(id) — remove a shipment from the queue WITHOUT
+   * delivering its items. Used by the Mystery Pallet unboxing flow,
+   * which pushes items into Inventory itself (one per revealed box)
+   * and then asks logistics to drop the now-empty shipment.
+   */
+  function removeShipment(shipmentId) {
+    ensureShipments();
+    const s = S();
+    const idx = s.activeShipments.findIndex((x) => x.id === shipmentId);
+    if (idx < 0) return false;
+    s.activeShipments.splice(idx, 1);
+    persist();
     return true;
   }
 
@@ -260,6 +289,14 @@
     // Iterate over a snapshot so splicing while looping is safe.
     s.activeShipments.slice().forEach((ship) => {
       if (!isReady(ship)) return;
+      // Part 35 — Batam cargo is an interactive Mystery Pallet: it must
+      // NOT auto-deliver. It waits, "ready to open", until the player taps
+      // "Buka Mystery Pallet" (which routes through window.Unboxing). The
+      // items are safe in the queue meanwhile, so nothing is ever lost.
+      if (ship.source === "batam" && window.Unboxing &&
+          typeof window.Unboxing.isEnabled === "function" && window.Unboxing.isEnabled()) {
+        return;
+      }
       deliverShipment(ship, { auto: true });
       const idx = s.activeShipments.indexOf(ship);
       if (idx >= 0) s.activeShipments.splice(idx, 1);
@@ -558,6 +595,14 @@
       ? '<span class="ship-source-tag" style="background:#cffafe;color:#0e7490">Batam</span>'
       : '<span class="ship-source-tag" style="background:#ede9fe;color:#6d28d9">Partnership</span>';
 
+    // Part 35 — Batam cargo opens as an interactive Mystery Pallet (gacha),
+    // so its claim button is reframed from a plain "claim" into an "open".
+    const unboxable = ship.source === "batam" && window.Unboxing &&
+      typeof window.Unboxing.isEnabled === "function" && window.Unboxing.isEnabled();
+    const claimLabel = unboxable
+      ? '<i class="fa-solid fa-box-open"></i> Buka Mystery Pallet'
+      : '<i class="fa-solid fa-circle-check"></i> Klaim Barang Sekarang';
+
     const destTag = ship.destination === "warehouse"
       ? '<span class="ship-source-tag" style="background:#fef3c7;color:#92400e">→ Gudang</span>'
       : '<span class="ship-source-tag" style="background:#dcfce7;color:#166534">→ Inventory</span>';
@@ -595,8 +640,8 @@
 
       <!-- Actions: full-width on mobile, stack cleanly -->
       <div class="ship-actions">
-        <button class="ship-claim-btn ${ready ? "" : "hidden"}" type="button" data-id="${ship.id}">
-          <i class="fa-solid fa-circle-check"></i> Klaim Barang Sekarang
+        <button class="ship-claim-btn ${ready ? "" : "hidden"}${unboxable ? " ship-claim-btn-gacha" : ""}" type="button" data-id="${ship.id}">
+          ${claimLabel}
         </button>
         <button class="ship-ad-btn ${ready ? "hidden" : ""}" type="button" data-id="${ship.id}" ${ship.adWatchedCount >= 2 ? "disabled" : ""}>
           <i class="fa-solid fa-tv"></i> ${adBtnLabel}
@@ -649,6 +694,7 @@
   window.Logistics = {
     addShipment,
     claimShipment,
+    removeShipment,
     sweepDeliveries,
     applyAdReward,
     showRewardedAd,
