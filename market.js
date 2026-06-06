@@ -276,6 +276,20 @@
     return pool.slice(0, count).map(buildListing);
   }
 
+  /* ---------- Part 39: build a single listing for an external channel ----
+   * Used by the Social Feed (feed.js) to spawn an interactive "friend
+   * listing". It produces a normal, fully-valid listing (same shape the
+   * Chat negotiation + purchase flow already understands) but lets the
+   * caller override the seller identity with the NPC friend's name. */
+  function buildRandomListing(sellerOverride) {
+    const gadget = pick(GADGET_DATABASE);
+    const listing = buildListing(gadget);
+    if (sellerOverride && typeof sellerOverride === "object") {
+      listing.seller = Object.assign({}, listing.seller, sellerOverride);
+    }
+    return listing;
+  }
+
   function ensureDailyListings() {
     const s = window.FlippingTycoon.State.data;
     if (s.lastListingDay !== s.currentDay || !Array.isArray(s.dailyListings) || s.dailyListings.length === 0) {
@@ -535,12 +549,19 @@
   function removeListing(listingId) {
     const s = window.FlippingTycoon.State.data;
     s.dailyListings = (s.dailyListings || []).filter((l) => l.listingId !== listingId);
+    // Part 39: friend listings from the Social Feed live in their own pool.
+    // Clear there too so a purchased feed gadget flips to "Sold".
+    if (Array.isArray(s.feedListings)) {
+      s.feedListings = s.feedListings.filter((l) => l.listingId !== listingId);
+    }
     s.marketView = { mode: "grid", selectedListingId: null };
   }
 
   /* Expose */
   window.Market = {
     generateDailyListings,
+    buildListing,         // Part 39: feed.js spawns friend listings
+    buildRandomListing,   // Part 39: random gadget + optional seller override
     ensureDailyListings,
     renderMarketplacePage,
     removeListing,
