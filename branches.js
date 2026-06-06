@@ -17,7 +17,7 @@
  * Each branch contributes 1-3 extra walk-in sales per Next Day,
  * sampled from inventory matching that city's preference. Sale
  * price = sum of buyPrice × 1.10 (modest 10% markup, paid into
- * Mandiri). Player effort: zero — branches run autonomously.
+ * Mandari). Player effort: zero — branches run autonomously.
  *
  * State stored on:
  *   data.cityBranches = {
@@ -209,16 +209,16 @@
       showToast(`${city.name} butuh revenue 30 hari ≥ ${fmt(city.requiredRevenue)} (kamu: ${fmt(monthlyRev)}).`);
       return false;
     }
-    if ((s.bankBalances.Mandiri || 0) < city.setupFee) {
-      showToast(`Mandiri kurang ${fmt(city.setupFee)} buat setup ${city.name}.`);
+    if ((s.bankBalances.Mandari || 0) < city.setupFee) {
+      showToast(`Mandari kurang ${fmt(city.setupFee)} buat setup ${city.name}.`);
       return false;
     }
 
-    s.bankBalances.Mandiri -= city.setupFee;
-    s.bankHistories.Mandiri.push({
+    s.bankBalances.Mandari -= city.setupFee;
+    s.bankHistories.Mandari.push({
       type: "DEBIT",
       amount: city.setupFee,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Setup cabang ${city.name}`,
       category: "branch-setup",
       day: s.currentDay,
@@ -276,15 +276,15 @@
       return false;
     }
     const next = tierMeta(cur + 1);
-    if ((s.bankBalances.Mandiri || 0) < next.upgradeFee) {
-      showToast(`Mandiri kurang ${fmt(next.upgradeFee)} buat upgrade ${city.name} ke T${next.tier}.`);
+    if ((s.bankBalances.Mandari || 0) < next.upgradeFee) {
+      showToast(`Mandari kurang ${fmt(next.upgradeFee)} buat upgrade ${city.name} ke T${next.tier}.`);
       return false;
     }
-    s.bankBalances.Mandiri -= next.upgradeFee;
-    s.bankHistories.Mandiri.push({
+    s.bankBalances.Mandari -= next.upgradeFee;
+    s.bankHistories.Mandari.push({
       type: "DEBIT",
       amount: next.upgradeFee,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Upgrade cabang ${city.name} ke T${next.tier} (${next.label})`,
       category: "branch-upgrade",
       day: s.currentDay,
@@ -377,7 +377,7 @@
     });
     if (totalRent <= 0) return;
 
-    if ((s.bankBalances.Mandiri || 0) < totalRent) {
+    if ((s.bankBalances.Mandari || 0) < totalRent) {
       // Can't pay → close all non-HQ branches
       const closed = [];
       CITIES.forEach((c) => {
@@ -391,7 +391,7 @@
         window.Notifications.add({
           type: "warning",
           title: "Cabang Tutup!",
-          message: `Mandiri gak cukup buat sewa ${fmt(totalRent)}. ${closed.length} cabang ditutup: ${closed.join(", ")}.`,
+          message: `Mandari gak cukup buat sewa ${fmt(totalRent)}. ${closed.length} cabang ditutup: ${closed.join(", ")}.`,
           actionPage: "branches",
           icon: "circle-exclamation",
         });
@@ -399,11 +399,11 @@
       return;
     }
 
-    s.bankBalances.Mandiri -= totalRent;
-    s.bankHistories.Mandiri.push({
+    s.bankBalances.Mandari -= totalRent;
+    s.bankHistories.Mandari.push({
       type: "DEBIT",
       amount: totalRent,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Sewa harian cabang (${unlockedCities().filter((c) => !c.hq).length} cabang non-HQ)`,
       category: "branch-rent",
       day: s.currentDay,
@@ -464,12 +464,12 @@
       const idSet = new Set(sold.map((it) => it.id));
       s.inventory = s.inventory.filter((it) => !idSet.has(it.id));
 
-      // Credit Mandiri (one entry per branch for clarity)
-      s.bankBalances.Mandiri = (s.bankBalances.Mandiri || 0) + branchRevenue;
-      s.bankHistories.Mandiri.push({
+      // Credit Mandari (one entry per branch for clarity)
+      s.bankBalances.Mandari = (s.bankBalances.Mandari || 0) + branchRevenue;
+      s.bankHistories.Mandari.push({
         type: "CREDIT",
         amount: branchRevenue,
-        balanceAfter: s.bankBalances.Mandiri,
+        balanceAfter: s.bankBalances.Mandari,
         description: `Cabang ${city.name}: ${sold.length} unit (${city.preference})`,
         category: "branch-sale",
         day: s.currentDay,
@@ -487,7 +487,7 @@
             salePrice: Math.round(branchRevenue / sold.length),
             feePaid: 0,
             buyer: `Walk-in ${city.name}`,
-            receivingBank: "Mandiri",
+            receivingBank: "Mandari",
           });
         });
       }
@@ -505,7 +505,7 @@
       window.Notifications.add({
         type: "success",
         title: `Cabang Sales: ${grandUnits} unit`,
-        message: `${summaries.join(" · ")} → +${fmt(grandRevenue)} masuk Mandiri.`,
+        message: `${summaries.join(" · ")} → +${fmt(grandRevenue)} masuk Mandari.`,
         actionPage: "branches",
         actor: "City Branches",
         icon: "city",
@@ -627,7 +627,7 @@
     `;
     const openBtn = card.querySelector(".branch-open-btn");
     if (openBtn) openBtn.addEventListener("click", () => {
-      if (confirm(`Buka cabang ${city.name}? Setup fee ${fmt(city.setupFee)} akan terpotong dari Mandiri.`)) {
+      if (confirm(`Buka cabang ${city.name}? Setup fee ${fmt(city.setupFee)} akan terpotong dari Mandari.`)) {
         if (openBranch(city.id)) window.FlippingTycoon.renderActivePage();
       }
     });
@@ -639,7 +639,7 @@
     });
     const upBtn = card.querySelector(".branch-upgrade-btn");
     if (upBtn) upBtn.addEventListener("click", () => {
-      if (confirm(`Upgrade ${city.name} ke T${currentTier + 1} ${nextTierMeta.label}?\nFee ${fmt(nextTierMeta.upgradeFee)} dari Mandiri.\nCapacity baru: ${nextTierMeta.displayCapacity.toLocaleString("id-ID")} unit.`)) {
+      if (confirm(`Upgrade ${city.name} ke T${currentTier + 1} ${nextTierMeta.label}?\nFee ${fmt(nextTierMeta.upgradeFee)} dari Mandari.\nCapacity baru: ${nextTierMeta.displayCapacity.toLocaleString("id-ID")} unit.`)) {
         if (upgradeBranchTier(city.id)) window.FlippingTycoon.renderActivePage();
       }
     });

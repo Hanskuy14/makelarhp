@@ -290,7 +290,7 @@
     const closeBtn = modal.querySelector("#accessories-cancel");
 
     const cost = getOemKitPrice(snap.brand);
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const rows = banks.map((b) => {
       const bal = s.bankBalances[b] || 0;
       const enough = bal >= cost;

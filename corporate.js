@@ -246,7 +246,7 @@
       window.Notifications.add({
         type: "info",
         title: `Konsinyasi shipped: ${partner.name}`,
-        message: `${snapshot.length} unit dikirim ke ${partner.name}. ETA Day ${cons.deliversDay} → +${fmt(totalRevenue)} masuk Mandiri.`,
+        message: `${snapshot.length} unit dikirim ke ${partner.name}. ETA Day ${cons.deliversDay} → +${fmt(totalRevenue)} masuk Mandari.`,
         actionPage: "corporate",
         actor: partner.name,
         icon: "truck-fast",
@@ -268,13 +268,13 @@
 
     let totalRevenue = 0, totalUnits = 0;
     due.forEach((c) => {
-      // Credit Mandiri
-      s.bankBalances.Mandiri = (s.bankBalances.Mandiri || 0) + c.totalRevenue;
-      if (!Array.isArray(s.bankHistories.Mandiri)) s.bankHistories.Mandiri = [];
-      s.bankHistories.Mandiri.push({
+      // Credit Mandari
+      s.bankBalances.Mandari = (s.bankBalances.Mandari || 0) + c.totalRevenue;
+      if (!Array.isArray(s.bankHistories.Mandari)) s.bankHistories.Mandari = [];
+      s.bankHistories.Mandari.push({
         type: "CREDIT",
         amount: c.totalRevenue,
-        balanceAfter: s.bankBalances.Mandiri,
+        balanceAfter: s.bankBalances.Mandari,
         description: `Konsinyasi ${c.partnerName}: ${c.unitCount} unit (Day ${c.sentDay} → ${c.deliversDay})`,
         category: "corporate-consignment",
         day: s.currentDay,
@@ -293,7 +293,7 @@
             salePrice: allocatedRevenue,
             feePaid: 0,
             buyer: c.partnerName,
-            receivingBank: "Mandiri",
+            receivingBank: "Mandari",
           });
         });
       }
@@ -324,7 +324,7 @@
       window.Notifications.add({
         type: "success",
         title: `${totalUnits} unit consignment terkirim`,
-        message: `${due.length} batch konsinyasi sukses → +${fmt(totalRevenue)} masuk Mandiri.`,
+        message: `${due.length} batch konsinyasi sukses → +${fmt(totalRevenue)} masuk Mandari.`,
         actionPage: "corporate",
         actor: "Corporate B2B",
         icon: "truck-arrow-right",
@@ -500,7 +500,7 @@
         <div class="corp-send-summary">
           <p><b>${picked.length}</b> / ${MAX_CONSIGNMENT_UNITS} unit dipilih (eligible total ${eligible.length})</p>
           <p class="text-sm">Total base: ${fmt(totalBase)} &middot; Total revenue: <b class="text-emerald-700">${fmt(totalRevenue)}</b> (margin +${(partner.marginPct*100).toFixed(0)}%)</p>
-          <p class="text-xs text-gray-500 mt-1">Delivery dalam ${DELIVERY_DAYS} hari → cash auto-masuk Mandiri.</p>
+          <p class="text-xs text-gray-500 mt-1">Delivery dalam ${DELIVERY_DAYS} hari → cash auto-masuk Mandari.</p>
         </div>
         <div class="corp-send-actions-mini">
           <button class="modal-btn modal-btn-ghost" id="corp-pick-max" type="button">

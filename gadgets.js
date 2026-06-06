@@ -155,6 +155,21 @@ function isFoldableDefect(defect) {
     FOLDABLE_DEFECT_OPTIONS.some((d) => d.type === defect.type)));
 }
 
+/* =========================================================
+ * Part 40 — Parody bank identifiers (single source of truth)
+ *
+ * These ARE the canonical bank keys used everywhere (state keys in
+ * bankBalances / bankHistories, payment dropdown values, NPC payment
+ * methods). Real-world names (Mandiri / BCA / BNI) must NEVER appear.
+ * ========================================================= */
+const BANK_IDS = ["Mandari", "BKA", "BNO"];
+
+/* Random parody bank — for NPC buyers/sellers dropping an account in COD
+ * chat, generated payment methods, etc. STRICTLY pulls from BANK_IDS. */
+function generateBankName() {
+  return BANK_IDS[Math.floor(Math.random() * BANK_IDS.length)];
+}
+
 /* Expose for other modules (we are not using ES modules) */
 window.GadgetData = {
   GADGET_DATABASE,
@@ -163,6 +178,8 @@ window.GadgetData = {
   FOLDABLE_DEFECT_OPTIONS, // NEW: extreme foldable-only defects
   SELLER_NAMES,
   AVATAR_COLORS,
+  BANK_IDS,                // Part 40: parody bank keys (single source)
+  generateBankName,        // Part 40: random parody bank picker
   isFoldableGadget,        // NEW
   isFoldableDefect,        // NEW
 };

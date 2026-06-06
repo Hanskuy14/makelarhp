@@ -6,8 +6,8 @@
  *   Customer Service → Bulk List with Markup, Auto-Accept Offers
  *   Technician       → Auto-Repair All, Auto-Buy Completeness
  *
- * Daily salaries auto-deducted from Mandiri at Next Day.
- * If Mandiri can't cover salary, employees walk out.
+ * Daily salaries auto-deducted from Mandari at Next Day.
+ * If Mandari can't cover salary, employees walk out.
  * ========================================================= */
 
 (function () {
@@ -140,12 +140,12 @@
         : undefined,
     };
     window.FlippingTycoon.saveGame();
-    showToast(`✅ ${meta.title} bergabung. Salary ${fmt(meta.dailySalary)}/hari (Mandiri).`);
+    showToast(`✅ ${meta.title} bergabung. Salary ${fmt(meta.dailySalary)}/hari (Mandari).`);
     if (window.Notifications) {
       window.Notifications.add({
         type: "success",
         title: `${meta.title} Joined the Team`,
-        message: `${meta.title} resmi dipekerjakan. Daily salary ${fmt(meta.dailySalary)} otomatis ditarik dari Mandiri.`,
+        message: `${meta.title} resmi dipekerjakan. Daily salary ${fmt(meta.dailySalary)} otomatis ditarik dari Mandari.`,
         actionPage: "staff",
         actor: "HR Department",
         icon: meta.icon,
@@ -188,14 +188,14 @@
       if (!s.staff[role] || !s.staff[role].hired) return;
       const cost = meta.dailySalary;
       result.total += cost;
-      if ((s.bankBalances.Mandiri || 0) < cost) {
+      if ((s.bankBalances.Mandari || 0) < cost) {
         // Walk-out
         s.staff[role].hired = false;
-        s.bankHistories.Mandiri.push({
+        s.bankHistories.Mandari.push({
           type: "DEBIT",
           amount: 0,
-          balanceAfter: s.bankBalances.Mandiri,
-          description: `${meta.title} walked out — Mandiri kurang untuk salary (${fmt(cost)})`,
+          balanceAfter: s.bankBalances.Mandari,
+          description: `${meta.title} walked out — Mandari kurang untuk salary (${fmt(cost)})`,
           category: "staff-walkout",
           day: s.currentDay,
           ts: Date.now(),
@@ -204,7 +204,7 @@
           window.Notifications.add({
             type: "alert",
             title: `${meta.title} Walked Out!`,
-            message: `Saldo Mandiri tidak cukup buat bayar salary ${meta.title} (${fmt(cost)}). Mereka resign mendadak. Hire ulang kalau saldo sudah cukup.`,
+            message: `Saldo Mandari tidak cukup buat bayar salary ${meta.title} (${fmt(cost)}). Mereka resign mendadak. Hire ulang kalau saldo sudah cukup.`,
             actionPage: "staff",
             actor: "HR Department",
             icon: "user-xmark",
@@ -213,11 +213,11 @@
         result.walkout.push(role);
         return;
       }
-      s.bankBalances.Mandiri -= cost;
-      s.bankHistories.Mandiri.push({
+      s.bankBalances.Mandari -= cost;
+      s.bankHistories.Mandari.push({
         type: "DEBIT",
         amount: cost,
-        balanceAfter: s.bankBalances.Mandiri,
+        balanceAfter: s.bankBalances.Mandari,
         description: `Daily salary: ${meta.title}`,
         category: "staff-salary",
         day: s.currentDay,
@@ -466,7 +466,7 @@
    * Called from script.js advanceToNextDay AFTER processNextDayOffers.
    * If CS is hired, loops active listings with offer-pending state
    * and auto-accepts any offer >= threshold% of asking price.
-   * Routes net (after fee) to receiving bank (Mandiri default).
+   * Routes net (after fee) to receiving bank (Mandari default).
    * ========================================================= */
   function processAutoAcceptOffers() {
     if (!isHired("cs")) return;
@@ -485,8 +485,8 @@
       const asking = listing.askingPrice;
       if (offered / asking < ratioGate) return; // doesn't meet threshold
 
-      // Receiving bank: prefer Mandiri (default operating account).
-      const receivingBank = "Mandiri";
+      // Receiving bank: prefer Mandari (default operating account).
+      const receivingBank = "Mandari";
       const tier = tierOf(s.bankBalances[receivingBank] || 0);
       const isPriority = tier === "priority";
       const feeRate = isPriority ? 0 : baseFee;
@@ -596,7 +596,7 @@
     open.forEach((order) => {
       if (!window.Wholesale.canFulfill(order)) return;
       const ok = window.Wholesale.acceptOrder(order.id, partnerId, {
-        receivingBank: "Mandiri",
+        receivingBank: "Mandari",
         acceptedBy: "logistics",
       });
       if (ok) accepted.push(order);
@@ -783,7 +783,7 @@
           <span class="cs-threshold-value">${v}%</span>
         </div>
         <input type="range" min="50" max="100" step="1" value="${v}" class="cs-threshold-slider" />
-        <p class="text-[11px] text-gray-500">Saat Next Day, offer ≥ ${v}% dari asking price akan auto-accepted ke Mandiri.</p>
+        <p class="text-[11px] text-gray-500">Saat Next Day, offer ≥ ${v}% dari asking price akan auto-accepted ke Mandari.</p>
       </div>
     `;
   }
@@ -816,7 +816,7 @@
     const closeBtn = modal.querySelector("#staff-hire-cancel");
     titleEl.textContent = `Hire ${meta.title}`;
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const rows = banks.map((b) => {
       const bal = S().bankBalances[b] || 0;
       const enough = bal >= meta.hireFee;
@@ -833,7 +833,7 @@
         <p class="font-semibold">${meta.title} &middot; ${meta.role}</p>
         <p class="text-xs text-gray-500 mt-2">Hiring Fee</p>
         <p class="text-xl font-bold">${fmt(meta.hireFee)}</p>
-        <p class="text-xs text-amber-700 mt-1"><i class="fa-solid fa-clock"></i> Daily salary ${fmt(meta.dailySalary)} otomatis ditarik dari Mandiri tiap Next Day.</p>
+        <p class="text-xs text-amber-700 mt-1"><i class="fa-solid fa-clock"></i> Daily salary ${fmt(meta.dailySalary)} otomatis ditarik dari Mandari tiap Next Day.</p>
       </div>
       <p class="text-sm font-semibold mb-2">Bayar hiring fee dari rekening mana?</p>
       <div class="relist-banks">${rows}</div>
@@ -954,7 +954,7 @@
     titleEl.textContent = action === "auto-repair" ? "Auto-Repair All — Pilih Bank"
                        : "Auto-Buy Completeness — Pilih Bank";
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const rows = banks.map((b) => {
       const bal = S().bankBalances[b] || 0;
       const enough = bal >= total;

@@ -1114,9 +1114,11 @@ body {
    BANK PICKER & TOAST (chat purchase flow + sale feedback)
 ========================================================= */
 .chat-action.bank-pick { padding-top: 6px; padding-bottom: 6px; }
-.chat-action.bank-pick-mandiri { background: #001a4d; color: #ffd34a; }
-.chat-action.bank-pick-bca     { background: #0060af; color: #fff; }
-.chat-action.bank-pick-bni     { background: #0d7377; color: #ff9a3c; }
+/* Part 40: bank-pick classes follow the (now parody) bank keys lowercased
+   in chat.js → bank-pick-${key.toLowerCase()} = mandari / bka / bno. */
+.chat-action.bank-pick-mandari { background: #001a4d; color: #ffd34a; }
+.chat-action.bank-pick-bka     { background: #0060af; color: #fff; }
+.chat-action.bank-pick-bno     { background: #0d7377; color: #ff9a3c; }
 .chat-action.bank-pick[disabled] { opacity: 0.4; cursor: not-allowed; }
 
 .ft-toast {
