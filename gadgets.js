@@ -73,23 +73,29 @@ const GADGET_DATABASE = [
  * `multiplier` is applied to basePrice.
  * `haggleBonus` is added to defect.haggleAcceptRate when picked.
  */
+/* i18n NOTE (Part 36 overhaul): every option now carries a stable `key`.
+ * The UI never renders `type`/`short`/`desc` directly anymore — it maps
+ * the key through t("conditions." + key + ".label") etc. The legacy text
+ * fields are KEPT only as a save-file-safe fallback for the i18n key
+ * resolver (window.i18n.conditionKey / defectKey). Pricing fields
+ * (multiplier / severity / haggle*) are unchanged. */
 const COMPLETENESS_OPTIONS = [
-  { type: "Fullset",          short: "Fullset",  multiplier: 1.00, haggleBonus: 0.00,
+  { key: "fullset",  type: "Fullset",          short: "Fullset",  multiplier: 1.00, haggleBonus: 0.00,
     desc: "Lengkap dengan dus, charger, dan kelengkapan asli." },
-  { type: "HP Only / Batangan", short: "Batangan", multiplier: 0.85, haggleBonus: 0.10,
+  { key: "batangan", type: "HP Only / Batangan", short: "Batangan", multiplier: 0.85, haggleBonus: 0.10,
     desc: "Unit only, tanpa dus dan aksesori bawaan." },
 ];
 
 const DEFECT_OPTIONS = [
-  { type: "Mulus / No Minus",       short: "Mulus",        multiplier: 1.00, severity: 0, haggleAcceptRate: 0.10,
+  { key: "mulus",            type: "Mulus / No Minus",       short: "Mulus",        multiplier: 1.00, severity: 0, haggleAcceptRate: 0.10,
     desc: "Kondisi mulus, tidak ada minus, normal semua fungsi." },
-  { type: "Layar Baret",            short: "Baret Layar",  multiplier: 0.90, severity: 1, haggleAcceptRate: 0.30,
+  { key: "scratched_screen", type: "Layar Baret",            short: "Baret Layar",  multiplier: 0.90, severity: 1, haggleAcceptRate: 0.30,
     desc: "Ada baret tipis di layar, tidak mengganggu fungsi sentuh." },
-  { type: "Battery Health Drop",    short: "Battery Drop", multiplier: 0.85, severity: 2, haggleAcceptRate: 0.50,
+  { key: "battery_drop",     type: "Battery Health Drop",    short: "Battery Drop", multiplier: 0.85, severity: 2, haggleAcceptRate: 0.50,
     desc: "Battery health di bawah 85%, mungkin perlu ganti baterai." },
-  { type: "FaceID/Fingerprint Off", short: "Sensor Off",   multiplier: 0.80, severity: 3, haggleAcceptRate: 0.70,
+  { key: "sensor_off",       type: "FaceID/Fingerprint Off", short: "Sensor Off",   multiplier: 0.80, severity: 3, haggleAcceptRate: 0.70,
     desc: "Face ID atau sensor sidik jari tidak berfungsi." },
-  { type: "Layar Retak",            short: "LCD Retak",    multiplier: 0.70, severity: 4, haggleAcceptRate: 0.85,
+  { key: "cracked_screen",   type: "Layar Retak",            short: "LCD Retak",    multiplier: 0.70, severity: 4, haggleAcceptRate: 0.85,
     desc: "Layar retak / LCD pecah, perlu service / ganti LCD." },
 ];
 
@@ -127,11 +133,11 @@ GADGET_DATABASE.push(...FOLDABLE_GADGETS);
  * UIs render them with NO extra changes. severity:4 => angry red badge.
  * `foldable: true` is the robust flag the Repair engine keys on. */
 const FOLDABLE_DEFECT_OPTIONS = [
-  { type: "Engsel Longgar",     short: "Engsel Longgar", multiplier: 0.72, severity: 4, haggleAcceptRate: 0.80, foldable: true,
+  { key: "loose_hinge",       type: "Engsel Longgar",     short: "Engsel Longgar", multiplier: 0.72, severity: 4, haggleAcceptRate: 0.80, foldable: true,
     desc: "Engsel (hinge) sudah oblak/longgar, layar tidak menutup rapat. Wajib ganti modul engsel." },
-  { type: "Layar Lipat Bocor",  short: "Inner Bocor",    multiplier: 0.60, severity: 4, haggleAcceptRate: 0.90, foldable: true,
+  { key: "inner_screen_leak", type: "Layar Lipat Bocor",  short: "Inner Bocor",    multiplier: 0.60, severity: 4, haggleAcceptRate: 0.90, foldable: true,
     desc: "Inner screen (layar lipat dalam) bocor — blob tinta hitam di garis lipatan. Ganti panel super mahal." },
-  { type: "Dead Pixel Lipatan", short: "Dead Pixel",     multiplier: 0.68, severity: 4, haggleAcceptRate: 0.85, foldable: true,
+  { key: "dead_pixel",        type: "Dead Pixel Lipatan", short: "Dead Pixel",     multiplier: 0.68, severity: 4, haggleAcceptRate: 0.85, foldable: true,
     desc: "Garis dead pixel tepat di lipatan layar. Tidak bisa diperbaiki parsial, harus ganti layar utuh." },
 ];
 

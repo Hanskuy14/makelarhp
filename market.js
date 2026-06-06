@@ -142,17 +142,64 @@
     return applyFoldableRisk(listing, gadget);
   }
 
-  function makeDescription(gadget, completeness, defect, isExInter) {
+  /** i18n: rebuild a listing's description from its stored KEYS at render
+   * time, so it always renders in the active language. */
+  function describeListing(listing) {
+    const I = window.i18n;
+    const cKey = I.conditionKey(listing.completeness);
+    const dKey = I.defectKey(listing.defect);
     const lines = [
-      `Dijual ${gadget.brand} ${gadget.model} ${gadget.specs.ram}/${gadget.specs.rom} warna ${gadget.specs.color}.`,
-      `Kelengkapan: ${completeness.type} - ${completeness.desc}`,
-      `Kondisi: ${defect.type} - ${defect.desc}`,
-      `Tahun rilis ${gadget.year}. Bisa COD area kota, atau kirim pakai ekspedisi (ongkir DTG).`,
+      t("market.forSale", {
+        brand: listing.brand, model: listing.name,
+        ram: listing.specs.ram, rom: listing.specs.rom, color: listing.specs.color,
+      }),
+      t("market.descCompleteness", {
+        completeness: t("conditions." + cKey + ".label"),
+        desc: t("conditions." + cKey + ".desc"),
+      }),
+      t("market.descCondition", {
+        defect: t("defects." + dKey + ".label"),
+        desc: t("defects." + dKey + ".desc"),
+      }),
+      t("market.descReleased", { year: listing.year }),
+    ];
+    if (listing.isExInter) lines.push(t("tax_status.ex_inter.warning"));
+    if (listing.foldableVisibleNote) {
+      lines.push(t("market.descFoldableNote", {
+        defect: t("defects." + dKey + ".label"),
+        desc: t("defects." + dKey + ".desc"),
+      }));
+    }
+    lines.push(t("market.descSerious"));
+    return lines.join("\n");
+  }
+
+  function makeDescription(gadget, completeness, defect, isExInter) {
+    // i18n: build the description from translation keys + params, so it
+    // re-renders in the active language every time (we store the listing's
+    // completeness/defect KEYS, not this string, in state).
+    const I = window.i18n;
+    const cKey = I.conditionKey(completeness);
+    const dKey = I.defectKey(defect);
+    const lines = [
+      t("market.forSale", {
+        brand: gadget.brand, model: gadget.model,
+        ram: gadget.specs.ram, rom: gadget.specs.rom, color: gadget.specs.color,
+      }),
+      t("market.descCompleteness", {
+        completeness: t("conditions." + cKey + ".label"),
+        desc: t("conditions." + cKey + ".desc"),
+      }),
+      t("market.descCondition", {
+        defect: t("defects." + dKey + ".label"),
+        desc: t("defects." + dKey + ".desc"),
+      }),
+      t("market.descReleased", { year: gadget.year }),
     ];
     if (isExInter) {
-      lines.push(`⚠️ Status: EX-INTER (No Pajak) — masuk dari jalur tidak resmi. Harga miring tapi RESIKO IMEI bisa kena blokir signal sewaktu-waktu. No retur, no garansi.`);
+      lines.push(t("tax_status.ex_inter.warning"));
     }
-    lines.push(`Serius minat boleh PM langsung, no afgan no php ya bro/sis 🙏`);
+    lines.push(t("market.descSerious"));
     return lines.join("\n");
   }
 
@@ -182,7 +229,7 @@
     const GD = window.GadgetData;
     if (!GD.isFoldableGadget(gadget)) return listing;
 
-    const isBatangan = listing.completeness && listing.completeness.short === "Batangan";
+    const isBatangan = window.i18n.conditionKey(listing.completeness) === "batangan";
     const isMinus    = listing.defect && listing.defect.severity > 0;
     if (!isBatangan && !isMinus) return listing;               // clean unit, no trap
     if (Math.random() >= FOLDABLE_EXTREME_CHANCE) return listing; // dodged the bullet
@@ -202,7 +249,9 @@
         gadget.basePrice, listing.completeness, extreme, gadget.brand, listing.isExInter
       );
       listing.currentPrice = listing.finalPrice;
-      listing.description  += `\n⚠️ CATATAN: Unit foldable ini ada minus berat "${extreme.type}". ${extreme.desc}`;
+      // i18n: flag the extra "heavy defect" note instead of baking in a raw
+      // string — describeListing() renders it in the active language.
+      listing.foldableVisibleNote = true;
     }
     return listing;
   }
@@ -271,12 +320,12 @@
     header.innerHTML = `
       <div>
         <h3 class="flex items-center gap-2">
-          <i class="fa-solid fa-store text-emerald-500"></i> Marketplace
+          <i class="fa-solid fa-store text-emerald-500"></i> ${t("market.title")}
         </h3>
-        <p class="text-sm text-gray-500">Today's listings &middot; Day ${s.currentDay} &middot; ${s.dailyListings.length} items</p>
+        <p class="text-sm text-gray-500">${t("market.subtitle", { day: s.currentDay, count: s.dailyListings.length })}</p>
       </div>
       <div class="text-right">
-        <p class="text-xs text-gray-400">New listings every day</p>
+        <p class="text-xs text-gray-400">${t("market.newDaily")}</p>
       </div>
     `;
     wrap.appendChild(header);
@@ -295,23 +344,27 @@
     const limit = Math.min(HARD_CAP, total);
 
     s.dailyListings.slice(0, limit).forEach((listing) => {
+      const I = window.i18n;
+      const cKey = I.conditionKey(listing.completeness);
+      const dKey = I.defectKey(listing.defect);
+      const tKey = I.taxKey(listing);
       const card = document.createElement("div");
       card.className = "marketplace-card" + (listing.isExInter ? " ex-inter" : "");
       card.innerHTML = `
         <div class="marketplace-thumb">
           ${gadgetIconHtml(listing, "text-6xl")}
           <span class="marketplace-thumb-tag">${listing.brand}</span>
-          ${listing.isExInter ? `<span class="ex-inter-tag"><i class="fa-solid fa-skull-crossbones"></i> No Pajak</span>` : ""}
+          ${listing.isExInter ? `<span class="ex-inter-tag"><i class="fa-solid fa-skull-crossbones"></i> ${t("tax_status." + tKey + ".tag")}</span>` : ""}
         </div>
         <div class="marketplace-card-body">
           <p class="marketplace-price">${formatRupiah(listing.finalPrice)}</p>
           <p class="marketplace-title">${listing.name}</p>
           <p class="marketplace-meta">${listing.specs.ram} / ${listing.specs.rom} &middot; ${listing.specs.color}</p>
           <div class="marketplace-badges">
-            <span class="market-badge bg-blue-100 text-blue-700">${listing.completeness.short}</span>
-            <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${listing.defect.short}</span>
+            <span class="market-badge bg-blue-100 text-blue-700">${t("conditions." + cKey + ".short")}</span>
+            <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${t("defects." + dKey + ".short")}</span>
             ${(window.Battery ? window.Battery.badgeHtml(listing.batteryHealth) : "")}
-            ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700">Ex-Inter</span>` : ""}
+            ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700">${t("tax_status.ex_inter.label")}</span>` : ""}
           </div>
           <p class="marketplace-seller">
             <i class="fa-solid fa-location-dot"></i> ${listing.seller.location}
@@ -330,8 +383,7 @@
       note.className = "ft-render-cap-note";
       note.innerHTML = `
         <i class="fa-solid fa-circle-info"></i>
-        Menampilkan <b>${HARD_CAP}</b> barang teratas dari total <b>${total}</b> barang
-        untuk menjaga performa.
+        ${t("market.capNote", { cap: HARD_CAP, total: total })}
       `;
       wrap.appendChild(note);
     }
@@ -342,6 +394,11 @@
   function renderProductDetail(listing) {
     const wrap = document.createElement("div");
     wrap.className = "product-detail";
+    const I = window.i18n;
+    const cKey = I.conditionKey(listing.completeness);
+    const dKey = I.defectKey(listing.defect);
+    const tKey = I.taxKey(listing);
+    const dayNow = window.FlippingTycoon.State.data.currentDay;
 
     const priceDisplay = listing.haggleState === "accepted"
       ? `<span class="line-through text-gray-400 text-base mr-2">${formatRupiah(listing.finalPrice)}</span>${formatRupiah(listing.currentPrice)}`
@@ -349,7 +406,7 @@
 
     wrap.innerHTML = `
       <button class="back-btn" id="pd-back">
-        <i class="fa-solid fa-arrow-left"></i> Back to Marketplace
+        <i class="fa-solid fa-arrow-left"></i> ${t("market.backToMarket")}
       </button>
 
       <div class="product-detail-grid">
@@ -357,34 +414,34 @@
         <div class="product-hero${listing.isExInter ? " ex-inter" : ""}">
           ${gadgetIconHtml(listing, "text-9xl")}
           <span class="product-hero-tag">${listing.brand} &middot; ${listing.year}</span>
-          ${listing.isExInter ? `<span class="ex-inter-tag big"><i class="fa-solid fa-skull-crossbones"></i> Ex-Inter / No Pajak</span>` : ""}
+          ${listing.isExInter ? `<span class="ex-inter-tag big"><i class="fa-solid fa-skull-crossbones"></i> ${t("tax_status.ex_inter.label")}</span>` : ""}
         </div>
 
         <!-- Right column -->
         <div class="product-info">
           <p class="product-price">${priceDisplay}</p>
           <h2 class="product-title">${listing.name}</h2>
-          <p class="product-listed">Listed on Day ${window.FlippingTycoon.State.data.currentDay} in ${listing.seller.location}</p>
+          <p class="product-listed">${t("market.listedOn", { day: dayNow, city: listing.seller.location })}</p>
 
           <div class="product-badges">
-            <span class="market-badge bg-blue-100 text-blue-700">${listing.completeness.type}</span>
-            <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${listing.defect.type}</span>
+            <span class="market-badge bg-blue-100 text-blue-700">${t("conditions." + cKey + ".label")}</span>
+            <span class="market-badge ${defectBadgeColor(listing.defect.severity)}">${t("defects." + dKey + ".label")}</span>
             ${(window.Battery ? window.Battery.badgeHtml(listing.batteryHealth) : "")}
-            ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700"><i class="fa-solid fa-triangle-exclamation"></i> Ex-Inter</span>` : ""}
+            ${listing.isExInter ? `<span class="market-badge bg-rose-100 text-rose-700"><i class="fa-solid fa-triangle-exclamation"></i> ${t("tax_status.ex_inter.label")}</span>` : ""}
           </div>
 
           ${listing.isExInter ? `
             <div class="ex-inter-warning">
               <i class="fa-solid fa-circle-exclamation"></i>
               <div>
-                <p class="font-bold">Black Market Unit</p>
-                <p>Harga miring (-30%) tapi unit ini masuk dari jalur ilegal. Setiap hari ada risiko 15% IMEI diblokir & sinyal mati. Bisa "ditembak" di Repair Center kalau kena.</p>
+                <p class="font-bold">${t("tax_status.black_market.label")}</p>
+                <p>${t("tax_status.ex_inter.warning")}</p>
               </div>
             </div>
           ` : ""}
 
           <button id="pd-message" class="message-seller-btn">
-            <i class="fa-brands fa-facebook-messenger"></i> Message Seller
+            <i class="fa-brands fa-facebook-messenger"></i> ${t("market.messageSeller")}
           </button>
 
           <div class="seller-card">
@@ -393,10 +450,10 @@
             </div>
             <div>
               <p class="font-semibold">${listing.seller.name}</p>
-              <p class="text-xs text-gray-500">Seller info &middot; Joined Day ${Math.max(1, window.FlippingTycoon.State.data.currentDay - randInt(1, 30))}</p>
+              <p class="text-xs text-gray-500">${t("market.sellerInfo", { day: Math.max(1, dayNow - randInt(1, 30)) })}</p>
             </div>
             <div class="ml-auto text-emerald-500 text-xs font-semibold">
-              <i class="fa-solid fa-circle text-[8px]"></i> Online
+              <i class="fa-solid fa-circle text-[8px]"></i> ${t("market.online")}
             </div>
           </div>
         </div>
@@ -404,42 +461,42 @@
 
       <!-- Specs -->
       <div class="fb-card">
-        <h3>Details</h3>
+        <h3>${t("market.details")}</h3>
         <div class="spec-grid">
-          <div><span class="spec-label">Brand</span><span class="spec-value">${listing.brand}</span></div>
-          <div><span class="spec-label">Model</span><span class="spec-value">${listing.name}</span></div>
-          <div><span class="spec-label">RAM</span><span class="spec-value">${listing.specs.ram}</span></div>
-          <div><span class="spec-label">Storage</span><span class="spec-value">${listing.specs.rom}</span></div>
-          <div><span class="spec-label">Color</span><span class="spec-value">${listing.specs.color}</span></div>
-          <div><span class="spec-label">Release Year</span><span class="spec-value">${listing.year}</span></div>
-          <div><span class="spec-label">Base Market</span><span class="spec-value">${formatRupiah(listing.basePrice)}</span></div>
-          <div><span class="spec-label">Seller Asks</span><span class="spec-value">${formatRupiah(listing.finalPrice)}</span></div>
+          <div><span class="spec-label">${t("market.brand")}</span><span class="spec-value">${listing.brand}</span></div>
+          <div><span class="spec-label">${t("market.model")}</span><span class="spec-value">${listing.name}</span></div>
+          <div><span class="spec-label">${t("market.ram")}</span><span class="spec-value">${listing.specs.ram}</span></div>
+          <div><span class="spec-label">${t("market.storage")}</span><span class="spec-value">${listing.specs.rom}</span></div>
+          <div><span class="spec-label">${t("market.color")}</span><span class="spec-value">${listing.specs.color}</span></div>
+          <div><span class="spec-label">${t("market.releaseYear")}</span><span class="spec-value">${listing.year}</span></div>
+          <div><span class="spec-label">${t("market.baseMarket")}</span><span class="spec-value">${formatRupiah(listing.basePrice)}</span></div>
+          <div><span class="spec-label">${t("market.sellerAsks")}</span><span class="spec-value">${formatRupiah(listing.finalPrice)}</span></div>
         </div>
       </div>
 
       <!-- Condition -->
       <div class="fb-card">
-        <h3>Condition</h3>
+        <h3>${t("common.condition")}</h3>
         <div class="condition-row">
           <i class="fa-solid fa-box-open text-blue-500"></i>
           <div>
-            <p class="font-semibold">Completeness: ${listing.completeness.type}</p>
-            <p class="text-sm text-gray-600">${listing.completeness.desc} <span class="text-gray-400">(${(listing.completeness.multiplier * 100).toFixed(0)}% multiplier)</span></p>
+            <p class="font-semibold">${t("common.completeness")}: ${t("conditions." + cKey + ".label")}</p>
+            <p class="text-sm text-gray-600">${t("conditions." + cKey + ".desc")} <span class="text-gray-400">(${(listing.completeness.multiplier * 100).toFixed(0)}% ${t("common.multiplier")})</span></p>
           </div>
         </div>
         <div class="condition-row">
           <i class="fa-solid fa-triangle-exclamation" style="color:${listing.defect.severity >= 3 ? "#ef4444" : "#eab308"}"></i>
           <div>
-            <p class="font-semibold">Defect: ${listing.defect.type}</p>
-            <p class="text-sm text-gray-600">${listing.defect.desc} <span class="text-gray-400">(${(listing.defect.multiplier * 100).toFixed(0)}% multiplier)</span></p>
+            <p class="font-semibold">${t("common.defect")}: ${t("defects." + dKey + ".label")}</p>
+            <p class="text-sm text-gray-600">${t("defects." + dKey + ".desc")} <span class="text-gray-400">(${(listing.defect.multiplier * 100).toFixed(0)}% ${t("common.multiplier")})</span></p>
           </div>
         </div>
       </div>
 
       <!-- Description -->
       <div class="fb-card">
-        <h3>Description</h3>
-        <p class="text-sm text-gray-700 whitespace-pre-line">${listing.description}</p>
+        <h3>${t("market.description")}</h3>
+        <p class="text-sm text-gray-700 whitespace-pre-line">${describeListing(listing)}</p>
       </div>
     `;
 
@@ -489,6 +546,7 @@
     removeListing,
     formatRupiah,
     computeCurrentMarketPrice,
+    describeListing,      // i18n: live-translated listing description
     applyFoldableRisk,    // NEW
     revealFoldableDefect, // NEW
   };
