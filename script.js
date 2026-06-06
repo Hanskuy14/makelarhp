@@ -87,8 +87,9 @@ function createDefaultState() {
     /* Part 34 — Premium IAP unlocks */
     isEditorUnlocked: false,            // Part 34: non-consumable IAP flag (item_editor_unlock)
     brandMapping: {},                   // Part 34: { pear: "Apple", sumsang: "Samsung", ... }
-    /* Audio update — persisted player audio preferences */
-    settings: { bgmMuted: false, sfxMuted: false },
+    /* Audio update — persisted player audio preferences.
+     * Part 36 — `language` drives the i18n engine ("id" | "en"). */
+    settings: { bgmMuted: false, sfxMuted: false, language: "id" },
 
     /* Seller Dashboard — e-commerce "Seller Center" + daily financial recap.
      * shopName        : the player's online store name ("Toko FDS" default)
@@ -155,6 +156,11 @@ const State = {
       if (!raw) return false;
       const parsed = JSON.parse(raw);
       this.data = Object.assign(createDefaultState(), parsed);
+      // Part 36 — older saves may carry a `settings` object without the
+      // i18n `language` field (Object.assign is shallow). Heal it so the
+      // engine always has a valid, persisted language preference.
+      if (!this.data.settings) this.data.settings = {};
+      if (!this.data.settings.language) this.data.settings.language = "id";
       this._migrate(parsed);
       // Persist any migration repairs immediately so a refresh doesn't
       // re-run the same fixups (and so future bug-reports show clean data).
@@ -1604,6 +1610,8 @@ window.FlippingTycoon = {
   loadGame,
   renderActivePage,
   renderAll,
+  // Part 36 — i18n calls this for a full UI re-render on language switch.
+  renderAllPages: renderAll,
   setActivePage,
   formatRupiah,
   generateDailyNews,
