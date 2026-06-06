@@ -7,21 +7,21 @@
   const TRANSFER_FEE = 2_500;
 
   const BANK_META = {
-    Mandiri: {
+    Mandari: {
       name: "Bank Mandari",
       short: "Mandari",
       number: "1370 0099 8842 11",
       logo: "M",
       themeClass: "bank-mandiri",   // navy + yellow
     },
-    BCA: {
+    BKA: {
       name: "Bank Cuan Asia",
       short: "BKA",
       number: "8451 7220 9135",
       logo: "B",
       themeClass: "bank-bca",       // blue + white
     },
-    BNI: {
+    BNO: {
       name: "Bank Neo Indo",
       short: "BNO",
       number: "0312 4567 8900",
@@ -96,7 +96,7 @@
     const wrap = document.createElement("div");
 
     // Header card with summary
-    const total = S().bankBalances.Mandiri + S().bankBalances.BCA + S().bankBalances.BNI;
+    const total = S().bankBalances.Mandari + S().bankBalances.BKA + S().bankBalances.BNO;
     const header = document.createElement("div");
     header.className = "fb-card";
     header.innerHTML = `
@@ -141,7 +141,7 @@
     wrap.appendChild(tabs);
 
     // Active bank panel
-    const activeKey = S().bankingView.activeBank || "Mandiri";
+    const activeKey = S().bankingView.activeBank || "Mandari";
     wrap.appendChild(renderBankPanel(activeKey));
 
     // Wire transfer button
@@ -310,7 +310,7 @@
     const cancelBtn = modal.querySelector("#transfer-cancel");
 
     // Populate selects
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     fromSel.innerHTML = banks.map((b) => `<option value="${b}" ${b === defaultFrom ? "selected" : ""}>${b} — ${fmt(S().bankBalances[b] || 0)}</option>`).join("");
     function refreshTo() {
       const from = fromSel.value;

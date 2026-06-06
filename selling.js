@@ -848,7 +848,7 @@
       hideTyping();
       pushMessage(listing, "buyer", `Mantap! Saya transfer sekarang. Mau diterima ke rekening apa?`);
       // Render bank-pick row
-      const banks = ["Mandiri", "BCA", "BNI"];
+      const banks = ["Mandari", "BKA", "BNO"];
       const baseFee = window.Inventory.platformFeeRate
         ? window.Inventory.platformFeeRate()
         : (window.Repair && window.Repair.platformFeeRate ? window.Repair.platformFeeRate() : 0.05);

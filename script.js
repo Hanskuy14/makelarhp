@@ -6,10 +6,77 @@
 /* ---------- 1. Constants ---------- */
 const STORAGE_KEY = "flippingTycoon.save.v1";
 const STARTING_BALANCES = {
-  Mandiri: 10_000_000, // updated in Part 3
-  BCA: 0,
-  BNI: 5_000_000,      // updated in Part 3
+  Mandari: 10_000_000, // updated in Part 3
+  BKA: 0,
+  BNO: 5_000_000,      // updated in Part 3
 };
+
+/* =========================================================
+ * Part 40 — Parody bank-name save-file patch
+ *
+ * Old saves stored the real-world bank names ("Mandiri", "BCA", "BNI")
+ * as BOTH object keys (bankBalances / bankHistories) AND string values
+ * (bankingView.activeBank, each item/listing/log `sourceBank` /
+ * `receivingBank`, plus free-text inside history `description`s and chat
+ * params). This deep, idempotent transform rewrites every one of them to
+ * the parody names so a returning player's balances, mutations and logs
+ * are instantly corrected — without breaking anything.
+ *
+ *   "Mandiri" -> "Mandari"   "BCA" -> "BKA"   "BNI" -> "BNO"
+ *
+ * Safe by design:
+ *   - Word-boundary matching means "BNIB" (Brand New In Box) is NEVER
+ *     touched, and no real bank token survives.
+ *   - Renaming a key only moves it when the parody key doesn't already
+ *     exist, so running twice is a no-op (idempotent).
+ * ========================================================= */
+const BANK_NAME_MAP = { Mandiri: "Mandari", BCA: "BKA", BNI: "BNO" };
+const BANK_NAME_RE = /\b(Mandiri|BCA|BNI)\b/g;
+
+function patchBankNames(state) {
+  if (!state || typeof state !== "object") return state;
+
+  const seen = new WeakSet(); // guard against cyclic refs
+  function walk(node) {
+    if (!node || typeof node !== "object") return;
+    if (seen.has(node)) return;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        const v = node[i];
+        if (typeof v === "string") {
+          node[i] = v.replace(BANK_NAME_RE, (m) => BANK_NAME_MAP[m]);
+        } else {
+          walk(v);
+        }
+      }
+      return;
+    }
+
+    // 1) Rename any object KEY that is exactly a real bank name.
+    Object.keys(node).forEach((k) => {
+      const nk = BANK_NAME_MAP[k];
+      if (nk && nk !== k) {
+        if (!(nk in node)) node[nk] = node[k]; // move (prefer existing parody key)
+        delete node[k];
+      }
+    });
+
+    // 2) Rewrite string VALUES + recurse into nested objects/arrays.
+    Object.keys(node).forEach((k) => {
+      const v = node[k];
+      if (typeof v === "string") {
+        node[k] = v.replace(BANK_NAME_RE, (m) => BANK_NAME_MAP[m]);
+      } else if (v && typeof v === "object") {
+        walk(v);
+      }
+    });
+  }
+
+  walk(state);
+  return state;
+}
 
 /* ---------- 2. Default State factory ---------- */
 function createDefaultState() {
@@ -35,7 +102,7 @@ function createDefaultState() {
       avatarColor: "#1877f2",
     },
     bankBalances: { ...STARTING_BALANCES },
-    bankHistories: { Mandiri: [], BCA: [], BNI: [] },
+    bankHistories: { Mandari: [], BKA: [], BNO: [] },
     inventory: [],
     pendingReturns: [],                 // Part 37: bypassed-BH sales awaiting the Next-Day refund roll
     marketPrices: {},
@@ -48,7 +115,7 @@ function createDefaultState() {
     socialFeed: [],                     // Part 39: dynamic social feed items
     feedListings: [],                   // Part 39: interactive friend-listing registry
     lastFeedDay: 0,
-    bankingView: { activeBank: "Mandiri" },
+    bankingView: { activeBank: "Mandari" },
     upgrades: { premiumTools: false, fbPaidAds: false },
     repairView: { activeTab: "repairs" },
     activeListings: [],                 // Part 5: items the player put up for sale
@@ -100,7 +167,7 @@ function createDefaultState() {
      * ratings         : cumulative positive ratings (milestone unlocks VIP)
      * ratingTarget    : Star Seller / VIP threshold
      * starSeller      : true once ratingTarget is crossed
-     * activeAdBudget  : Rp/day debited from Mandiri each Next Day
+     * activeAdBudget  : Rp/day debited from Mandari each Next Day
      * adTier          : 0=off, 1=Basic, 2=Growth, 3=Flagship
      * dailyRevenue    : gross sales accumulated during the current day
      * dailyExpenses   : last-known daily burn (info only)
@@ -165,6 +232,9 @@ const State = {
       // engine always has a valid, persisted language preference.
       if (!this.data.settings) this.data.settings = {};
       if (!this.data.settings.language) this.data.settings.language = "id";
+      // Part 40 — rewrite legacy real bank names (keys + values + log text)
+      // to parody BEFORE migration runs (migration references parody keys).
+      patchBankNames(this.data);
       this._migrate(parsed);
       // Persist any migration repairs immediately so a refresh doesn't
       // re-run the same fixups (and so future bug-reports show clean data).
@@ -183,11 +253,11 @@ const State = {
   _migrate(parsed) {
     const version = (parsed.meta && parsed.meta.version) || 1;
     if (version < 3) {
-      if ((this.data.bankBalances.Mandiri || 0) < STARTING_BALANCES.Mandiri) {
-        this.data.bankBalances.Mandiri = STARTING_BALANCES.Mandiri;
+      if ((this.data.bankBalances.Mandari || 0) < STARTING_BALANCES.Mandari) {
+        this.data.bankBalances.Mandari = STARTING_BALANCES.Mandari;
       }
-      if ((this.data.bankBalances.BNI || 0) < STARTING_BALANCES.BNI) {
-        this.data.bankBalances.BNI = STARTING_BALANCES.BNI;
+      if ((this.data.bankBalances.BNO || 0) < STARTING_BALANCES.BNO) {
+        this.data.bankBalances.BNO = STARTING_BALANCES.BNO;
       }
       this.data.meta.version = 3;
     }
@@ -831,9 +901,9 @@ function readSavePreview() {
     const player = data.player || {};
     const banks  = data.bankBalances || {};
     const totalBank =
-      (Number(banks.Mandiri) || 0) +
-      (Number(banks.BCA)     || 0) +
-      (Number(banks.BNI)     || 0);
+      (Number(banks.Mandari) || 0) +
+      (Number(banks.BKA)     || 0) +
+      (Number(banks.BNO)     || 0);
     const invValue = (data.inventory  || []).reduce((s, it) => s + (Number(it.buyPrice) || 0), 0);
     const whValue  = (data.warehouse  || []).reduce((s, it) => s + (Number(it.buyPrice) || 0), 0);
     const netWorth = totalBank + invValue + whValue;
@@ -1244,7 +1314,7 @@ function renderNewsFeedPage() {
   wrap.appendChild(composer);
 
   // Day briefing
-  const totalBank = s.bankBalances.Mandiri + s.bankBalances.BCA + s.bankBalances.BNI;
+  const totalBank = s.bankBalances.Mandari + s.bankBalances.BKA + s.bankBalances.BNO;
   const summary = document.createElement("div");
   summary.className = "fb-card";
   summary.innerHTML = `
@@ -1256,8 +1326,8 @@ function renderNewsFeedPage() {
     <div class="grid grid-cols-2 gap-3 text-sm">
       <div class="p-3 bg-blue-50 rounded-lg"><p class="text-gray-500 text-xs">${t("game.totalBank")}</p><p class="font-bold text-[#1877F2]">${formatRupiah(totalBank)}</p></div>
       <div class="p-3 bg-amber-50 rounded-lg"><p class="text-gray-500 text-xs">${t("game.inventoryCount")}</p><p class="font-bold text-amber-600">${s.inventory.length} ${t("common.items")}</p></div>
-      <div class="p-3 bg-emerald-50 rounded-lg"><p class="text-gray-500 text-xs">Mandiri</p><p class="font-bold text-emerald-700">${formatRupiah(s.bankBalances.Mandiri)}</p></div>
-      <div class="p-3 bg-indigo-50 rounded-lg"><p class="text-gray-500 text-xs">BCA / BNI</p><p class="font-bold text-indigo-700">${formatRupiah(s.bankBalances.BCA + s.bankBalances.BNI)}</p></div>
+      <div class="p-3 bg-emerald-50 rounded-lg"><p class="text-gray-500 text-xs">Mandari</p><p class="font-bold text-emerald-700">${formatRupiah(s.bankBalances.Mandari)}</p></div>
+      <div class="p-3 bg-indigo-50 rounded-lg"><p class="text-gray-500 text-xs">BKA / BNO</p><p class="font-bold text-indigo-700">${formatRupiah(s.bankBalances.BKA + s.bankBalances.BNO)}</p></div>
     </div>
   `;
   wrap.appendChild(summary);
@@ -1340,7 +1410,7 @@ function renderPlaceholder(title, icon, subtitle) {
 /**
  * Part 9 — Tax/Admin Alert
  *
- * Estimate Mandiri-only debits that the next Next-Day will deduct
+ * Estimate Mandari-only debits that the next Next-Day will deduct
  * (rent + staff salaries). Returns null if no warning needed, otherwise
  * an object describing the shortfall.
  */
@@ -1364,7 +1434,7 @@ function estimateNextDayMandiriDebits() {
       }
     });
   }
-  // Seller Dashboard — daily marketing / ads budget (charged from Mandiri)
+  // Seller Dashboard — daily marketing / ads budget (charged from Mandari)
   if (s.ecommerce && (s.ecommerce.activeAdBudget || 0) > 0) {
     const adBudget = s.ecommerce.activeAdBudget;
     total += adBudget;
@@ -1381,7 +1451,7 @@ function estimateNextDayMandiriDebits() {
     }
   });
 
-  const mandiri = s.bankBalances.Mandiri || 0;
+  const mandiri = s.bankBalances.Mandari || 0;
   const projected = mandiri - total;
   if (projected < 0 && total > 0) {
     return { mandiri, total, projected, items };
@@ -1395,8 +1465,8 @@ function showSolvencyAlert(report) {
   const breakdown = report.items.map((i) => `${i.label}: ${fmt(i.amount)}`).join(" + ");
   window.Notifications.add({
     type: "warning",
-    title: "Solvency Warning: Mandiri Bisa Minus!",
-    message: `Estimasi debit Next Day ${fmt(report.total)} (${breakdown}) melebihi saldo Mandiri ${fmt(report.mandiri)}. Risiko: gaji staf walkout, sewa eviction, atau debt collector. Top-up dulu sebelum lanjut.`,
+    title: "Solvency Warning: Mandari Bisa Minus!",
+    message: `Estimasi debit Next Day ${fmt(report.total)} (${breakdown}) melebihi saldo Mandari ${fmt(report.mandiri)}. Risiko: gaji staf walkout, sewa eviction, atau debt collector. Top-up dulu sebelum lanjut.`,
     actionPage: "banking",
     actor: "Treasury",
     icon: "triangle-exclamation",
@@ -1407,7 +1477,7 @@ async function advanceToNextDay() {
   // Block re-entry if a heavy op is already running.
   if (_isLoading) return;
 
-  // Tax/Admin Alert pre-flight: warn if Mandiri can't cover the day's debits.
+  // Tax/Admin Alert pre-flight: warn if Mandari can't cover the day's debits.
   const report = estimateNextDayMandiriDebits();
   if (report && State.data.lastSolvencyWarnDay !== State.data.currentDay) {
     showSolvencyAlert(report);
@@ -1415,9 +1485,9 @@ async function advanceToNextDay() {
     saveGame();
     const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
     const proceed = confirm(
-      "⚠️ Mandiri akan minus Next Day!\n\n" +
+      "⚠️ Mandari akan minus Next Day!\n\n" +
       "Estimasi debit: " + fmt(report.total) + "\n" +
-      "Saldo Mandiri:  " + fmt(report.mandiri) + "\n" +
+      "Saldo Mandari:  " + fmt(report.mandiri) + "\n" +
       "Proyeksi:       " + fmt(report.projected) + "\n\n" +
       "Risiko: staff walkout, eviction toko, debt collector.\n" +
       "Tetap lanjut Next Day?"
@@ -1473,7 +1543,7 @@ async function advanceToNextDay() {
   if (State.data.inventoryView) State.data.inventoryView.visibleCount = 50;
   // Seller Dashboard: build the closing day's financial recap (gross
   // revenue now includes the Next-Day walk-in/auto-accept batch), charge
-  // the active ad budget from Mandiri, and reset the daily counters.
+  // the active ad budget from Mandari, and reset the daily counters.
   if (window.Dashboard) window.Dashboard.processDailyFinances();
   // Single state commit at the end of the heavy block (Part 23).
   flushSaves();
@@ -1655,6 +1725,7 @@ window.FlippingTycoon = {
   loadGame,
   renderActivePage,
   renderAll,
+  patchBankNames,
   // Part 36 — i18n calls this for a full UI re-render on language switch.
   renderAllPages: renderAll,
   setActivePage,

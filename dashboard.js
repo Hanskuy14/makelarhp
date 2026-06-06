@@ -48,7 +48,7 @@
   const RATING_TARGET = 1500;        // Star Seller / VIP milestone
   const DEFAULT_SHOP_NAME = "Toko FDS";
 
-  /* Marketing budget ladder. `costPerDay` is debited from Mandiri each
+  /* Marketing budget ladder. `costPerDay` is debited from Mandari each
    * Next Day. `saleRateBonus` is added to the Ruko walk-in sale rate.
    * `haggleResistance` is the chance a buyer accepts the asking price
    * without haggling aggressively (consumed by the Selling module). */
@@ -285,7 +285,7 @@
    * Next-Day walk-in/auto-accept batch). It:
    *   1. Snapshots the closing day's gross revenue + fees.
    *   2. Mirrors rent + salaries for the receipt.
-   *   3. CHARGES the active ad budget from Mandiri (the one real debit).
+   *   3. CHARGES the active ad budget from Mandari (the one real debit).
    *   4. Computes Net Profit and stores `ecommerce.lastRecap`.
    *   5. Resets the daily counters and simulates the new day's traffic.
    *
@@ -307,16 +307,16 @@
     const adMeta = tierMeta(e.adTier);
     let adSpend = Math.round(e.activeAdBudget || 0);
 
-    // ---- Charge ad spend from Mandiri (the only NEW money movement) ----
+    // ---- Charge ad spend from Mandari (the only NEW money movement) ----
     let adChargeNote = "";
     if (adSpend > 0) {
-      const mandiri = s.bankBalances.Mandiri || 0;
+      const mandiri = s.bankBalances.Mandari || 0;
       if (mandiri >= adSpend) {
-        s.bankBalances.Mandiri -= adSpend;
-        s.bankHistories.Mandiri.push({
+        s.bankBalances.Mandari -= adSpend;
+        s.bankHistories.Mandari.push({
           type: "DEBIT",
           amount: adSpend,
-          balanceAfter: s.bankBalances.Mandiri,
+          balanceAfter: s.bankBalances.Mandari,
           description: `Marketing / Ads — ${adMeta.label} (Day ${s.currentDay})`,
           category: "ads",
           day: s.currentDay,
@@ -326,7 +326,7 @@
       } else {
         // Can't afford the campaign — auto-pause it so the player isn't
         // silently overdrawn. Reflect zero spend on the recap.
-        adChargeNote = "Saldo Mandiri kurang — kampanye iklan di-pause.";
+        adChargeNote = "Saldo Mandari kurang — kampanye iklan di-pause.";
         adSpend = 0;
         e.adTier = 0;
         e.activeAdBudget = 0;
@@ -334,7 +334,7 @@
           window.Notifications.add({
             type: "warning",
             title: "Iklan Dipause",
-            message: `Saldo Mandiri gak cukup buat biaya iklan harian. Kampanye dimatikan otomatis.`,
+            message: `Saldo Mandari gak cukup buat biaya iklan harian. Kampanye dimatikan otomatis.`,
             actionPage: "real-estate",
             actor: "Marketing",
             icon: "triangle-exclamation",
@@ -552,8 +552,8 @@
             </div>
           </div>
           <div class="text-right shrink-0">
-            <p class="text-[11px] text-blue-100/80">Saldo Toko (Mandiri)</p>
-            <p class="font-bold tabular-nums">${fmt((S().bankBalances && S().bankBalances.Mandiri) || 0)}</p>
+            <p class="text-[11px] text-blue-100/80">Saldo Toko (Mandari)</p>
+            <p class="font-bold tabular-nums">${fmt((S().bankBalances && S().bankBalances.Mandari) || 0)}</p>
           </div>
         </div>
       </div>

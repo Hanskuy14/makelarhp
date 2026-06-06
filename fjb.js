@@ -408,7 +408,7 @@
     const cancelBtn = modal.querySelector("#fjb-offer-cancel");
 
     titleEl.textContent = `Tawarkan ke ${post.author.name}`;
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
 
     body.innerHTML = `
       <div class="mb-3">

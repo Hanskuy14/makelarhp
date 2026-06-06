@@ -640,7 +640,7 @@
     // asking instead of the negotiated amount.
     const price = Number(listing.currentPrice) || Number(listing.finalPrice) || 0;
     const s = window.FlippingTycoon.State.data;
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const buttons = banks.map((b) => {
       const enough = (s.bankBalances[b] || 0) >= price;
       return `
@@ -775,7 +775,7 @@
   /* ---------- Bank selection (legacy auto-pick fallback) ---------- */
   function pickPayingBank(price) {
     const s = window.FlippingTycoon.State.data;
-    const order = ["Mandiri", "BCA", "BNI"];
+    const order = ["Mandari", "BKA", "BNO"];
     for (const b of order) {
       if ((s.bankBalances[b] || 0) >= price) return b;
     }

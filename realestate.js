@@ -218,16 +218,16 @@
       showToast("Sudah menyewa toko. Vacate dulu kalau mau ganti.");
       return;
     }
-    if ((s.bankBalances.Mandiri || 0) < store.dailyRent) {
-      showToast(`Saldo Mandiri kurang. Butuh ${fmt(store.dailyRent)} untuk DP hari pertama.`);
+    if ((s.bankBalances.Mandari || 0) < store.dailyRent) {
+      showToast(`Saldo Mandari kurang. Butuh ${fmt(store.dailyRent)} untuk DP hari pertama.`);
       return;
     }
-    // Pay first day's rent immediately from Mandiri.
-    s.bankBalances.Mandiri -= store.dailyRent;
-    s.bankHistories.Mandiri.push({
+    // Pay first day's rent immediately from Mandari.
+    s.bankBalances.Mandari -= store.dailyRent;
+    s.bankHistories.Mandari.push({
       type: "DEBIT",
       amount: store.dailyRent,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Sewa harian ${store.name} (Day ${s.currentDay})`,
       category: "rent",
       day: s.currentDay,
@@ -257,7 +257,7 @@
   }
 
   /* =========================================================
-   * Daily rent (auto-deducted from Mandiri on Next Day)
+   * Daily rent (auto-deducted from Mandari on Next Day)
    * ========================================================= */
   function processDailyRent() {
     const s = S();
@@ -266,13 +266,13 @@
     const store = s.realEstate.store || STORES[0];
     const cost = store.dailyRent;
 
-    if ((s.bankBalances.Mandiri || 0) < cost) {
+    if ((s.bankBalances.Mandari || 0) < cost) {
       // Eviction: insufficient funds → lose store + perk
-      s.bankHistories.Mandiri.push({
+      s.bankHistories.Mandari.push({
         type: "DEBIT",
         amount: 0,
-        balanceAfter: s.bankBalances.Mandiri,
-        description: `EVICTED dari ${store.name} — saldo Mandiri kurang untuk sewa harian (${fmt(cost)})`,
+        balanceAfter: s.bankBalances.Mandari,
+        description: `EVICTED dari ${store.name} — saldo Mandari kurang untuk sewa harian (${fmt(cost)})`,
         category: "rent-evict",
         day: s.currentDay,
         ts: Date.now(),
@@ -280,12 +280,12 @@
       s.realEstate.rented = false;
       s.realEstate.evictedOnDay = s.currentDay;
       // Keep store info for history but disable perk.
-      showToast(`❌ Diusir dari ${store.name}! Saldo Mandiri kurang untuk sewa.`);
+      showToast(`❌ Diusir dari ${store.name}! Saldo Mandari kurang untuk sewa.`);
       if (window.Notifications) {
         window.Notifications.add({
           type: "alert",
           title: "Diusir dari Toko!",
-          message: `Saldo Mandiri tidak cukup buat sewa harian ${store.name} (${fmt(cost)}). Walk-in Customers nonaktif sampai sewa lagi.`,
+          message: `Saldo Mandari tidak cukup buat sewa harian ${store.name} (${fmt(cost)}). Walk-in Customers nonaktif sampai sewa lagi.`,
           actionPage: "real-estate",
           actor: "Pemilik Toko",
           icon: "gavel",
@@ -295,11 +295,11 @@
       return;
     }
 
-    s.bankBalances.Mandiri -= cost;
-    s.bankHistories.Mandiri.push({
+    s.bankBalances.Mandari -= cost;
+    s.bankHistories.Mandari.push({
       type: "DEBIT",
       amount: cost,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Sewa harian ${store.name} (Day ${s.currentDay})`,
       category: "rent",
       day: s.currentDay,
@@ -377,7 +377,7 @@
     const sold = eligible.slice(0, itemsSold);
 
     // ---- O(1) batched commit ----
-    const receivingBank = "Mandiri";
+    const receivingBank = "Mandari";
     const tier = window.Banking.tierOf(s.bankBalances[receivingBank] || 0);
     const isPriority = tier === "priority";
     const baseFee = window.Inventory && window.Inventory.platformFeeRate
@@ -479,7 +479,7 @@
       window.Notifications.add({
         type: "success",
         title: `Walk-in Sales: ${sold.length} unit`,
-        message: `${sold.length} unit terjual ke pelanggan toko hari ini → +${fmt(netSum)} masuk Mandiri (gross ${fmt(grossSum)}).`,
+        message: `${sold.length} unit terjual ke pelanggan toko hari ini → +${fmt(netSum)} masuk Mandari (gross ${fmt(grossSum)}).`,
         actionPage: "real-estate",
         actor: "Toko Fisik",
         icon: "shop",
@@ -504,7 +504,7 @@
   function completeWalkInSale(listing, suggestedNow) {
     const s = S();
     const price = listing.askingPrice;
-    const receivingBank = "Mandiri"; // walk-in cash always lands in Mandiri (toko op account)
+    const receivingBank = "Mandari"; // walk-in cash always lands in Mandari (toko op account)
     const tier = window.Banking.tierOf(s.bankBalances[receivingBank] || 0);
     const isPriority = tier === "priority";
     const baseFee = window.Inventory && window.Inventory.platformFeeRate
@@ -585,7 +585,7 @@
       window.Notifications.add({
         type: "success",
         title: "Walk-in Sale!",
-        message: `${itemName} terjual ke pelanggan toko: +${fmt(net)} masuk Mandiri.`,
+        message: `${itemName} terjual ke pelanggan toko: +${fmt(net)} masuk Mandari.`,
         actionPage: "banking",
         actor: "Toko Fisik",
         icon: "shop",
@@ -640,7 +640,7 @@
           </div>
           <div>
             <h3 class="text-rose-700">Kamu pernah diusir dari toko!</h3>
-            <p class="text-sm text-gray-600 mt-1">Day ${re.evictedOnDay}: saldo Mandiri tidak cukup untuk sewa harian. Walk-in Customers nonaktif. Bisa sewa lagi kalau saldo sudah cukup.</p>
+            <p class="text-sm text-gray-600 mt-1">Day ${re.evictedOnDay}: saldo Mandari tidak cukup untuk sewa harian. Walk-in Customers nonaktif. Bisa sewa lagi kalau saldo sudah cukup.</p>
           </div>
         </div>
       `;
@@ -763,7 +763,7 @@
       <div class="flex items-center justify-between gap-3 mb-2">
         <div>
           <h3><i class="fa-solid fa-user-tie text-emerald-600"></i> Karyawan Toko</h3>
-          <p class="text-xs text-gray-500">Maks ${MAX_RUKO_STAFF} karyawan. Gaji terpotong dari Mandiri tiap Next Day.</p>
+          <p class="text-xs text-gray-500">Maks ${MAX_RUKO_STAFF} karyawan. Gaji terpotong dari Mandari tiap Next Day.</p>
         </div>
         <p class="text-sm font-bold ${slotsLeft <= 0 ? "text-rose-600" : "text-emerald-700"}">
           ${staff.length} / ${MAX_RUKO_STAFF}
@@ -882,7 +882,7 @@
     const s = S();
     const card = document.createElement("div");
     card.className = "rented-store-card";
-    const mandiri = s.bankBalances.Mandiri || 0;
+    const mandiri = s.bankBalances.Mandari || 0;
     const safeDays = Math.floor(mandiri / store.dailyRent);
     card.innerHTML = `
       <div class="rs-banner" style="background:linear-gradient(135deg, ${store.accent} 0%, #1e1b4b 100%);">
@@ -899,11 +899,11 @@
           <div><p class="rs-stat-label">Sewa harian</p><p class="rs-stat-value">${fmt(store.dailyRent)}</p></div>
           <div><p class="rs-stat-label">Sudah sewa</p><p class="rs-stat-value">${re.daysRented} hari</p></div>
           <div><p class="rs-stat-label">Total bayar</p><p class="rs-stat-value">${fmt(re.totalPaid)}</p></div>
-          <div><p class="rs-stat-label">Mandiri tahan</p><p class="rs-stat-value ${safeDays < 2 ? "text-rose-700" : "text-emerald-700"}">${safeDays} hari lagi</p></div>
+          <div><p class="rs-stat-label">Mandari tahan</p><p class="rs-stat-value ${safeDays < 2 ? "text-rose-700" : "text-emerald-700"}">${safeDays} hari lagi</p></div>
         </div>
         <p class="text-xs text-gray-500 mt-2">
           <i class="fa-solid fa-circle-info"></i>
-          Sewa otomatis ditarik dari rekening Mandiri tiap Next Day. Kalau saldo kurang → diusir.
+          Sewa otomatis ditarik dari rekening Mandari tiap Next Day. Kalau saldo kurang → diusir.
         </p>
         <button id="re-vacate" class="re-vacate-btn">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> Vacate / Berhenti Sewa
@@ -927,7 +927,7 @@
     const isCurrent = !!(re.rented && re.store && re.store.id === store.id);
     card.className = "store-card" + (isCurrent ? " owned" : "");
     const s = S();
-    const canAfford = (s.bankBalances.Mandiri || 0) >= store.dailyRent;
+    const canAfford = (s.bankBalances.Mandari || 0) >= store.dailyRent;
     card.innerHTML = `
       <div class="store-icon" style="background:${store.accent}22;color:${store.accent}">
         <i class="fa-solid fa-${store.icon}"></i>
@@ -948,14 +948,14 @@
         ${isCurrent
           ? `<button class="store-rent-btn" disabled><i class="fa-solid fa-circle-check"></i> Sedang Sewa</button>`
           : `<button class="store-rent-btn" data-id="${store.id}" ${canAfford ? "" : "disabled"}>
-              <i class="fa-solid fa-key"></i> ${canAfford ? "Sewa Toko" : "Saldo Mandiri Kurang"}
+              <i class="fa-solid fa-key"></i> ${canAfford ? "Sewa Toko" : "Saldo Mandari Kurang"}
             </button>`}
         <p class="text-[11px] text-gray-500 mt-1">Hari pertama dipotong saat sewa.<br>Selanjutnya otomatis tiap Next Day.</p>
       </div>
     `;
     if (!isCurrent && canAfford) {
       card.querySelector(".store-rent-btn").addEventListener("click", () => {
-        if (confirm(`Sewa ${store.name} seharga ${fmt(store.dailyRent)}/hari?\n\nHari pertama langsung dipotong dari Mandiri sekarang.`)) {
+        if (confirm(`Sewa ${store.name} seharga ${fmt(store.dailyRent)}/hari?\n\nHari pertama langsung dipotong dari Mandari sekarang.`)) {
           rentStore(store.id);
           window.FlippingTycoon.renderActivePage();
         }
@@ -983,7 +983,7 @@
    *
    * Called from advanceToNextDay BEFORE walk-in sales so SPG/Tech/
    * Sosmed effects only apply when their salary is actually paid.
-   * Total cost = sum(salaryPerDay across rukoStaff). If Mandiri can't
+   * Total cost = sum(salaryPerDay across rukoStaff). If Mandari can't
    * cover it, all unpaid staff walk out (resigned).
    * ========================================================= */
   function processRukoStaffSalaries() {
@@ -995,7 +995,7 @@
     const total = staff.reduce((sum, x) => sum + (Number(x.salaryPerDay) || 0), 0);
     if (total <= 0) return;
 
-    if ((s.bankBalances.Mandiri || 0) < total) {
+    if ((s.bankBalances.Mandari || 0) < total) {
       // Can't pay → all staff resign in protest
       const resigned = staff.slice();
       s.realEstate.rukoStaff = [];
@@ -1003,7 +1003,7 @@
         window.Notifications.add({
           type: "warning",
           title: "Karyawan Toko Resign!",
-          message: `Saldo Mandiri gak cukup buat gaji ${total.toLocaleString("id-ID")} → ${resigned.length} karyawan toko walkout.`,
+          message: `Saldo Mandari gak cukup buat gaji ${total.toLocaleString("id-ID")} → ${resigned.length} karyawan toko walkout.`,
           actionPage: "real-estate",
           actor: "Ruko",
           icon: "person-walking-arrow-right",
@@ -1012,11 +1012,11 @@
       return;
     }
 
-    s.bankBalances.Mandiri -= total;
-    s.bankHistories.Mandiri.push({
+    s.bankBalances.Mandari -= total;
+    s.bankHistories.Mandari.push({
       type: "DEBIT",
       amount: total,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Gaji harian karyawan toko (${staff.length} orang)`,
       category: "ruko-staff-salary",
       day: s.currentDay,
@@ -1131,26 +1131,26 @@
       return false;
     }
 
-    // Accept: deduct base cost from Mandiri (parts), credit total quote
-    if ((s.bankBalances.Mandiri || 0) < ticket.baseCost) {
-      showToast(`Saldo Mandiri kurang buat beli parts (${fmt(ticket.baseCost)}).`);
+    // Accept: deduct base cost from Mandari (parts), credit total quote
+    if ((s.bankBalances.Mandari || 0) < ticket.baseCost) {
+      showToast(`Saldo Mandari kurang buat beli parts (${fmt(ticket.baseCost)}).`);
       return false;
     }
-    s.bankBalances.Mandiri -= ticket.baseCost;
-    s.bankHistories.Mandiri.push({
+    s.bankBalances.Mandari -= ticket.baseCost;
+    s.bankHistories.Mandari.push({
       type: "DEBIT",
       amount: ticket.baseCost,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Service parts: ${ticket.name} (${ticket.complaint.slice(0, 40)}…)`,
       category: "service-parts",
       day: s.currentDay,
       ts: Date.now(),
     });
-    s.bankBalances.Mandiri += quote;
-    s.bankHistories.Mandiri.push({
+    s.bankBalances.Mandari += quote;
+    s.bankHistories.Mandari.push({
       type: "CREDIT",
       amount: quote,
-      balanceAfter: s.bankBalances.Mandiri,
+      balanceAfter: s.bankBalances.Mandari,
       description: `Service quote: ${ticket.name}`,
       category: "service-quote",
       day: s.currentDay,
@@ -1186,7 +1186,7 @@
         icon: "screwdriver-wrench",
       });
     }
-    showToast(`✅ Service done — profit ${fmt(ticket.profit)} masuk Mandiri.`);
+    showToast(`✅ Service done — profit ${fmt(ticket.profit)} masuk Mandari.`);
     window.FlippingTycoon.saveGame();
     return true;
   }

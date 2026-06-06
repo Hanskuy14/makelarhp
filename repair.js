@@ -363,7 +363,7 @@
     const body = modal.querySelector("#repair-body");
     const closeBtn = modal.querySelector("#repair-cancel");
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const rows = banks.map((b) => {
       const balance = S().bankBalances[b] || 0;
       const enough = balance >= cost;
@@ -599,7 +599,7 @@
     const body = modal.querySelector("#repair-body");
     const closeBtn = modal.querySelector("#repair-cancel");
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const cost = IMEI_TEMBAK_COST;
     const rows = banks.map((b) => {
       const balance = S().bankBalances[b] || 0;
@@ -709,7 +709,7 @@
     const body = modal.querySelector("#repair-body");
     const closeBtn = modal.querySelector("#repair-cancel");
 
-    const banks = ["Mandiri", "BCA", "BNI"];
+    const banks = ["Mandari", "BKA", "BNO"];
     const rows = banks.map((b) => {
       const balance = S().bankBalances[b] || 0;
       const enough = balance >= upg.cost;
