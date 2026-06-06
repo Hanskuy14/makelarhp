@@ -78,11 +78,100 @@ function patchBankNames(state) {
   return state;
 }
 
+/* =========================================================
+ * Part 42 — Save Data Versioning & Deep-Merge Migration
+ *
+ * THE BUG: when the APK updates, loadGame() used a SHALLOW
+ * Object.assign(createDefaultState(), parsed). New TOP-LEVEL keys
+ * survived, but any field added INSIDE an existing object (e.g. a new
+ * sub-field on `ecommerce`, or `settings.language`) was silently
+ * dropped because the saved object replaced the default wholesale —
+ * so new features didn't appear until the player cleared app data.
+ *
+ * THE FIX: a recursive deep merge that injects every default field the
+ * save is missing, WITHOUT touching the player's existing progress, plus
+ * an app-version gate so a future breaking (major) release can force a
+ * clean reset instead of loading an incompatible structure.
+ *
+ * Two version numbers, by design:
+ *   APP_VERSION (float)      — the SAVE SCHEMA version. Bump the MINOR
+ *                              (1.1 -> 1.2) for additive changes (handled
+ *                              automatically by the deep merge). Bump the
+ *                              MAJOR (1.x -> 2.0) ONLY for incompatible
+ *                              structure changes -> triggers a guarded reset.
+ *   meta.version (int, =18)  — the legacy fine-grained TRANSFORM chain in
+ *                              _migrate() (value fixes / renames). Left
+ *                              intact; it complements the deep merge.
+ * ========================================================= */
+const APP_VERSION = 1.1;
+
+function isPlainObject(v) {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+/* Structured deep clone (state is plain JSON, so this is safe + cheap). */
+function cloneDeep(v) {
+  return v == null ? v : JSON.parse(JSON.stringify(v));
+}
+
+/**
+ * deepMergeDefaults(saved, defaults) — recursively fill in keys that exist
+ * in `defaults` but are MISSING from `saved`, without overwriting any value
+ * the player already has.
+ *
+ * Rules:
+ *   - missing in save        -> adopt a deep CLONE of the default
+ *   - both plain objects     -> recurse key-by-key
+ *   - arrays / primitives    -> KEEP the saved value (player data is atomic;
+ *                               we never element-merge inventory, histories…)
+ * Mutates + returns `saved`.
+ */
+function deepMergeDefaults(saved, defaults) {
+  if (saved === undefined) return cloneDeep(defaults);
+  if (isPlainObject(saved) && isPlainObject(defaults)) {
+    Object.keys(defaults).forEach((key) => {
+      saved[key] = deepMergeDefaults(saved[key], defaults[key]);
+    });
+  }
+  return saved; // arrays + primitives + null: preserve the player's value
+}
+
+/**
+ * migrateData(savedData, defaultData) — the core migration entry point.
+ *   1. Read the save's schema version (0 = pre-versioning legacy save).
+ *   2. If the MAJOR version is behind -> breaking change, signal a reset.
+ *   3. Otherwise deep-merge new defaults into the save (additive, safe).
+ *   4. Stamp meta.appVersion = APP_VERSION.
+ * Returns { breaking, data, migrated, fromVersion }.
+ */
+function migrateData(savedData, defaultData) {
+  if (!isPlainObject(savedData)) {
+    // Corrupt / non-object payload — treat as unrecoverable.
+    return { breaking: true, data: savedData, fromVersion: 0 };
+  }
+  const savedV = (savedData.meta && typeof savedData.meta.appVersion === "number")
+    ? savedData.meta.appVersion
+    : 0; // 0 = save predates this versioning system
+
+  // Breaking change: a newer MAJOR version means the structure is no longer
+  // compatible. (savedV >= 1 so pre-versioning legacy saves still migrate.)
+  if (savedV >= 1 && Math.floor(savedV) < Math.floor(APP_VERSION)) {
+    return { breaking: true, data: savedData, fromVersion: savedV };
+  }
+
+  const merged = deepMergeDefaults(savedData, defaultData);
+  if (!isPlainObject(merged.meta)) merged.meta = {};
+  const migrated = savedV < APP_VERSION;
+  merged.meta.appVersion = APP_VERSION;
+  return { breaking: false, data: merged, migrated, fromVersion: savedV };
+}
+
 /* ---------- 2. Default State factory ---------- */
 function createDefaultState() {
   return {
     meta: {
       version: 18,
+      appVersion: APP_VERSION,   // Part 42: save-schema version for deep-merge migration
       createdAt: Date.now(),
       lastSavedAt: null,
     },
@@ -226,28 +315,77 @@ const State = {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      this.data = Object.assign(createDefaultState(), parsed);
-      // Part 36 — older saves may carry a `settings` object without the
-      // i18n `language` field (Object.assign is shallow). Heal it so the
-      // engine always has a valid, persisted language preference.
+
+      /* Part 42 — versioned deep-merge migration.
+       * Replaces the old shallow Object.assign so newly-added NESTED
+       * default fields are injected into legacy saves without wiping
+       * the player's progress. */
+      const result = migrateData(parsed, createDefaultState());
+
+      if (result.breaking) {
+        // Major (incompatible) update detected — alert + reset to a fresh
+        // save. Returning false lets continueGame() run its reset/onboarding
+        // fallback, effectively starting a new game.
+        this._handleBreakingUpdate(result.fromVersion);
+        return false;
+      }
+
+      this.data = result.data;
+
+      // Heal settings.language for very old saves (defensive; deep merge
+      // already injects `settings`, but a save may carry settings:{} ).
       if (!this.data.settings) this.data.settings = {};
       if (!this.data.settings.language) this.data.settings.language = "id";
+
       // Part 40 — rewrite legacy real bank names (keys + values + log text)
-      // to parody BEFORE migration runs (migration references parody keys).
+      // to parody BEFORE the transform migrations run.
       patchBankNames(this.data);
+
+      // Legacy fine-grained TRANSFORM migrations (value fixes / renames),
+      // gated on meta.version. Complements the structural deep merge above.
       this._migrate(parsed);
-      // Persist any migration repairs immediately so a refresh doesn't
-      // re-run the same fixups (and so future bug-reports show clean data).
-      try {
-        this.data.meta.lastSavedAt = Date.now();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-      } catch (e) { /* non-fatal */ }
+
+      // Persist the migrated state immediately so a refresh doesn't re-run
+      // the same fixups (and so future bug-reports show clean data).
+      this.save();
+
+      if (result.migrated) {
+        console.log(
+          "[FlippingTycoon] Save migrated " +
+          (result.fromVersion ? "v" + result.fromVersion : "(legacy)") +
+          " \u2192 v" + APP_VERSION
+        );
+        // Friendly, non-blocking confirmation once the UI is ready.
+        try {
+          setTimeout(function () {
+            if (window.showToast) window.showToast("Game data updated to v" + APP_VERSION + " \u2705", "success");
+          }, 1400);
+        } catch (e) { /* non-fatal */ }
+      }
       return true;
     } catch (err) {
       console.error("[FlippingTycoon] loadGame failed:", err);
       this.data = createDefaultState();
       return false;
     }
+  },
+
+  /* Part 42 — breaking (major) update handler: warn the player, wipe the
+   * incompatible save, and fall back to a fresh state (onboarding follows). */
+  _handleBreakingUpdate(fromVersion) {
+    console.warn(
+      "[FlippingTycoon] Breaking update v" + (fromVersion || "?") +
+      " \u2192 v" + APP_VERSION + " — resetting save."
+    );
+    try {
+      alert(
+        "Major update detected (v" + (fromVersion || "?") + " \u2192 v" + APP_VERSION + ").\n\n" +
+        "The save format changed and isn't compatible, so your save must be reset. " +
+        "Starting a fresh game."
+      );
+    } catch (e) { /* headless / non-fatal */ }
+    this.data = createDefaultState();
+    this.save(); // overwrite the incompatible save with a clean, versioned one
   },
 
   _migrate(parsed) {
@@ -1726,6 +1864,8 @@ window.FlippingTycoon = {
   renderActivePage,
   renderAll,
   patchBankNames,
+  migrateData,            // Part 42: deep-merge save migration
+  APP_VERSION,
   // Part 36 — i18n calls this for a full UI re-render on language switch.
   renderAllPages: renderAll,
   setActivePage,
