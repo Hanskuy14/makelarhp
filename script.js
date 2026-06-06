@@ -37,6 +37,7 @@ function createDefaultState() {
     bankBalances: { ...STARTING_BALANCES },
     bankHistories: { Mandiri: [], BCA: [], BNI: [] },
     inventory: [],
+    pendingReturns: [],                 // Part 37: bypassed-BH sales awaiting the Next-Day refund roll
     marketPrices: {},
     dailyListings: [],
     lastListingDay: 0,
@@ -1402,6 +1403,7 @@ async function advanceToNextDay() {
   if (window.Repair) window.Repair.applyDayTickToRepairs();     // finish in-progress repairs
   if (window.Repair) window.Repair.applyDayTickToImeiUnlocks(); // finish IMEI tembak unlocks
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
+  if (window.Battery) window.Battery.processPendingReturns();   // Part 37: 25% roll — bypassed-BH refund trap
   if (window.Batam) window.Batam.applyDayTickToCargo();         // Part 7: arrivals + customs deadlines
   if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
   if (window.RealEstate) window.RealEstate.processRukoStaffSalaries(); // Part 27: pay SPG / Tech / Sosmed

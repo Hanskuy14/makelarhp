@@ -693,6 +693,9 @@
         // Part 6: black-market provenance & IMEI status tracking.
         isExInter: !!listing.isExInter,
         imeiStatus: listing.isExInter ? "ok" : null,
+        // Part 37 — Battery Health (Pear only; null for other brands).
+        batteryHealth: (typeof listing.batteryHealth === "number") ? listing.batteryHealth : null,
+        isBypassed: false,
       });
 
       window.Market.removeListing(listing.listingId);
