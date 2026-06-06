@@ -1408,7 +1408,14 @@ async function advanceToNextDay() {
   if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
   if (window.RealEstate) window.RealEstate.processRukoStaffSalaries(); // Part 27: pay SPG / Tech / Sosmed
   if (window.Staff) window.Staff.processDailySalaries();        // Part 9: deduct salaries / walkout
-  if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings
+  // Part 38 — Online E-commerce engine. Charge the ad budget FIRST (so
+  // traffic reflects whether the campaign is actually funded), then run
+  // the Ads -> Traffic -> Conversion -> Auto-Sell loop over activeListings
+  // BEFORE the physical walk-in pass (they share the same listing pool, so
+  // whichever runs first sells; an item can never be sold twice).
+  if (window.Dashboard && window.Dashboard.chargeAdBudget) window.Dashboard.chargeAdBudget();
+  if (window.Dashboard && window.Dashboard.processEcommerceSales) window.Dashboard.processEcommerceSales();
+  if (window.RealEstate) window.RealEstate.processWalkInSales();// instant-sell qualifying listings (physical store)
   if (window.RealEstate) window.RealEstate.processServiceWalkIns(); // Part 27: spawn 1-5 service customers if Tech hired
   if (window.Branches) window.Branches.processDailyRent();        // Part 28: pay branch rent (close on default)
   if (window.Branches) window.Branches.processBranchSales();      // Part 28: demand-tilted walk-ins per active branch
@@ -1429,8 +1436,9 @@ async function advanceToNextDay() {
   if (State.data.marketView)    State.data.marketView.visibleCount    = 50;
   if (State.data.inventoryView) State.data.inventoryView.visibleCount = 50;
   // Seller Dashboard: build the closing day's financial recap (gross
-  // revenue now includes the Next-Day walk-in/auto-accept batch), charge
-  // the active ad budget from Mandiri, and reset the daily counters.
+  // revenue now includes the walk-in + e-commerce batch). The ad budget
+  // was already debited earlier this transition by chargeAdBudget(); this
+  // only itemizes it on the receipt and resets the daily counters.
   if (window.Dashboard) window.Dashboard.processDailyFinances();
   // Single state commit at the end of the heavy block (Part 23).
   flushSaves();
