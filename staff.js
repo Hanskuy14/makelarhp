@@ -13,6 +13,8 @@
 (function () {
   function S()   { return window.FlippingTycoon.State.data; }
   function fmt(n) { return window.Market ? window.Market.formatRupiah(n) : ("Rp " + (n || 0).toLocaleString("id-ID")); }
+  // i18n shortcut — graceful fallback to the key if the engine isn't ready.
+  function t(key, params) { return (typeof window.t === "function") ? window.t(key, params) : key; }
 
   /* ---------- Roster ---------- */
   const STAFF_META = {
@@ -24,8 +26,9 @@
       accent: "#1d4ed8",
       avatar: "C",
       avatarColor: "#1d4ed8",
+      i18nKey: "customer_service",
       hireFee: 2_000_000,
-      dailySalary: 1_500_000,
+      dailySalary: 100_000,   // Part 9 rebalance — realistic daily IDR wage (was 1.5M)
       desc: "Mengelola listing, follow-up pembeli, auto-accept tawaran wajar.",
       perks: [
         "Aktifkan tombol <b>Bulk List with Markup</b> di Inventory.",
@@ -40,8 +43,9 @@
       accent: "#b45309",
       avatar: "T",
       avatarColor: "#b45309",
+      i18nKey: "technician",
       hireFee: 3_000_000,
-      dailySalary: 2_000_000,
+      dailySalary: 150_000,   // Part 9 rebalance — realistic daily IDR wage (was 2M)
       desc: "Spesialis perbaikan & repacking. Bisa kerja paralel ke banyak unit sekaligus.",
       perks: [
         "Aktifkan tombol <b>Auto-Repair All</b> (semua defect inventory diservis sekaligus).",
@@ -56,8 +60,9 @@
       accent: "#0f766e",
       avatar: "L",
       avatarColor: "#0f766e",
+      i18nKey: "head_of_logistic",
       hireFee: 4_000_000,
-      dailySalary: 2_500_000,
+      dailySalary: 225_000,   // Part 9 rebalance — realistic daily IDR wage (was 2.5M)
       desc: "Pegang divisi B2B. Auto-process bulk order grosir tiap Next Day pakai partner default kamu.",
       perks: [
         "Auto-accept setiap <b>Bulk Order</b> (Wholesale) yang stoknya cukup.",
@@ -735,6 +740,7 @@
         ${role === "logistics" && hired ? renderLogisticsPartnerControl(rec) : ""}
       </div>
       <div class="staff-action">
+        <p class="staff-wage-label">${t("staff." + meta.i18nKey)} - ${fmt(meta.dailySalary)} ${t("staff.perDay")}</p>
         ${hired
           ? `<button class="staff-fire-btn" data-role="${role}"><i class="fa-solid fa-user-xmark"></i> Fire / PHK</button>`
           : `<button class="staff-hire-btn" data-role="${role}"><i class="fa-solid fa-user-plus"></i> Hire ${fmt(meta.hireFee)}</button>`}
