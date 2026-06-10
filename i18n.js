@@ -170,6 +170,25 @@
         composerPrompt: "What gadget are you flipping today, {name}?",
       },
 
+      /* --- Interactive onboarding tutorial (Part 43) --- */
+      tutorial: {
+        progress:        "Step {current} of {total}",
+        next:            "Next",
+        prev:            "Previous",
+        skip:            "Skip",
+        finish:          "Finish",
+        welcome_title:   "Welcome to Flipping Tycoon! 👋",
+        welcome_desc:    "You're a gadget broker: buy low, fix things up, and flip phones for profit. This quick tour walks you through the core loop. You can skip anytime.",
+        market_title:    "Marketplace",
+        market_desc:     "Start here. Buy used gadgets and Batam cargo at low prices. Compare the suggested price vs. the market price to spot a profitable flip.",
+        inventory_title: "Inventory & Repair",
+        inventory_desc:  "Inspect everything you own here. Send defective units to the Repair Center to fix them, then list them for sale at a higher price.",
+        ecommerce_title: "Seller Center & Ads",
+        ecommerce_desc:  "Open a store from here, run ad campaigns, and grow your shop toward a 1500+ rating to unlock Star Seller traffic and faster online sales.",
+        nextday_title:   "Advance the Day",
+        nextday_desc:    "When you're done trading, hit Next Day to process sales, buyer offers, ad spend, rent, and salaries. This is how time moves forward.",
+      },
+
       /* --- Generic input placeholders (commonly-missed i18n leaks) --- */
       placeholders: {
         searchNetbook:  "Search Netbook",
@@ -519,6 +538,25 @@
         totalBank: "Total Bank",
         inventoryCount: "Inventaris",
         composerPrompt: "Lagi flipping gadget apa hari ini, {name}?",
+      },
+
+      /* --- Tutorial onboarding interaktif (Part 43) --- */
+      tutorial: {
+        progress:        "Langkah {current} dari {total}",
+        next:            "Lanjut",
+        prev:            "Kembali",
+        skip:            "Lewati",
+        finish:          "Selesai",
+        welcome_title:   "Selamat datang di Flipping Tycoon! 👋",
+        welcome_desc:    "Kamu seorang broker gadget: beli murah, perbaiki, lalu jual lagi untuk untung. Tur singkat ini menjelaskan alur intinya. Bisa dilewati kapan saja.",
+        market_title:    "Marketplace",
+        market_desc:     "Mulai dari sini. Beli gadget bekas dan kargo Batam dengan harga murah. Bandingkan harga saran vs harga pasar untuk cari flip yang cuan.",
+        inventory_title: "Inventory & Repair",
+        inventory_desc:  "Periksa semua barang milikmu di sini. Kirim unit yang rusak ke Repair Center untuk diperbaiki, lalu jual dengan harga lebih tinggi.",
+        ecommerce_title: "Seller Center & Iklan",
+        ecommerce_desc:  "Buka toko dari sini, jalankan kampanye iklan, dan kembangkan toko hingga rating 1500+ untuk membuka traffic Star Seller dan penjualan online lebih cepat.",
+        nextday_title:   "Lanjut ke Hari Berikutnya",
+        nextday_desc:    "Kalau sudah selesai berdagang, tekan Next Day untuk memproses penjualan, tawaran pembeli, biaya iklan, sewa, dan gaji. Begini cara waktu berjalan.",
       },
 
       /* --- Placeholder input (kebocoran i18n yang sering terlewat) --- */
