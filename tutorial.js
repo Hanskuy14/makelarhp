@@ -4,9 +4,10 @@
  *
  * A dependency-free (no Intro.js / Shepherd) step-by-step
  * spotlight tour. It:
- *   1. Dims the screen with a fixed dark overlay (z-40).
- *   2. Lifts the targeted element ABOVE the overlay and rings it.
- *   3. Floats a dark-mode-aware tooltip near the target with
+ *   1. Dims the screen with a fixed dark overlay (z-[55], above the
+ *      app's z-50 topbar / bottom-nav chrome).
+ *   2. Lifts the targeted element ABOVE the overlay (z-60) and rings it.
+ *   3. Floats a dark-mode-aware tooltip (z-70) near the target with
  *      Previous / Next / Skip controls.
  *
  * Triggering:
@@ -133,7 +134,7 @@
     // Only force `relative` when the element is statically positioned;
     // a `fixed`/`absolute`/`sticky` element keeps its own positioning.
     if (cs.position === "static") el.style.position = "relative";
-    el.style.zIndex = "50";              // above the z-40 overlay
+    el.style.zIndex = "60";              // above the z-[55] overlay (and the z-50 chrome)
     el.style.pointerEvents = "none";     // stay on-rails during the tour
     el.classList.add.apply(el.classList, HL_CLASSES);
     // Bring it into view BEFORE we measure for tooltip placement.
@@ -162,7 +163,9 @@
    * ========================================================= */
   function buildOverlay() {
     overlayEl = document.createElement("div");
-    overlayEl.className = "tutorial-overlay fixed inset-0 bg-black/80 z-40 transition-opacity";
+    // z-[55] so it dims the app's z-50 chrome (topbar + mobile bottom nav).
+    // Highlighted targets jump to z-60 and the tooltip to z-70 (see below).
+    overlayEl.className = "tutorial-overlay fixed inset-0 bg-black/80 z-[55] transition-opacity";
     // Swallow clicks so the dimmed UI underneath can't be interacted with.
     overlayEl.addEventListener("click", function (e) { e.stopPropagation(); });
     document.body.appendChild(overlayEl);
@@ -170,7 +173,7 @@
   function buildTooltip() {
     tooltipEl = document.createElement("div");
     tooltipEl.className =
-      "tutorial-tooltip fixed z-[60] w-[calc(100vw-1.5rem)] max-w-sm p-4 rounded-xl " +
+      "tutorial-tooltip fixed z-[70] w-[calc(100vw-1.5rem)] max-w-sm p-4 rounded-xl " +
       "shadow-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white " +
       "border border-slate-200 dark:border-slate-700";
     tooltipEl.setAttribute("role", "dialog");
