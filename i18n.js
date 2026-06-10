@@ -237,6 +237,16 @@
         transactions: "No transactions yet",
       },
 
+      /* --- Staff Room: roles & daily wages (Part 9) --- */
+      staff: {
+        customer_service: "Customer Service",
+        technician:       "Technician",
+        head_of_logistic: "Head of Logistics",
+        perDay:           "/ Day",
+        dailyWage:        "Daily wage",
+        hire:             "Hire",
+      },
+
       /* --- Gadget completeness (set) --- */
       conditions: {
         fullset:  { label: "Fullset", short: "Fullset",
@@ -605,6 +615,16 @@
         warehouse:    "Warehouse kosong",
         results:      "Tidak ada hasil ditemukan",
         transactions: "Belum ada transaksi",
+      },
+
+      /* --- Staff Room: peran & gaji harian (Part 9) --- */
+      staff: {
+        customer_service: "Customer Service",
+        technician:       "Technician",
+        head_of_logistic: "Head of Logistics",
+        perDay:           "/ Hari",
+        dailyWage:        "Gaji harian",
+        hire:             "Rekrut",
       },
 
       conditions: {
