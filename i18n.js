@@ -189,6 +189,54 @@
         nextday_desc:    "When you're done trading, hit Next Day to process sales, buyer offers, ad spend, rent, and salaries. This is how time moves forward.",
       },
 
+      /* --- Generic input placeholders (commonly-missed i18n leaks) --- */
+      placeholders: {
+        searchNetbook:  "Search Netbook",
+        searchGadgets:  "Search gadgets...",
+        enterAmount:    "Enter amount...",
+        amountZero:     "0",
+        offerIdr:       "Offer how much? (IDR)",
+        counterIdr:     "Counter how much? (IDR)",
+        customPrice:    "Custom asking price (IDR)",
+        serviceFee:     "Service fee (IDR)",
+        bankHolder:     "Account holder name",
+        playerNameEg:   "e.g. Hans Broker",
+        storeNameEg:    "e.g. Hans Counter",
+        writePost:      "Write something...",
+        pickBank:       "Select Bank...",
+        pickOption:     "Select an option...",
+      },
+
+      /* --- Alerts / confirms / toast notifications --- */
+      alerts: {
+        notEnoughMoney:   "Not enough money!",
+        insufficientBank: "{bank} balance is not enough.",
+        itemSold:         "Item sold!",
+        itemBought:       "Item added to inventory!",
+        actionFailed:     "Action failed!",
+        saved:            "Saved!",
+        invalidAmount:    "Please enter a valid amount.",
+        confirmClearAll:  "Clear all notifications?",
+        notFound:         "Item not found.",
+        itemLocked:       "Item is locked (repair / IMEI). Cannot move it.",
+        warehouseFull:    "Warehouse is full ({usage}/{cap}).",
+        alreadyFullset:   "This item is already a Fullset.",
+        comingSoon:       "Coming soon!",
+      },
+
+      /* --- Empty states --- */
+      empty: {
+        inventory:    "No items in inventory",
+        market:       "No listings available right now",
+        news:         "No news today",
+        feed:         "Nothing in your feed yet",
+        notifications:"No notifications",
+        chat:         "No messages yet",
+        warehouse:    "Warehouse is empty",
+        results:      "No results found",
+        transactions: "No transactions yet",
+      },
+
       /* --- Gadget completeness (set) --- */
       conditions: {
         fullset:  { label: "Fullset", short: "Fullset",
@@ -511,6 +559,54 @@
         nextday_desc:    "Kalau sudah selesai berdagang, tekan Next Day untuk memproses penjualan, tawaran pembeli, biaya iklan, sewa, dan gaji. Begini cara waktu berjalan.",
       },
 
+      /* --- Placeholder input (kebocoran i18n yang sering terlewat) --- */
+      placeholders: {
+        searchNetbook:  "Cari di Netbook",
+        searchGadgets:  "Cari gadget...",
+        enterAmount:    "Masukkan jumlah...",
+        amountZero:     "0",
+        offerIdr:       "Tawar berapa? (IDR)",
+        counterIdr:     "Counter berapa? (IDR)",
+        customPrice:    "Harga jual custom (IDR)",
+        serviceFee:     "Biaya Servis (IDR)",
+        bankHolder:     "Nama pemilik rekening",
+        playerNameEg:   "Misal: Hans Broker",
+        storeNameEg:    "Misal: Hans Counter",
+        writePost:      "Tulis sesuatu...",
+        pickBank:       "Pilih Bank...",
+        pickOption:     "Pilih salah satu...",
+      },
+
+      /* --- Alert / konfirmasi / notifikasi toast --- */
+      alerts: {
+        notEnoughMoney:   "Saldo tidak cukup!",
+        insufficientBank: "Saldo {bank} tidak cukup.",
+        itemSold:         "Barang terjual!",
+        itemBought:       "Barang masuk ke inventaris!",
+        actionFailed:     "Aksi gagal!",
+        saved:            "Tersimpan!",
+        invalidAmount:    "Masukkan jumlah yang valid.",
+        confirmClearAll:  "Bersihkan semua notifikasi?",
+        notFound:         "Barang tidak ditemukan.",
+        itemLocked:       "Barang sedang dikunci (repair / IMEI). Tidak bisa dipindah.",
+        warehouseFull:    "Warehouse penuh ({usage}/{cap}).",
+        alreadyFullset:   "Item ini sudah Fullset.",
+        comingSoon:       "Segera hadir!",
+      },
+
+      /* --- Empty state --- */
+      empty: {
+        inventory:    "Inventaris kosong",
+        market:       "Belum ada listing saat ini",
+        news:         "Belum ada berita hari ini",
+        feed:         "Belum ada aktivitas di beranda",
+        notifications:"Tidak ada notifikasi",
+        chat:         "Belum ada pesan",
+        warehouse:    "Warehouse kosong",
+        results:      "Tidak ada hasil ditemukan",
+        transactions: "Belum ada transaksi",
+      },
+
       conditions: {
         fullset:  { label: "Fullset", short: "Fullset",
           desc: "Lengkap dengan dus, charger, dan kelengkapan asli." },
@@ -749,13 +845,27 @@
     if (!key || typeof key !== "string") return "";
     const lang = getLang();
 
+    // 1) Try the active language tree first.
     let str = lookup(DICT[lang], key);
+
+    // 2) FAILSAFE: if the key is missing from the ENGLISH ('en') dictionary,
+    //    warn loudly so missing translations are easy to spot in the console.
+    //    English is the canonical/complete dictionary, so a key absent there
+    //    is almost always a genuine "leak" that needs adding.
+    const enStr = lookup(DICT[FALLBACK_LANG], key);
+    if (enStr === undefined) {
+      if (window.console && console.warn) {
+        console.warn("Missing translation for key: " + key);
+      }
+    }
+
+    // 3) Graceful fallback chain: activeLang -> English -> the key itself,
+    //    so the UI NEVER renders "undefined" and never breaks.
     if (str === undefined && lang !== FALLBACK_LANG) {
-      str = lookup(DICT[FALLBACK_LANG], key); // graceful English fallback
+      str = enStr; // graceful English fallback
     }
     if (str === undefined) {
       // Final safety net: return the key so nothing renders as "undefined".
-      if (window.console && console.warn) console.warn("[i18n] missing key:", key);
       return key;
     }
     return interpolate(str, params);
@@ -909,7 +1019,9 @@
    * translateDOM(root) — translate static markup. Supports:
    *   <span data-i18n="banking.transfer"></span>           -> textContent
    *   <p data-i18n-html="game.exInter"></p>                -> innerHTML
+   *   <input data-i18n-placeholder="common.search" />      -> placeholder
    *   <input data-i18n-attr="placeholder:common.search" /> -> attribute(s)
+   *   <option data-i18n="banking.pickBank"></option>       -> textContent
    * Multiple attrs: data-i18n-attr="placeholder:common.search,title:nav.banking"
    *
    * data-i18n-params='{"day":5}' can supply interpolation params as JSON.
@@ -929,6 +1041,21 @@
     root.querySelectorAll("[data-i18n-html]").forEach((el) => {
       el.innerHTML = t(el.getAttribute("data-i18n-html"), paramsOf(el));
     });
+
+    // NEW: dedicated placeholder sweep. Catches the most commonly missed
+    // "leak" — <input>/<textarea> placeholder attributes left in Indonesian.
+    root.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+      el.placeholder = t(el.getAttribute("data-i18n-placeholder"), paramsOf(el));
+    });
+
+    // NEW: generic title/aria-label sweep so tooltips & a11y labels translate too.
+    root.querySelectorAll("[data-i18n-title]").forEach((el) => {
+      el.setAttribute("title", t(el.getAttribute("data-i18n-title"), paramsOf(el)));
+    });
+    root.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+      el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria-label"), paramsOf(el)));
+    });
+
     root.querySelectorAll("[data-i18n-attr]").forEach((el) => {
       el.getAttribute("data-i18n-attr").split(",").forEach((pair) => {
         const [attr, key] = pair.split(":").map((s) => s.trim());
