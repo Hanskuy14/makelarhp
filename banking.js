@@ -113,7 +113,7 @@
       <label class="text-xs font-semibold text-gray-500 mt-3 block">${t("banking.accountName")}</label>
       <div class="bankname-editor">
         <input id="bankname-input" class="bankname-input" type="text" maxlength="32"
-               value="${esc(getBankName())}" placeholder="Nama pemilik rekening" />
+               value="${esc(getBankName())}" placeholder="${t("placeholders.bankHolder")}" />
         <button id="bankname-save" class="bankname-save-btn" type="button">
           <i class="fa-solid fa-floppy-disk"></i> ${t("common.save")}
         </button>

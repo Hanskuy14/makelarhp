@@ -799,7 +799,7 @@
       <div class="chat-actions-row chat-haggle-row">
         <input id="buyer-counter-input" type="text" inputmode="numeric" pattern="[0-9]*"
                class="chat-offer-input" autocomplete="off"
-               placeholder="Counter berapa? (IDR)" />
+               placeholder="${t("placeholders.counterIdr")}" />
         <button id="buyer-counter-send" class="chat-action haggle chat-action-send">
           <i class="fa-solid fa-paper-plane"></i>
           <span class="chat-action-label">Kirim</span>
