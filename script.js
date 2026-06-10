@@ -1556,9 +1556,9 @@ function estimateNextDayMandiriDebits() {
   const s = State.data;
   let total = 0;
   const items = [];
-  // Storefront rent
-  if (s.realEstate && s.realEstate.rented && s.realEstate.store) {
-    const r = s.realEstate.store.dailyRent || 0;
+  // Storefront rent — monthly: only debited when tomorrow hits the 30-day tick.
+  if (s.realEstate && s.realEstate.rented && s.realEstate.store && (((s.currentDay + 1) % 30) === 0)) {
+    const r = Number(s.realEstate.store.monthlyRent != null ? s.realEstate.store.monthlyRent : s.realEstate.store.dailyRent) || 0;
     total += r;
     items.push({ label: "Sewa toko (" + s.realEstate.store.name + ")", amount: r });
   }
@@ -1656,7 +1656,7 @@ async function advanceToNextDay() {
   if (window.Repair) window.Repair.processImeiBlockRisk();      // 15% IMEI block roll on Ex-Inter inventory
   if (window.Battery) window.Battery.processPendingReturns();   // Part 37: 25% roll — bypassed-BH refund trap
   if (window.Batam) window.Batam.applyDayTickToCargo();         // Part 7: arrivals + customs deadlines
-  if (window.RealEstate) window.RealEstate.processDailyRent();  // deduct rent / evict
+  if (window.RealEstate) window.RealEstate.processMonthlyRent(); // Part 6 — monthly rent (every 30 days) / evict
   if (window.RealEstate) window.RealEstate.processRukoStaffSalaries(); // Part 27: pay SPG / Tech / Sosmed
   if (window.Staff) window.Staff.processDailySalaries();        // Part 9: deduct salaries / walkout
   // Part 38 — Online E-commerce engine. Charge the ad budget FIRST (so

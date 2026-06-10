@@ -261,7 +261,9 @@
   function computeStoreRent() {
     const s = S();
     if (s.realEstate && s.realEstate.rented && s.realEstate.store) {
-      return Number(s.realEstate.store.dailyRent) || 0;
+      const monthly = Number(s.realEstate.store.monthlyRent != null ? s.realEstate.store.monthlyRent : s.realEstate.store.dailyRent) || 0;
+      // Monthly billing: only mirrored on the receipt on the 30-day tick.
+      return (s.currentDay % 30 === 0) ? monthly : 0;
     }
     return 0;
   }

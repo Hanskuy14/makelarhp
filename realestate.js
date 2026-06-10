@@ -6,6 +6,19 @@
 (function () {
   function fmt(n) { return window.Market.formatRupiah(n); }
   function S() { return window.FlippingTycoon.State.data; }
+  // i18n shortcut — graceful fallback to the key if the engine isn't ready.
+  function t(key, params) { return (typeof window.t === "function") ? window.t(key, params) : key; }
+
+  /* Rent resolver — reads the new `monthlyRent` field but falls back to the
+   * legacy `dailyRent` field so already-rented saves keep working (the
+   * numeric amount is identical; only the billing cadence changed). */
+  function rentOf(store) {
+    if (!store) return 0;
+    return Number(store.monthlyRent != null ? store.monthlyRent : store.dailyRent) || 0;
+  }
+
+  /* Days remaining until the next 30-day rent billing tick. */
+  function daysUntilRent() { return 30 - (S().currentDay % 30); }
 
   /* =========================================================
    * Store catalog (Part 27 — 4-tier ladder with display capacity)
@@ -19,7 +32,7 @@
       tier: 1,
       name: "Kios Kecil",
       location: "Kompleks Pasar Senen, Jakarta",
-      dailyRent: 1_500_000,
+      monthlyRent: 1_500_000,
       displayCapacity: 150,
       walkInBaseRate: 0.10,
       icon: "store",
@@ -35,7 +48,7 @@
       tier: 2,
       name: "Kios ITC",
       location: "ITC Roxy Mas, Jakarta Pusat",
-      dailyRent: 5_000_000,
+      monthlyRent: 5_000_000,
       displayCapacity: 800,
       walkInBaseRate: 0.18,
       icon: "shop",
@@ -51,7 +64,7 @@
       tier: 3,
       name: "Ruko 2 Lantai",
       location: "Mangga Dua Square, Jakarta",
-      dailyRent: 12_500_000,
+      monthlyRent: 12_500_000,
       displayCapacity: 2500,
       walkInBaseRate: 0.24,
       icon: "building",
@@ -67,7 +80,7 @@
       tier: 4,
       name: "Premium Flagship Store",
       location: "Pondok Indah Mall, Jakarta Selatan",
-      dailyRent: 35_000_000,
+      monthlyRent: 35_000_000,
       displayCapacity: 5000,
       walkInBaseRate: 0.30,
       icon: "building-columns",
@@ -131,6 +144,12 @@
     if (!Array.isArray(s.realEstate.rukoStaff))     s.realEstate.rukoStaff     = [];
     if (!Array.isArray(s.realEstate.serviceQueue))  s.realEstate.serviceQueue  = [];
     if (!Array.isArray(s.realEstate.serviceHistory)) s.realEstate.serviceHistory = [];
+    // Monthly-rent migration: legacy saves stored the rented store with a
+    // `dailyRent` field. Mirror it onto `monthlyRent` (identical amount) so
+    // the new 30-day billing logic resolves a price.
+    if (s.realEstate.store && s.realEstate.store.monthlyRent == null && s.realEstate.store.dailyRent != null) {
+      s.realEstate.store.monthlyRent = s.realEstate.store.dailyRent;
+    }
   }
 
   /* ---------- Part 27 — Capacity, Staff, Service helpers ---------- */
@@ -218,17 +237,18 @@
       showToast("Sudah menyewa toko. Vacate dulu kalau mau ganti.");
       return;
     }
-    if ((s.bankBalances.Mandari || 0) < store.dailyRent) {
-      showToast(`Saldo Mandari kurang. Butuh ${fmt(store.dailyRent)} untuk DP hari pertama.`);
+    if ((s.bankBalances.Mandari || 0) < rentOf(store)) {
+      showToast(`Saldo Mandari kurang. Butuh ${fmt(rentOf(store))} untuk sewa bulan pertama.`);
       return;
     }
-    // Pay first day's rent immediately from Mandari.
-    s.bankBalances.Mandari -= store.dailyRent;
+    // Pay first month's rent immediately from Mandari.
+    const firstRent = rentOf(store);
+    s.bankBalances.Mandari -= firstRent;
     s.bankHistories.Mandari.push({
       type: "DEBIT",
-      amount: store.dailyRent,
+      amount: firstRent,
       balanceAfter: s.bankBalances.Mandari,
-      description: `Sewa harian ${store.name} (Day ${s.currentDay})`,
+      description: `Sewa bulanan ${store.name} (bulan pertama, Day ${s.currentDay})`,
       category: "rent",
       day: s.currentDay,
       ts: Date.now(),
@@ -238,7 +258,7 @@
     s.realEstate.store = { ...store };
     s.realEstate.rentSince = s.currentDay;
     s.realEstate.daysRented = 1;
-    s.realEstate.totalPaid = store.dailyRent;
+    s.realEstate.totalPaid = firstRent;
     s.realEstate.evictedOnDay = null;
 
     window.FlippingTycoon.saveGame();
@@ -257,35 +277,67 @@
   }
 
   /* =========================================================
-   * Daily rent (auto-deducted from Mandari on Next Day)
+   * Monthly rent — billed every 30 in-game days from Mandari.
+   *
+   * Called each Next Day from advanceToNextDay(). Instead of a daily
+   * charge, rent is only deducted when (currentDay % 30 === 0). One day
+   * before (currentDay % 30 === 29) the player gets a warning toast.
    * ========================================================= */
-  function processDailyRent() {
+  function processMonthlyRent() {
     const s = S();
     ensureRealEstate();
     if (!s.realEstate.rented) return;
     const store = s.realEstate.store || STORES[0];
-    const cost = store.dailyRent;
+    const cost = rentOf(store);
 
+    // Track tenure in days for the UI regardless of billing cadence.
+    s.realEstate.daysRented = (s.realEstate.daysRented || 0) + 1;
+
+    const dayInCycle = s.currentDay % 30;
+
+    // --- Day-29 of the cycle: rent is due TOMORROW → warn the player ---
+    if (dayInCycle === 29) {
+      showToast("⚠️ " + t("alerts.rent_warning"));
+      if (window.Notifications) {
+        window.Notifications.add({
+          type: "warning",
+          title: t("alerts.rent_warning"),
+          message: `${store.name}: sewa bulanan ${fmt(cost)} akan ditarik dari Mandari besok (Day ${s.currentDay + 1}).`,
+          actionPage: "real-estate",
+          actor: "Pemilik Toko",
+          icon: "triangle-exclamation",
+        });
+      }
+      window.FlippingTycoon.saveGame();
+      return;
+    }
+
+    // --- Not a billing day: no deduction ---
+    if (dayInCycle !== 0) {
+      window.FlippingTycoon.saveGame();
+      return;
+    }
+
+    // --- Billing day (every 30 days): deduct the monthly rent or evict ---
     if ((s.bankBalances.Mandari || 0) < cost) {
       // Eviction: insufficient funds → lose store + perk
       s.bankHistories.Mandari.push({
         type: "DEBIT",
         amount: 0,
         balanceAfter: s.bankBalances.Mandari,
-        description: `EVICTED dari ${store.name} — saldo Mandari kurang untuk sewa harian (${fmt(cost)})`,
+        description: `EVICTED dari ${store.name} — saldo Mandari kurang untuk sewa bulanan (${fmt(cost)})`,
         category: "rent-evict",
         day: s.currentDay,
         ts: Date.now(),
       });
       s.realEstate.rented = false;
       s.realEstate.evictedOnDay = s.currentDay;
-      // Keep store info for history but disable perk.
-      showToast(`❌ Diusir dari ${store.name}! Saldo Mandari kurang untuk sewa.`);
+      showToast(`❌ Diusir dari ${store.name}! Saldo Mandari kurang untuk sewa bulanan.`);
       if (window.Notifications) {
         window.Notifications.add({
           type: "alert",
           title: "Diusir dari Toko!",
-          message: `Saldo Mandari tidak cukup buat sewa harian ${store.name} (${fmt(cost)}). Walk-in Customers nonaktif sampai sewa lagi.`,
+          message: `Saldo Mandari tidak cukup buat sewa bulanan ${store.name} (${fmt(cost)}). Walk-in Customers nonaktif sampai sewa lagi.`,
           actionPage: "real-estate",
           actor: "Pemilik Toko",
           icon: "gavel",
@@ -300,12 +352,11 @@
       type: "DEBIT",
       amount: cost,
       balanceAfter: s.bankBalances.Mandari,
-      description: `Sewa harian ${store.name} (Day ${s.currentDay})`,
+      description: `Sewa bulanan ${store.name} (Day ${s.currentDay})`,
       category: "rent",
       day: s.currentDay,
       ts: Date.now(),
     });
-    s.realEstate.daysRented = (s.realEstate.daysRented || 0) + 1;
     s.realEstate.totalPaid = (s.realEstate.totalPaid || 0) + cost;
     window.FlippingTycoon.saveGame();
   }
@@ -883,7 +934,9 @@
     const card = document.createElement("div");
     card.className = "rented-store-card";
     const mandiri = s.bankBalances.Mandari || 0;
-    const safeDays = Math.floor(mandiri / store.dailyRent);
+    const rent = rentOf(store);
+    const safeMonths = rent > 0 ? Math.floor(mandiri / rent) : 0;
+    const dueInDays = daysUntilRent();
     card.innerHTML = `
       <div class="rs-banner" style="background:linear-gradient(135deg, ${store.accent} 0%, #1e1b4b 100%);">
         <div class="rs-icon"><i class="fa-solid fa-${store.icon}"></i></div>
@@ -896,14 +949,17 @@
       </div>
       <div class="rs-body">
         <div class="rs-stats">
-          <div><p class="rs-stat-label">Sewa harian</p><p class="rs-stat-value">${fmt(store.dailyRent)}</p></div>
+          <div><p class="rs-stat-label">Sewa</p><p class="rs-stat-value">${fmt(rent)} <span class="text-xs text-gray-500">${t("property.per_month")}</span></p></div>
           <div><p class="rs-stat-label">Sudah sewa</p><p class="rs-stat-value">${re.daysRented} hari</p></div>
           <div><p class="rs-stat-label">Total bayar</p><p class="rs-stat-value">${fmt(re.totalPaid)}</p></div>
-          <div><p class="rs-stat-label">Mandari tahan</p><p class="rs-stat-value ${safeDays < 2 ? "text-rose-700" : "text-emerald-700"}">${safeDays} hari lagi</p></div>
+          <div><p class="rs-stat-label">Mandari tahan</p><p class="rs-stat-value ${safeMonths < 1 ? "text-rose-700" : "text-emerald-700"}">${safeMonths} bulan lagi</p></div>
         </div>
+        <p class="rs-rent-countdown text-xs font-semibold mt-2 ${dueInDays <= 1 ? "text-rose-700" : "text-amber-700"}">
+          <i class="fa-solid fa-calendar-day"></i> ${t("property.rent_due", { days: dueInDays })}
+        </p>
         <p class="text-xs text-gray-500 mt-2">
           <i class="fa-solid fa-circle-info"></i>
-          Sewa otomatis ditarik dari rekening Mandari tiap Next Day. Kalau saldo kurang → diusir.
+          Sewa otomatis ditarik dari rekening Mandari tiap 30 hari. Kalau saldo kurang saat jatuh tempo → diusir.
         </p>
         <button id="re-vacate" class="re-vacate-btn">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> Vacate / Berhenti Sewa
@@ -927,7 +983,8 @@
     const isCurrent = !!(re.rented && re.store && re.store.id === store.id);
     card.className = "store-card" + (isCurrent ? " owned" : "");
     const s = S();
-    const canAfford = (s.bankBalances.Mandari || 0) >= store.dailyRent;
+    const rent = rentOf(store);
+    const canAfford = (s.bankBalances.Mandari || 0) >= rent;
     card.innerHTML = `
       <div class="store-icon" style="background:${store.accent}22;color:${store.accent}">
         <i class="fa-solid fa-${store.icon}"></i>
@@ -944,18 +1001,18 @@
         </ul>
       </div>
       <div class="store-action">
-        <p class="store-rent">${fmt(store.dailyRent)}<span class="text-xs text-gray-500"> / hari</span></p>
+        <p class="store-rent">${fmt(rent)}<span class="text-xs text-gray-500"> ${t("property.per_month")}</span></p>
         ${isCurrent
           ? `<button class="store-rent-btn" disabled><i class="fa-solid fa-circle-check"></i> Sedang Sewa</button>`
           : `<button class="store-rent-btn" data-id="${store.id}" ${canAfford ? "" : "disabled"}>
               <i class="fa-solid fa-key"></i> ${canAfford ? "Sewa Toko" : "Saldo Mandari Kurang"}
             </button>`}
-        <p class="text-[11px] text-gray-500 mt-1">Hari pertama dipotong saat sewa.<br>Selanjutnya otomatis tiap Next Day.</p>
+        <p class="text-[11px] text-gray-500 mt-1">Bulan pertama dipotong saat sewa.<br>Selanjutnya otomatis tiap 30 hari.</p>
       </div>
     `;
     if (!isCurrent && canAfford) {
       card.querySelector(".store-rent-btn").addEventListener("click", () => {
-        if (confirm(`Sewa ${store.name} seharga ${fmt(store.dailyRent)}/hari?\n\nHari pertama langsung dipotong dari Mandari sekarang.`)) {
+        if (confirm(`Sewa ${store.name} seharga ${fmt(rent)} ${t("property.per_month")}?\n\nBulan pertama langsung dipotong dari Mandari sekarang.`)) {
           rentStore(store.id);
           window.FlippingTycoon.renderActivePage();
         }
@@ -1198,7 +1255,8 @@
     vacateStore,
     isRented,
     activeStoreMeta,
-    processDailyRent,
+    processMonthlyRent,
+    processDailyRent: processMonthlyRent, // backward-compat alias
     processWalkInSales,
     // Part 27 — capacity, staff, service center
     displayCapacity,

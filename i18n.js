@@ -203,6 +203,7 @@
         warehouseFull:    "Warehouse is full ({usage}/{cap}).",
         alreadyFullset:   "This item is already a Fullset.",
         comingSoon:       "Coming soon!",
+        rent_warning:     "Warning: Rent is due tomorrow!",
       },
 
       /* --- Empty states --- */
@@ -216,6 +217,12 @@
         warehouse:    "Warehouse is empty",
         results:      "No results found",
         transactions: "No transactions yet",
+      },
+
+      /* --- Property / storefront rent (Part 6) --- */
+      property: {
+        per_month: "/ Month",
+        rent_due:  "Next rent due in {days} day(s)",
       },
 
       /* --- Gadget completeness (set) --- */
@@ -554,6 +561,7 @@
         warehouseFull:    "Warehouse penuh ({usage}/{cap}).",
         alreadyFullset:   "Item ini sudah Fullset.",
         comingSoon:       "Segera hadir!",
+        rent_warning:     "Peringatan: Bayar sewa ruko besok!",
       },
 
       /* --- Empty state --- */
@@ -567,6 +575,12 @@
         warehouse:    "Warehouse kosong",
         results:      "Tidak ada hasil ditemukan",
         transactions: "Belum ada transaksi",
+      },
+
+      /* --- Properti / sewa ruko (Part 6) --- */
+      property: {
+        per_month: "/ Bulan",
+        rent_due:  "Sewa berikutnya {days} hari lagi",
       },
 
       conditions: {
