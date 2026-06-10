@@ -237,6 +237,7 @@ function createDefaultState() {
     profilePosts: [],                   // Part 10: auto-posts from listings (capped 50)
     chatArchive: [],                    // Part 10: closed conversations for Messenger archive (capped 60)
     onboardingComplete: false,          // Part 10: gates the setup modal on first launch
+    isTutorialDone: false,              // Part 43: gates the interactive onboarding tutorial
     warehouse: [],                      // Part 11: secured stock (capacity 500)
     warehouseView: { activeTab: "stock" }, // Part 11
     wholesaleOrders: [],                // Part 11: open + in-transit B2B orders
@@ -331,6 +332,14 @@ const State = {
       }
 
       this.data = result.data;
+
+      // Part 43 — interactive tutorial: existing (pre-tutorial) saves must
+      // NOT be re-onboarded. The deep merge injects isTutorialDone:false into
+      // legacy data, so detect the legacy case from the RAW parsed object: if
+      // the save predates the field but setup is already done, mark it done.
+      if (parsed && parsed.isTutorialDone === undefined && parsed.onboardingComplete) {
+        this.data.isTutorialDone = true;
+      }
 
       // Heal settings.language for very old saves (defensive; deep merge
       // already injects `settings`, but a save may carry settings:{} ).
@@ -1217,6 +1226,12 @@ function enterApp() {
     if (window.Logistics.startGlobalTicker) window.Logistics.startGlobalTicker();
   }
   renderAll();
+
+  // Part 43 — Interactive onboarding tutorial. Runs ONLY on a brand-new save
+  // (State.data.isTutorialDone falsy); a no-op for returning players.
+  if (window.Tutorial && typeof window.Tutorial.maybeStart === "function") {
+    window.Tutorial.maybeStart();
+  }
 }
 
 
