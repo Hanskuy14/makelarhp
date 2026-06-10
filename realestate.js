@@ -813,7 +813,7 @@
             <div class="ruko-service-quote">
               <input type="text" inputmode="numeric" pattern="[0-9]*"
                      class="ruko-service-input"
-                     placeholder="Biaya Servis (IDR)"
+                     placeholder="${t("placeholders.serviceFee")}"
                      value="${q.baseCost * 2}"
                      data-id="${q.id}" />
               <button class="modal-btn modal-btn-primary ruko-quote-btn"
